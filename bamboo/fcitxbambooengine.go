@@ -1,6 +1,7 @@
 /*
  * SPDX-FileCopyrightText: 2018 Luong Thanh Lam <ltlam93@gmail.com>
  * SPDX-FileCopyrightText: 2022-2022 CSSlayer <wengxt@gmail.com>
+ * SPDX-FileCopyrightText: 2026-2026 Nguyen Hoang Ky <nhktmdzhg@gmail.com>
  *
  * SPDX-License-Identifier: LGPL-2.1-or-later
  *
@@ -333,7 +334,7 @@ func (e *FcitxBambooEngine) getCommitText(keyVal, state uint32, oldText string) 
 		}
 		if bamboo.HasAnyVietnameseRune(oldText) && e.mustFallbackToEnglish() {
 			e.preeditor.RestoreLastWord(false)
-			newText := e.getProcessedString(bamboo.EnglishMode | bamboo.FullText) + string(keyRune)
+			newText := e.getProcessedString(bamboo.EnglishMode|bamboo.FullText) + string(keyRune)
 			e.preeditor.ProcessKey(keyRune, bamboo.EnglishMode)
 			return newText, true
 		}

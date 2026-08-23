@@ -229,9 +229,9 @@ namespace fcitx {
         OptionWithAnnotation<BracketTransformMode, BracketTransformModeI18NAnnotation> bracketTransform{this, "BracketTransform", _("Type [ -> ơ, ] -> ư, { -> Ơ, } -> Ư"),
                                                                                                         BracketTransformMode::Disabled};
 
-        Option<bool> spellCheck{this, "SpellCheck", _("Enable Spell Check"), true}; Option<bool> enableMacro{this, "EnableMacro", _("Enable Macro"), true};
-        Option<bool>                                                                             capitalizeMacro{this, "CapitalizeMacro", _("Capitalize Macro"), true};
-        OptionWithAnnotation<MacroSkipTriggerModifier, MacroSkipTriggerModifierI18NAnnotation>   macroSkipTriggerModifier{
+        Option<bool> spellCheck{this, "SpellCheck", _("Enable Spell Check Using Dictionary"), true}; Option<bool> enableMacro{this, "EnableMacro", _("Enable Macro"), true};
+        Option<bool>                                                                           capitalizeMacro{this, "CapitalizeMacro", _("Capitalize Macro"), true};
+        OptionWithAnnotation<MacroSkipTriggerModifier, MacroSkipTriggerModifierI18NAnnotation> macroSkipTriggerModifier{
             this, "MacroSkipTriggerModifier", _("Modifier to Skip Macro for Next Word"), MacroSkipTriggerModifier::Disabled};
         Option<bool>        autoCapitalizeAfterPunctuation{this, "AutoCapitalizeAfterPunctuation", _("Auto capitalize after sentence-ending punctuation (. ! ? Enter)"), false};
         Option<bool>        doubleSpaceToPeriod{this, "DoubleSpaceToPeriod", _("Double Space to Period"), false};

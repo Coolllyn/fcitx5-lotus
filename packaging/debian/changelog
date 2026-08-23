@@ -1,6 +1,5 @@
-fcitx5-lotus (3.5.3-1) unstable; urgency=medium
+fcitx5-lotus (3.5.4-1) unstable; urgency=medium
 
-  * Fix cannot use ctrl to commit in preedit mode
-  * Fix detect icon theme in various environment
+  * Fix cannot type some valid Vietnamese rimes (boặm, moắm, noằm) when using spelling check rules
 
- -- Nguyen Hoang Ky <nhktmdzhg@gmail.com>  Thu, 20 Aug 2026 23:16:00 +0700
+ -- Nguyen Hoang Ky <nhktmdzhg@gmail.com>  Mon, 24 Aug 2026 00:19:13 +0700

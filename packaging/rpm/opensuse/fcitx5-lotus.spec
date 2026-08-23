@@ -1,5 +1,5 @@
 Name:           fcitx5-lotus
-Version:        3.5.3
+Version:        3.5.4
 Release:        1
 Summary:        Vietnamese input method for fcitx5
 License:        GPL-3.0-or-later
@@ -129,10 +129,6 @@ Vietnamese input method for fcitx5
 
 %{_datadir}/metainfo/org.fcitx.Fcitx5.Addon.Lotus.metainfo.xml
 
-%clean
-rm -rf %{buildroot}
-rm -rf %{_builddir}/%{name}-%{version}
-
 %pre
 %sysusers_create_package lotus %{_prefix}/lib/sysusers.d/lotus.conf
 
@@ -174,6 +170,5 @@ fi
 %systemd_postun_with_restart fcitx5-lotus-server@.service
 
 %changelog
-* Thu Aug 20 2026 Nguyen Hoang Ky <nhktmdzhg@gmail.com> - 3.5.2-1
-- Fix cannot use ctrl to commit in preedit mode
-- Fix detect icon theme in various environment
+* Mon Aug 24 2026 Nguyen Hoang Ky <nhktmdzhg@gmail.com> - 3.5.4-1
+- Fix cannot type some valid Vietnamese rimes (boặm, moắm, noằm) when using spelling check rules

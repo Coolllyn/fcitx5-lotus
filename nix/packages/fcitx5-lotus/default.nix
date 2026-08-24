@@ -25,7 +25,7 @@ stdenv.mkDerivation rec {
   src = fetchFromGitHub {
     owner = "LotusInputMethod";
     repo = "fcitx5-lotus";
-    rev = "v${version}";
+    tag = "v${version}";
     fetchSubmodules = true;
     hash = "sha256-mxI7P6+JmA49scupPugkdVypEZKRAXAfpo9QP4Q8Fq4=";
   };
@@ -82,9 +82,27 @@ stdenv.mkDerivation rec {
     substituteInPlace src/lotus-monitor.cpp \
       --replace-fail 'strcmp(exe_path, "/usr/bin/fcitx5-lotus-server") == 0' \
                 '(strncmp(exe_path, "/nix/store/", 11) == 0 && strlen(exe_path) >= 24 && strcmp(exe_path + strlen(exe_path) - 24, "/bin/fcitx5-lotus-server") == 0)'
+
     substituteInPlace server/lotus-server.cpp \
       --replace-fail 'strcmp(exe_path, "/usr/bin/fcitx5") == 0' \
                 '(strncmp(exe_path, "/nix/store/", 11) == 0 && strlen(exe_path) >= 11 && strcmp(exe_path + strlen(exe_path) - 11, "/bin/fcitx5") == 0)'
+
+    substituteInPlace settings-gui/i18n.py \
+      --replace-fail 'localedir = "/usr/share/locale"' \
+                      'localedir = "'"$out"'/share/locale"'
+
+    substituteInPlace settings-gui/ui/pages/dict_editor.py \
+      --replace-fail \
+'paths = [
+            "/usr/share/fcitx5/lotus/vietnamese.cm.dict",
+            "/usr/local/share/fcitx5/lotus/vietnamese.cm.dict",
+        ]' \
+'paths = [
+            "'"$out"'/share/fcitx5/lotus/vietnamese.cm.dict",
+        ]'
+
+    substituteInPlace src/lotus-engine.cpp \
+      --replace-fail '/usr/share/icons/hicolor' '/run/current-system/sw/share/icons/hicolor'
   '';
 
   postInstall = ''
@@ -103,6 +121,7 @@ stdenv.mkDerivation rec {
 
   meta = with lib; {
     description = "Fcitx5 Lotus input method for Vietnamese typing";
+    homepage = "https://github.com/LotusInputMethod/fcitx5-lotus";
     license = licenses.gpl3;
     platforms = platforms.linux;
   };

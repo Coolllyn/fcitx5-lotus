@@ -82,3 +82,24 @@ jobs:
         uses: github/codeql-action/analyze@v4.37.7
         with:
           checkout_path: fcitx5-lotus
+  go-test:
+    name: Go test
+    runs-on: ubuntu-latest
+    needs: clang-format
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: true
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.26.5'
+      - name: Test
+        working-directory: bamboo
+        run: go test -race ./...
+      - name: Vet
+        working-directory: bamboo
+        run: go vet ./...
+      - name: gofmt
+        working-directory: bamboo
+        run: |
+          test -z "$(gofmt -l *_test.go)"

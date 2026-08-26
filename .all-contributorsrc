@@ -67,15 +67,6 @@
       ]
     },
     {
-      "login": "ductrantrong",
-      "name": "ductrantrong",
-      "avatar_url": "https://avatars.githubusercontent.com/u/96020037?v=4",
-      "profile": "https://github.com/ductrantrong",
-      "contributions": [
-        "code"
-      ]
-    },
-    {
       "login": "hien-ngo29",
       "name": "Ngo Phu Hien",
       "avatar_url": "https://avatars.githubusercontent.com/u/98635550?v=4",
@@ -130,15 +121,6 @@
       ]
     },
     {
-      "login": "0353618151hao-png",
-      "name": "nothing",
-      "avatar_url": "https://avatars.githubusercontent.com/u/259352926?v=4",
-      "profile": "https://github.com/0353618151hao-png",
-      "contributions": [
-        "code"
-      ]
-    },
-    {
       "login": "dismonjames",
       "name": "Lê Hùng Quang Minh",
       "avatar_url": "https://avatars.githubusercontent.com/u/158133523?v=4",
@@ -163,6 +145,26 @@
       "profile": "https://github.com/collyn",
       "contributions": [
         "code"
+      ]
+    },
+    {
+      "login": "ducky-duke",
+      "name": "ducky-duke",
+      "avatar_url": "https://avatars.githubusercontent.com/u/96020037?v=4",
+      "profile": "https://github.com/ducky-duke",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "Leanhduc-linux",
+      "name": "nothing",
+      "avatar_url": "https://avatars.githubusercontent.com/u/259352926?v=4",
+      "profile": "https://github.com/Leanhduc-linux",
+      "contributions": [
+        "code",
+        "bug",
+        "platform"
       ]
     }
   ],

@@ -98,7 +98,7 @@ Vui lòng xem hướng dẫn chi tiết [tại đây](CONTRIBUTING.md) để bi�
 
 ## Những người đóng góp ✨
 
-Cảm ơn những con người tuyệt vời ([chú thích emoji](https://allcontributors.org/docs/en/emoji-key)):
+Cảm ơn những con người tuyệt vời ([chú thích emoji](https://allcontributors.org/en/reference/emoji-key)):
 
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
 <!-- prettier-ignore-start -->

@@ -210,3 +210,17 @@ jobs:
           name: arch-tar-zst
           path: fcitx5-lotus-*-x86_64-archlinux.tar.zst
           retention-days: 3
+  ci-success:
+    name: CI success
+    if: ${{ !cancelled() }}
+    needs: [build-deb, build-rpm-fedora, build-rpm-opensuse, build-arch]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check all jobs passed
+        env:
+          RESULTS: ${{ toJSON(needs.*.result) }}
+        run: |
+          case "$RESULTS" in
+            *"failure"*|*"cancelled"*) echo "::error::A CI job failed or was cancelled"; exit 1;;
+          esac
+          echo "All CI jobs passed"

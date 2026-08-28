@@ -477,7 +477,7 @@ namespace fcitx {
         pending_commit_string_   = addedPart;
         expected_backspaces_     = static_cast<int>(utf8::length(deletedPart));
         const auto& surrounding  = ic_->surroundingText();
-        bool        isSurrText   = ic_->capabilityFlags().test(CapabilityFlag::SurroundingText) && surrounding.isValid();
+        bool        isSurrText   = ic_->capabilityFlags().test(CapabilityFlag::SurroundingText) && surrounding.isValid() && !surrounding.text().empty();
         if (!isSurrText && realMode != LotusMode::Minecraft) {
             ++expected_backspaces_;
             if (realMode != LotusMode::SuperSmooth) {
@@ -494,7 +494,7 @@ namespace fcitx {
         if (isSurrText) {
             ic_->deleteSurroundingText(-expected_backspaces_, expected_backspaces_);
             LOTUS_INFO("Delete using surrounding text");
-            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+            std::this_thread::sleep_for(std::chrono::milliseconds((realMode == LotusMode::Uinput) ? 20 : 5));
             if (!pending_commit_string_.empty()) {
                 ic_->commitString(pending_commit_string_);
                 LOTUS_INFO("Commit: " + pending_commit_string_);

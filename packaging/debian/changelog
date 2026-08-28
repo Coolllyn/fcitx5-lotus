@@ -1,5 +1,6 @@
-fcitx5-lotus (3.5.4-1) unstable; urgency=medium
+fcitx5-lotus (3.5.5-1) unstable; urgency=medium
 
-  * Fix cannot type some valid Vietnamese rimes (boặm, moắm, noằm) when using spelling check rules
+  * Fix bug lost char in meta's website
+  * Optimize the engine
 
- -- Nguyen Hoang Ky <nhktmdzhg@gmail.com>  Mon, 24 Aug 2026 00:19:13 +0700
+ -- Nguyen Hoang Ky <nhktmdzhg@gmail.com>  Sat, 29 Aug 2026 00:12:00 +0700

@@ -92,3 +92,17 @@ jobs:
         with:
           name: build-log
           path: build.log
+  ci-success:
+    name: CI success
+    if: ${{ !cancelled() }}
+    needs: [nix-flake-check, build-package]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check all jobs passed
+        env:
+          RESULTS: ${{ toJSON(needs.*.result) }}
+        run: |
+          case "$RESULTS" in
+            *"failure"*|*"cancelled"*) echo "::error::A CI job failed or was cancelled"; exit 1;;
+          esac
+          echo "All CI jobs passed"

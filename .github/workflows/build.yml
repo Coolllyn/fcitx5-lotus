@@ -107,3 +107,17 @@ jobs:
         working-directory: bamboo
         run: |
           test -z "$(gofmt -l *_test.go)"
+  ci-success:
+    name: CI success
+    if: ${{ !cancelled() }}
+    needs: [check, go-test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check all jobs passed
+        env:
+          RESULTS: ${{ toJSON(needs.*.result) }}
+        run: |
+          case "$RESULTS" in
+            *"failure"*|*"cancelled"*) echo "::error::A CI job failed or was cancelled"; exit 1;;
+          esac
+          echo "All CI jobs passed"

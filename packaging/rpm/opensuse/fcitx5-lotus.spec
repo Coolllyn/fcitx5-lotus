@@ -46,7 +46,6 @@ Vietnamese input method for fcitx5
 %find_lang %{name}
 
 %files -f %{name}.lang
-%defattr(-,root,root,-)
 %dir %{_datadir}/licenses/%{name}
 %license %{_datadir}/licenses/%{name}/GPL-3.0-or-later.txt
 %license %{_datadir}/licenses/%{name}/LGPL-2.1-or-later.txt

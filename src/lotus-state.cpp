@@ -476,10 +476,11 @@ namespace fcitx {
         current_backspace_count_ = 0;
         pending_commit_string_   = addedPart;
         expected_backspaces_     = static_cast<int>(utf8::length(deletedPart));
-        if (realMode != LotusMode::Minecraft) {
+        const auto& surrounding  = ic_->surroundingText();
+        bool        isSurrText   = ic_->capabilityFlags().test(CapabilityFlag::SurroundingText) && surrounding.isValid();
+        if (!isSurrText && realMode != LotusMode::Minecraft) {
             ++expected_backspaces_;
             if (realMode != LotusMode::SuperSmooth) {
-                const auto& surrounding = ic_->surroundingText();
                 // Enable Autofill detection for all frontends (Wayland/IBus).
                 // This fixes the "toôi" duplication bug in Chromium-based search bars.
                 // The isAutofillCertain function has been optimized to differentiate
@@ -490,6 +491,21 @@ namespace fcitx {
             }
         }
         is_deleting_.store(true, std::memory_order_release);
+        if (isSurrText) {
+            ic_->deleteSurroundingText(-expected_backspaces_, expected_backspaces_);
+            LOTUS_INFO("Delete using surrounding text");
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+            if (!pending_commit_string_.empty()) {
+                ic_->commitString(pending_commit_string_);
+                LOTUS_INFO("Commit: " + pending_commit_string_);
+            }
+            expected_backspaces_     = 0;
+            current_backspace_count_ = 0;
+            pending_commit_string_.clear();
+            is_deleting_.store(false);
+            replayBufferedKeys();
+            return;
+        }
         send_backspace_uinput(expected_backspaces_);
         LOTUS_INFO("Send " + std::to_string(expected_backspaces_) + " backspaces");
     }
@@ -785,6 +801,7 @@ namespace fcitx {
 
                 if (charsToDelete > 0) {
                     ic->deleteSurroundingText(-static_cast<int>(charsToDelete), static_cast<int>(charsToDelete));
+                    std::this_thread::sleep_for(std::chrono::milliseconds(5));
                 }
 
                 if (!addedPart.empty()) {

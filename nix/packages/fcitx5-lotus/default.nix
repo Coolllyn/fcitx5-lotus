@@ -20,14 +20,14 @@
 }:
 stdenv.mkDerivation rec {
   pname = "fcitx5-lotus";
-  version = "3.5.4";
+  version = "3.5.5";
 
   src = fetchFromGitHub {
     owner = "LotusInputMethod";
     repo = "fcitx5-lotus";
     tag = "v${version}";
     fetchSubmodules = true;
-    hash = "sha256-mxI7P6+JmA49scupPugkdVypEZKRAXAfpo9QP4Q8Fq4=";
+    hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
   };
 
   nativeBuildInputs = [
@@ -62,7 +62,7 @@ stdenv.mkDerivation rec {
       pname = "fcitx5-lotus-go-modules";
       inherit version src;
       modRoot = "bamboo";
-      vendorHash = "sha256-5JyHetHKxSapHYbBhCX1XBfhPoIs9mnlBe53pB7qlyI=";
+      vendorHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
     }).goModules;
 
   preConfigure = ''

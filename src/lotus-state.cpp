@@ -477,7 +477,8 @@ namespace fcitx {
         pending_commit_string_   = addedPart;
         expected_backspaces_     = static_cast<int>(utf8::length(deletedPart));
         const auto& surrounding  = ic_->surroundingText();
-        bool        isSurrText   = ic_->capabilityFlags().test(CapabilityFlag::SurroundingText) && surrounding.isValid() && !surrounding.text().empty();
+        bool        isSurrText = engine_->config().useSurroundingTextIfPossible.value() && ic_->capabilityFlags().test(CapabilityFlag::SurroundingText) && surrounding.isValid() &&
+            !surrounding.text().empty();
         if (!isSurrText && realMode != LotusMode::Minecraft) {
             ++expected_backspaces_;
             if (realMode != LotusMode::SuperSmooth) {

@@ -1,6 +1,5 @@
-fcitx5-lotus (3.5.5-1) unstable; urgency=medium
+fcitx5-lotus (3.5.6-1) unstable; urgency=medium
 
-  * Fix bug lost char in meta's website
-  * Optimize the engine
+  * Add surrtext as option
 
- -- Nguyen Hoang Ky <nhktmdzhg@gmail.com>  Sat, 29 Aug 2026 00:12:00 +0700
+ -- Nguyen Hoang Ky <nhktmdzhg@gmail.com>  Sat, 29 Aug 2026 09:45:00 +0700

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-23 22:59+0700\n"
+"POT-Creation-Date: 2026-08-29 09:44+0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,36 +17,89 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/lotus-config.h:40 src/lotus-engine.cpp:990 src/lotus-engine.cpp:1099
-msgid "OFF"
+#: src/lotus-engine.cpp:215
+msgid "Charset"
 msgstr ""
 
-#: src/lotus-config.h:40 src/lotus-engine.cpp:984 src/lotus-engine.cpp:1093
+#: src/lotus-engine.cpp:242 src/lotus-engine.cpp:382
+msgid "Spell Check"
+msgstr ""
+
+#: src/lotus-engine.cpp:243 src/lotus-engine.cpp:383 src/lotus-config.h:203
+#: src/lotus-config.h:274
+msgid "Macro"
+msgstr ""
+
+#: src/lotus-engine.cpp:244 src/lotus-engine.cpp:384 src/lotus-config.h:233
+msgid "Capitalize Macro"
+msgstr ""
+
+#: src/lotus-engine.cpp:246 src/lotus-config.h:239
+msgid "Auto Restore Invalid Words"
+msgstr ""
+
+#: src/lotus-engine.cpp:246 src/lotus-engine.cpp:385
+msgid "Auto Non-VN Restore"
+msgstr ""
+
+#: src/lotus-engine.cpp:248 src/lotus-engine.cpp:386 src/lotus-config.h:246
+msgid "Custom Dictionary"
+msgstr ""
+
+#: src/lotus-engine.cpp:252
+msgid "Settings"
+msgstr ""
+
+#: src/lotus-engine.cpp:984 src/lotus-engine.cpp:1093 src/lotus-config.h:40
 msgid "Uinput (Smooth)"
 msgstr ""
 
-#: src/lotus-config.h:40 src/lotus-engine.cpp:991 src/lotus-engine.cpp:1100
-msgid "Uinput (Super Smooth)"
-msgstr ""
-
-#: src/lotus-config.h:40 src/lotus-engine.cpp:985 src/lotus-engine.cpp:1094
+#: src/lotus-engine.cpp:985 src/lotus-engine.cpp:1094 src/lotus-config.h:40
 msgid "Uinput (Slow)"
 msgstr ""
 
-#: src/lotus-config.h:40 src/lotus-engine.cpp:987 src/lotus-engine.cpp:1096
+#: src/lotus-engine.cpp:986 src/lotus-engine.cpp:1095 src/lotus-config.h:41
+msgid "Minecraft"
+msgstr ""
+
+#: src/lotus-engine.cpp:987 src/lotus-engine.cpp:1096 src/lotus-config.h:40
 msgid "Surrounding Text"
 msgstr ""
 
-#: src/lotus-config.h:40 src/lotus-engine.cpp:988 src/lotus-engine.cpp:1097
+#: src/lotus-engine.cpp:988 src/lotus-engine.cpp:1097 src/lotus-config.h:40
 msgid "Preedit"
 msgstr ""
 
-#: src/lotus-config.h:41 src/lotus-engine.cpp:989 src/lotus-engine.cpp:1098
+#: src/lotus-engine.cpp:989 src/lotus-engine.cpp:1098 src/lotus-config.h:41
 msgid "Emoji Picker"
 msgstr ""
 
-#: src/lotus-config.h:41 src/lotus-engine.cpp:986 src/lotus-engine.cpp:1095
-msgid "Minecraft"
+#: src/lotus-engine.cpp:990 src/lotus-engine.cpp:1099 src/lotus-config.h:40
+msgid "OFF"
+msgstr ""
+
+#: src/lotus-engine.cpp:991 src/lotus-engine.cpp:1100 src/lotus-config.h:40
+msgid "Uinput (Super Smooth)"
+msgstr ""
+
+#: src/lotus-engine.cpp:992 src/lotus-engine.cpp:1037
+msgid "Default Typing"
+msgstr ""
+
+#: src/lotus-engine.cpp:1059
+msgid "Type"
+msgstr ""
+
+#: src/lotus-engine.cpp:1076
+msgid "App: "
+msgstr ""
+
+#: src/lotus-engine.cpp:1101
+msgid "Unknown Mode"
+msgstr ""
+
+#: src/lotus-engine.cpp:1206
+msgid "Lotus - Off"
 msgstr ""
 
 #: src/lotus-config.h:58 src/lotus-config.h:69 src/lotus-config.h:81
@@ -93,12 +146,7 @@ msgstr ""
 msgid "Value"
 msgstr ""
 
-#: src/lotus-config.h:203 src/lotus-config.h:272 src/lotus-engine.cpp:243
-#: src/lotus-engine.cpp:383
-msgid "Macro"
-msgstr ""
-
-#: src/lotus-config.h:207 src/lotus-config.h:247 src/lotus-config.h:273
+#: src/lotus-config.h:207 src/lotus-config.h:247 src/lotus-config.h:275
 msgid "Custom Keymap"
 msgstr ""
 
@@ -150,10 +198,6 @@ msgstr ""
 msgid "Enable Macro"
 msgstr ""
 
-#: src/lotus-config.h:233 src/lotus-engine.cpp:244 src/lotus-engine.cpp:384
-msgid "Capitalize Macro"
-msgstr ""
-
 #: src/lotus-config.h:235
 msgid "Modifier to Skip Macro for Next Word"
 msgstr ""
@@ -168,10 +212,6 @@ msgstr ""
 
 #: src/lotus-config.h:238
 msgid "Double Hyphen to Em-Dash (--)"
-msgstr ""
-
-#: src/lotus-config.h:239 src/lotus-engine.cpp:246
-msgid "Auto Restore Invalid Words"
 msgstr ""
 
 #: src/lotus-config.h:240
@@ -192,10 +232,6 @@ msgstr ""
 
 #: src/lotus-config.h:244
 msgid "Use Lotus Status Icons"
-msgstr ""
-
-#: src/lotus-config.h:246 src/lotus-engine.cpp:248 src/lotus-engine.cpp:386
-msgid "Custom Dictionary"
 msgstr ""
 
 #: src/lotus-config.h:249
@@ -275,55 +311,23 @@ msgid "Allow Macro in Off Mode"
 msgstr ""
 
 #: src/lotus-config.h:267
-msgid "Mode Order"
+msgid "Use Surrounding Text if possible"
 msgstr ""
 
 #: src/lotus-config.h:269
+msgid "Mode Order"
+msgstr ""
+
+#: src/lotus-config.h:271
 msgid "Time Format ($TIME in macro)"
 msgstr ""
 
-#: src/lotus-config.h:270
+#: src/lotus-config.h:272
 msgid "Date Format ($DATE in macro)"
 msgstr ""
 
-#: src/lotus-config.h:274
+#: src/lotus-config.h:276
 msgid "Icon Color"
-msgstr ""
-
-#: src/lotus-engine.cpp:215
-msgid "Charset"
-msgstr ""
-
-#: src/lotus-engine.cpp:242 src/lotus-engine.cpp:382
-msgid "Spell Check"
-msgstr ""
-
-#: src/lotus-engine.cpp:246 src/lotus-engine.cpp:385
-msgid "Auto Non-VN Restore"
-msgstr ""
-
-#: src/lotus-engine.cpp:252
-msgid "Settings"
-msgstr ""
-
-#: src/lotus-engine.cpp:992 src/lotus-engine.cpp:1037
-msgid "Default Typing"
-msgstr ""
-
-#: src/lotus-engine.cpp:1059
-msgid "Type"
-msgstr ""
-
-#: src/lotus-engine.cpp:1076
-msgid "App: "
-msgstr ""
-
-#: src/lotus-engine.cpp:1101
-msgid "Unknown Mode"
-msgstr ""
-
-#: src/lotus-engine.cpp:1206
-msgid "Lotus - Off"
 msgstr ""
 
 #: src/lotus-state.cpp:237
@@ -521,46 +525,6 @@ msgstr ""
 
 #: settings-gui/ui/pages/backup.py:314
 msgid "Failed to restore backup:\n"
-msgstr ""
-
-#: settings-gui/ui/pages/dynamic_settings.py:78
-msgid "Configure basic input method settings and behaviors."
-msgstr ""
-
-#: settings-gui/ui/pages/dynamic_settings.py:80
-msgid "Customize the look and feel of the Lotus status icons and theme."
-msgstr ""
-
-#: settings-gui/ui/pages/dynamic_settings.py:83
-msgid "Fine-tune spelling corrections and advanced typing options."
-msgstr ""
-
-#: settings-gui/ui/pages/dynamic_settings.py:86
-msgid "Manage input mode shortcuts, display order, and fast cycling."
-msgstr ""
-
-#: settings-gui/ui/pages/dynamic_settings.py:92
-msgid ""
-"Assign hotkeys to open the mode menu or quickly cycle through enabled modes."
-msgstr ""
-
-#: settings-gui/ui/pages/dynamic_settings.py:218
-msgid "Failed to load configuration."
-msgstr ""
-
-#: settings-gui/ui/pages/dynamic_settings.py:260
-msgid ""
-"Drag the handle on the left to reorder modes in the menu. Use checkboxes to "
-"toggle visibility, and click the buttons to reassign shortcuts."
-msgstr ""
-
-#: settings-gui/ui/pages/dynamic_settings.py:295
-msgid "No interface settings available yet."
-msgstr ""
-
-#: settings-gui/ui/pages/dynamic_settings.py:590
-#, python-brace-format
-msgid "Duplicate shortcut '{}' used for multiple enabled modes."
 msgstr ""
 
 #: settings-gui/ui/pages/keymap_editor.py:221
@@ -804,46 +768,44 @@ msgstr ""
 msgid "Macro keys cannot contain spaces or special characters."
 msgstr ""
 
-#: settings-gui/ui/helpers.py:15
-msgid "You can type tone marks at the end of the word or anywhere inside."
+#: settings-gui/ui/pages/dynamic_settings.py:79
+msgid "Configure basic input method settings and behaviors."
 msgstr ""
 
-#: settings-gui/ui/helpers.py:18
-msgid ""
-"Fix typing issues in Uinput mode for Chromium-based browsers like Chrome or "
-"Edge."
+#: settings-gui/ui/pages/dynamic_settings.py:81
+msgid "Customize the look and feel of the Lotus status icons and theme."
 msgstr ""
 
-#: settings-gui/ui/helpers.py:21
-msgid ""
-"Automatically match expansion case to trigger key case.\n"
-"\n"
-"Example if 'kg' is 'khô gà':\n"
-"- kg -> khô gà\n"
-"- Kg -> Khô gà\n"
-"- KG -> KHÔ GÀ"
+#: settings-gui/ui/pages/dynamic_settings.py:84
+msgid "Fine-tune spelling corrections and advanced typing options."
 msgstr ""
 
-#: settings-gui/ui/helpers.py:28
-msgid ""
-"Automatically revert the typed sequence if the resulting word is not in the "
-"dictionary.\n"
-"This helps prevent accidental Vietnamese transformations on English words or "
-"mixed text."
+#: settings-gui/ui/pages/dynamic_settings.py:87
+msgid "Manage input mode shortcuts, display order, and fast cycling."
 msgstr ""
 
-#: settings-gui/ui/helpers.py:32
+#: settings-gui/ui/pages/dynamic_settings.py:93
 msgid ""
-"Allow macros to work when the input mode is OFF.\n"
-"When disabled, macros are only available in active typing modes."
+"Assign hotkeys to open the mode menu or quickly cycle through enabled modes."
 msgstr ""
 
-#: settings-gui/ui/helpers.py:36
+#: settings-gui/ui/pages/dynamic_settings.py:219
+msgid "Failed to load configuration."
+msgstr ""
+
+#: settings-gui/ui/pages/dynamic_settings.py:261
 msgid ""
-"Press and release the selected modifier key before typing to skip macro "
-"expansion for the next word.\n"
-"If another key is pressed between the modifier's press and release, the skip "
-"is cancelled."
+"Drag the handle on the left to reorder modes in the menu. Use checkboxes to "
+"toggle visibility, and click the buttons to reassign shortcuts."
+msgstr ""
+
+#: settings-gui/ui/pages/dynamic_settings.py:296
+msgid "No interface settings available yet."
+msgstr ""
+
+#: settings-gui/ui/pages/dynamic_settings.py:591
+#, python-brace-format
+msgid "Duplicate shortcut '{}' used for multiple enabled modes."
 msgstr ""
 
 #: settings-gui/ui/main_window.py:34
@@ -904,6 +866,48 @@ msgstr ""
 
 #: settings-gui/ui/main_window.py:315
 msgid "Settings saved."
+msgstr ""
+
+#: settings-gui/ui/helpers.py:15
+msgid "You can type tone marks at the end of the word or anywhere inside."
+msgstr ""
+
+#: settings-gui/ui/helpers.py:18
+msgid ""
+"Fix typing issues in Uinput mode for Chromium-based browsers like Chrome or "
+"Edge."
+msgstr ""
+
+#: settings-gui/ui/helpers.py:21
+msgid ""
+"Automatically match expansion case to trigger key case.\n"
+"\n"
+"Example if 'kg' is 'khô gà':\n"
+"- kg -> khô gà\n"
+"- Kg -> Khô gà\n"
+"- KG -> KHÔ GÀ"
+msgstr ""
+
+#: settings-gui/ui/helpers.py:28
+msgid ""
+"Automatically revert the typed sequence if the resulting word is not in the "
+"dictionary.\n"
+"This helps prevent accidental Vietnamese transformations on English words or "
+"mixed text."
+msgstr ""
+
+#: settings-gui/ui/helpers.py:32
+msgid ""
+"Allow macros to work when the input mode is OFF.\n"
+"When disabled, macros are only available in active typing modes."
+msgstr ""
+
+#: settings-gui/ui/helpers.py:36
+msgid ""
+"Press and release the selected modifier key before typing to skip macro "
+"expansion for the next word.\n"
+"If another key is pressed between the modifier's press and release, the skip "
+"is cancelled."
 msgstr ""
 
 #: settings-gui/org.fcitx.Fcitx5.Addon.Lotus.Settings.desktop.in:2

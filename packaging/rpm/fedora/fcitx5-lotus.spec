@@ -1,5 +1,5 @@
 Name:           fcitx5-lotus
-Version:        3.5.5
+Version:        3.5.6
 Release:        1
 Summary:        Vietnamese input method for fcitx5
 License:        GPL-3.0-or-later
@@ -165,6 +165,5 @@ fi
 %systemd_postun_with_restart fcitx5-lotus-server@.service
 
 %changelog
-* Sat Aug 29 2026 Nguyen Hoang Ky <nhktmdzhg@gmail.com> - 3.5.5-1
-- Fix bug lost char in meta's website
-- Optimize the engine
+* Sat Aug 29 2026 Nguyen Hoang Ky <nhktmdzhg@gmail.com> - 3.5.6-1
+- Add surrtext as option

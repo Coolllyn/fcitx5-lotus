@@ -4,7 +4,7 @@ Release:        1
 Summary:        Vietnamese input method for fcitx5
 License:        GPL-3.0-or-later
 URL:            https://github.com/LotusInputMethod/fcitx5-lotus
-Source0:        %{name}-%{version}.tar.gz
+Source0:        %{url}/archive/v%{version}/%{name}-%{version}.tar.gz
 
 BuildRequires:  cmake
 BuildRequires:  extra-cmake-modules

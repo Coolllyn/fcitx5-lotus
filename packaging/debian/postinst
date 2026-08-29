@@ -19,8 +19,7 @@ if [ "$1" = "configure" ]; then
     systemd-sysusers || true
     
     if [ -z "$2" ]; then
-        if systemctl enable --now "fcitx5-lotus-server@${REAL_USER}.service" 2>/dev/null; then
-        else
+        if ! systemctl enable --now "fcitx5-lotus-server@${REAL_USER}.service" 2>/dev/null; then
             printf "%b\n" "  ${yellow}⚠ Chạy lệnh sau để bật service: sudo systemctl enable --now fcitx5-lotus-server@${REAL_USER}.service${all_off}"
         fi
         

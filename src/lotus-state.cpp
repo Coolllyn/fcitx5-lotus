@@ -473,12 +473,13 @@ namespace fcitx {
 
     void LotusState::performReplacement(const std::string& deletedPart, const std::string& addedPart) {
         LOTUS_INFO("Perform replacement: " + deletedPart + " -> " + addedPart); //NOLINT
-        current_backspace_count_ = 0;
-        pending_commit_string_   = addedPart;
-        expected_backspaces_     = static_cast<int>(utf8::length(deletedPart));
-        const auto& surrounding  = ic_->surroundingText();
-        bool        isSurrText = engine_->config().useSurroundingTextIfPossible.value() && ic_->capabilityFlags().test(CapabilityFlag::SurroundingText) && surrounding.isValid() &&
-            !surrounding.text().empty();
+        current_backspace_count_      = 0;
+        pending_commit_string_        = addedPart;
+        expected_backspaces_          = static_cast<int>(utf8::length(deletedPart));
+        const auto&       surrounding = ic_->surroundingText();
+        const std::string surrText    = surrounding.text();
+        bool isSurrText = engine_->config().useSurroundingTextIfPossible.value() && ic_->capabilityFlags().test(CapabilityFlag::SurroundingText) && surrounding.isValid() &&
+            !surrText.empty() && surrounding.cursor() == utf8::length(surrText);
         if (!isSurrText && realMode != LotusMode::Minecraft) {
             ++expected_backspaces_;
             if (realMode != LotusMode::SuperSmooth) {

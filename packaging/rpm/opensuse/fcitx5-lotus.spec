@@ -7,7 +7,7 @@ URL:            https://github.com/LotusInputMethod/fcitx5-lotus
 Source0:        %{url}/archive/v%{version}/%{name}-%{version}.tar.gz
 
 BuildRequires:  cmake
-BuildRequires:  extra-cmake-modules
+BuildRequires:  kf6-extra-cmake-modules
 BuildRequires:  gcc-c++
 BuildRequires:  glibc-devel
 BuildRequires:  fcitx5-devel
@@ -18,8 +18,8 @@ BuildRequires:  libX11-devel
 
 BuildRequires:  go
 BuildRequires:  python-rpm-macros
-Requires(post): udev
 BuildRequires:  sysuser-tools
+Requires(pre):  sysuser-shadow >= 3.1
 BuildRequires:  rsvg-convert
 
 %{?systemd_requires}
@@ -39,105 +39,45 @@ Vietnamese input method for fcitx5
 %build
 %cmake
 %cmake_build
-%sysusers_generate_pre %{_prefix}/lib/sysusers.d/lotus.conf lotus
+cd %{_builddir}/%{name}-%{version}
+%sysusers_generate_pre build/misc/user-lotus.conf lotus lotus.conf
 
 %install
 %cmake_install
 %find_lang %{name}
 
 %files -f %{name}.lang
-%dir %{_datadir}/licenses/%{name}
-%license %{_datadir}/licenses/%{name}/GPL-3.0-or-later.txt
-%license %{_datadir}/licenses/%{name}/LGPL-2.1-or-later.txt
+%license GPL-3.0-or-later.txt LGPL-2.1-or-later.txt
+
 %{_bindir}/fcitx5-lotus-server
 %{_bindir}/fcitx5-lotus-settings
 
-%dir %{_libdir}/fcitx5
 %{_libdir}/fcitx5/liblotus.so
 
-%{_prefix}/lib/modules-load.d/fcitx5-lotus.conf
+%{_modulesloaddir}/fcitx5-lotus.conf
 %{_unitdir}/fcitx5-lotus-server@.service
-%{_prefix}/lib/sysusers.d/lotus.conf
-%{_prefix}/lib/udev/rules.d/99-lotus.rules
+%{_sysusersdir}/lotus.conf
+%{_udevrulesdir}/99-lotus.rules
 
 %{_datadir}/fcitx5/addon/lotus.conf
 %{_datadir}/fcitx5/inputmethod/lotus.conf
 
-%dir %{_datadir}/fcitx5/lotus
-%{_datadir}/fcitx5/lotus/vietnamese.cm.dict
+%{_datadir}/fcitx5/lotus/
 
-%{_datadir}/fcitx5-lotus/settings-gui/
+%{_datadir}/fcitx5-lotus/
 %{_datadir}/applications/org.fcitx.Fcitx5.Addon.Lotus.Settings.desktop
 
-%{_datadir}/icons/hicolor/scalable/apps/fcitx-lotus.svg
-%{_datadir}/icons/hicolor/scalable/apps/org.fcitx.Fcitx5.fcitx-lotus.svg
-%{_datadir}/icons/hicolor/scalable/apps/fcitx-lotus-off.svg
-%{_datadir}/icons/hicolor/scalable/apps/org.fcitx.Fcitx5.fcitx-lotus-off.svg
-%{_datadir}/icons/hicolor/scalable/apps/fcitx-lotus-emoji.svg
-%{_datadir}/icons/hicolor/scalable/apps/org.fcitx.Fcitx5.fcitx-lotus-emoji.svg
-%{_datadir}/icons/hicolor/scalable/apps/fcitx-lotus-emoji-default.svg
-%{_datadir}/icons/hicolor/scalable/apps/fcitx-lotus-default.svg
-%{_datadir}/icons/hicolor/scalable/apps/fcitx-lotus-off-default.svg
-%{_datadir}/icons/hicolor/scalable/apps/fcitx-lotus-emoji-default-black.svg
-%{_datadir}/icons/hicolor/scalable/apps/fcitx-lotus-default-black.svg
-%{_datadir}/icons/hicolor/scalable/apps/fcitx-lotus-off-default-black.svg
-
-# Absolute-path icon resolution (see lotus-engine.cpp subModeIconImpl)
+%{_datadir}/icons/hicolor/scalable/apps/*fcitx-lotus*.svg
 %{_datadir}/icons/hicolor/scalable/status/fcitx-lotus*.svg
 %{_datadir}/icons/hicolor/*/status/fcitx-lotus*.png
-
-%{_datadir}/icons/breeze/status/22/fcitx-lotus-default.svg
-%{_datadir}/icons/breeze/status/22/fcitx-lotus-off-default.svg
-%{_datadir}/icons/breeze/status/22/fcitx-lotus-emoji-default.svg
-%{_datadir}/icons/breeze/status/22/fcitx-lotus-default-black.svg
-%{_datadir}/icons/breeze/status/22/fcitx-lotus-off-default-black.svg
-%{_datadir}/icons/breeze/status/22/fcitx-lotus-emoji-default-black.svg
-%{_datadir}/icons/breeze/status/22/fcitx-lotus.svg
-%{_datadir}/icons/breeze/status/22/fcitx-lotus-off.svg
-%{_datadir}/icons/breeze/status/22/fcitx-lotus-emoji.svg
-
-%{_datadir}/icons/breeze/status/24/fcitx-lotus-default.svg
-%{_datadir}/icons/breeze/status/24/fcitx-lotus-off-default.svg
-%{_datadir}/icons/breeze/status/24/fcitx-lotus-emoji-default.svg
-%{_datadir}/icons/breeze/status/24/fcitx-lotus-default-black.svg
-%{_datadir}/icons/breeze/status/24/fcitx-lotus-off-default-black.svg
-%{_datadir}/icons/breeze/status/24/fcitx-lotus-emoji-default-black.svg
-%{_datadir}/icons/breeze/status/24/fcitx-lotus.svg
-%{_datadir}/icons/breeze/status/24/fcitx-lotus-off.svg
-%{_datadir}/icons/breeze/status/24/fcitx-lotus-emoji.svg
-
-%{_datadir}/icons/breeze-dark/status/22/fcitx-lotus-default.svg
-%{_datadir}/icons/breeze-dark/status/22/fcitx-lotus-off-default.svg
-%{_datadir}/icons/breeze-dark/status/22/fcitx-lotus-emoji-default.svg
-%{_datadir}/icons/breeze-dark/status/22/fcitx-lotus-default-black.svg
-%{_datadir}/icons/breeze-dark/status/22/fcitx-lotus-off-default-black.svg
-%{_datadir}/icons/breeze-dark/status/22/fcitx-lotus-emoji-default-black.svg
-%{_datadir}/icons/breeze-dark/status/22/fcitx-lotus.svg
-%{_datadir}/icons/breeze-dark/status/22/fcitx-lotus-off.svg
-%{_datadir}/icons/breeze-dark/status/22/fcitx-lotus-emoji.svg
-
-%{_datadir}/icons/breeze-dark/status/24/fcitx-lotus-default.svg
-%{_datadir}/icons/breeze-dark/status/24/fcitx-lotus-off-default.svg
-%{_datadir}/icons/breeze-dark/status/24/fcitx-lotus-emoji-default.svg
-%{_datadir}/icons/breeze-dark/status/24/fcitx-lotus-default-black.svg
-%{_datadir}/icons/breeze-dark/status/24/fcitx-lotus-off-default-black.svg
-%{_datadir}/icons/breeze-dark/status/24/fcitx-lotus-emoji-default-black.svg
-%{_datadir}/icons/breeze-dark/status/24/fcitx-lotus.svg
-%{_datadir}/icons/breeze-dark/status/24/fcitx-lotus-off.svg
-%{_datadir}/icons/breeze-dark/status/24/fcitx-lotus-emoji.svg
-
+%{_datadir}/icons/breeze/status/*/fcitx-lotus*.svg
+%{_datadir}/icons/breeze-dark/status/*/fcitx-lotus*.svg
 %{_datadir}/metainfo/org.fcitx.Fcitx5.Addon.Lotus.metainfo.xml
 
-%pre
-%sysusers_create_package lotus %{_prefix}/lib/sysusers.d/lotus.conf
+%pre -f lotus.pre
 
 %post
 %systemd_post fcitx5-lotus-server@.service
-if [ -x /usr/bin/udevadm ]; then
-    /usr/sbin/modprobe uinput >/dev/null 2>&1 || :
-    /usr/bin/udevadm control --reload-rules >/dev/null 2>&1 || :
-    /usr/bin/udevadm trigger >/dev/null 2>&1 || :
-fi
 
 if [ $1 -eq 1 ]; then
     echo "--- Cấu hình Lotus ---"
@@ -160,7 +100,6 @@ elif [ $1 -eq 2 ]; then
     echo "2. Cấu hình Fcitx5:"
     echo "   - Mở 'Fcitx5 Configuration', nhấn restart để khởi động lại."
 fi
-
 
 %preun
 %systemd_preun fcitx5-lotus-server@.service

@@ -12,22 +12,19 @@ BuildRequires:  gcc-c++
 BuildRequires:  glibc-devel
 BuildRequires:  fcitx5-devel
 BuildRequires:  libinput-devel
-BuildRequires:  systemd-rpm-macros
 BuildRequires:  systemd-devel
 BuildRequires:  libX11-devel
 
 BuildRequires:  go
-BuildRequires:  python-rpm-macros
 BuildRequires:  sysuser-tools
 Requires(pre):  sysuser-shadow >= 3.1
 BuildRequires:  rsvg-convert
 
-%{?systemd_requires}
+%{?systemd_ordering}
 Requires:       fcitx5
 Requires:       python3-QtPy
 Requires:       (python3-PyQt6 or python3-pyside6)
 Requires:       python3-dbus-python
-Requires:       hicolor-icon-theme
 Requires:       acl
 
 %description
@@ -35,6 +32,7 @@ Vietnamese input method for fcitx5
 
 %prep
 %setup -q
+find . -type f -name '*.py' -exec sed -i '1s|^#!.*env python3|#!/usr/bin/python3|' {} +
 
 %build
 %cmake
@@ -50,6 +48,8 @@ cd %{_builddir}/%{name}-%{version}
 %{_datadir}/licenses/%{name}/GPL-3.0-or-later.txt
 %{_datadir}/licenses/%{name}/LGPL-2.1-or-later.txt
 
+%dir %{_datadir}/licenses/%{name}
+%dir %{_modulesloaddir}
 %{_bindir}/fcitx5-lotus-server
 %{_bindir}/fcitx5-lotus-settings
 
@@ -67,18 +67,28 @@ cd %{_builddir}/%{name}-%{version}
 
 %{_datadir}/fcitx5-lotus/
 %{_datadir}/applications/org.fcitx.Fcitx5.Addon.Lotus.Settings.desktop
+%{_datadir}/metainfo/org.fcitx.Fcitx5.Addon.Lotus.metainfo.xml
 
 %{_datadir}/icons/hicolor/scalable/apps/*fcitx-lotus*.svg
 %{_datadir}/icons/hicolor/scalable/status/fcitx-lotus*.svg
 %{_datadir}/icons/hicolor/*/status/fcitx-lotus*.png
+
+%dir %{_datadir}/icons/breeze
+%dir %{_datadir}/icons/breeze/status
+%dir %{_datadir}/icons/breeze/status/22
+%dir %{_datadir}/icons/breeze/status/24
 %{_datadir}/icons/breeze/status/*/fcitx-lotus*.svg
+
+%dir %{_datadir}/icons/breeze-dark
+%dir %{_datadir}/icons/breeze-dark/status
+%dir %{_datadir}/icons/breeze-dark/status/22
+%dir %{_datadir}/icons/breeze-dark/status/24
 %{_datadir}/icons/breeze-dark/status/*/fcitx-lotus*.svg
-%{_datadir}/metainfo/org.fcitx.Fcitx5.Addon.Lotus.metainfo.xml
 
 %pre -f lotus.pre
 
 %post
-%systemd_post fcitx5-lotus-server@.service
+%service_add_post fcitx5-lotus-server@.service
 
 if [ $1 -eq 1 ]; then
     echo "--- Cấu hình Lotus ---"
@@ -103,10 +113,10 @@ elif [ $1 -eq 2 ]; then
 fi
 
 %preun
-%systemd_preun fcitx5-lotus-server@.service
+%service_del_preun fcitx5-lotus-server@.service
 
 %postun
-%systemd_postun_with_restart fcitx5-lotus-server@.service
+%service_del_postun fcitx5-lotus-server@.service
 
 %changelog
 * Sat Aug 29 2026 Nguyen Hoang Ky <nhktmdzhg@gmail.com> - 3.5.6-1

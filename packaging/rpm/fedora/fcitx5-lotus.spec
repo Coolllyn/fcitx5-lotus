@@ -10,24 +10,20 @@ BuildRequires:  cmake
 BuildRequires:  extra-cmake-modules
 BuildRequires:  gcc-c++
 BuildRequires:  gettext-devel
-BuildRequires:  glibc-devel
 BuildRequires:  cmake(Fcitx5Core)
 BuildRequires:  libinput-devel
-BuildRequires:  systemd-rpm-macros
 BuildRequires:  pkgconfig(libudev)
 BuildRequires:  libX11-devel
 
 BuildRequires:  golang
-BuildRequires:  python3
+BuildRequires:  python3-devel
 BuildRequires:  librsvg2-tools
 
-%{?systemd_requires}
-Requires:       fcitx5-data
+%{?systemd_ordering}
 Requires:       fcitx5
 Requires:       python3-QtPy
 Requires:       (python3-pyqt6 or python3-pyside6)
 Requires:       python3-dbus
-Requires:       hicolor-icon-theme
 Requires:       acl
 
 %description
@@ -37,17 +33,21 @@ Vietnamese input method for fcitx5
 %setup -q
 
 %build
-%cmake
+%cmake -DLOTUS_BYTECOMPILE_PYTHON=OFF
 %cmake_build
 
 %install
 %cmake_install
 %find_lang %{name}
+%py_byte_compile %{__python3} %{buildroot}%{_datadir}/fcitx5-lotus
+
 
 %files -f %{name}.lang
 %{_datadir}/licenses/%{name}/GPL-3.0-or-later.txt
 %{_datadir}/licenses/%{name}/LGPL-2.1-or-later.txt
 
+%dir %{_datadir}/licenses/%{name}
+%dir %{_modulesloaddir}
 %{_bindir}/fcitx5-lotus-server
 %{_bindir}/fcitx5-lotus-settings
 
@@ -64,14 +64,23 @@ Vietnamese input method for fcitx5
 %{_datadir}/fcitx5/lotus/
 %{_datadir}/fcitx5-lotus/
 %{_datadir}/applications/org.fcitx.Fcitx5.Addon.Lotus.Settings.desktop
+%{_datadir}/metainfo/org.fcitx.Fcitx5.Addon.Lotus.metainfo.xml
 
 %{_datadir}/icons/hicolor/scalable/apps/*fcitx-lotus*.svg
 %{_datadir}/icons/hicolor/scalable/status/fcitx-lotus*.svg
 %{_datadir}/icons/hicolor/*/status/fcitx-lotus*.png
-%{_datadir}/icons/breeze/status/*/fcitx-lotus*.svg
-%{_datadir}/icons/breeze-dark/status/*/fcitx-lotus*.svg
 
-%{_datadir}/metainfo/org.fcitx.Fcitx5.Addon.Lotus.metainfo.xml
+%dir %{_datadir}/icons/breeze
+%dir %{_datadir}/icons/breeze/status
+%dir %{_datadir}/icons/breeze/status/22
+%dir %{_datadir}/icons/breeze/status/24
+%{_datadir}/icons/breeze/status/*/fcitx-lotus*.svg
+
+%dir %{_datadir}/icons/breeze-dark
+%dir %{_datadir}/icons/breeze-dark/status
+%dir %{_datadir}/icons/breeze-dark/status/22
+%dir %{_datadir}/icons/breeze-dark/status/24
+%{_datadir}/icons/breeze-dark/status/*/fcitx-lotus*.svg
 
 %post
 %systemd_post fcitx5-lotus-server@.service

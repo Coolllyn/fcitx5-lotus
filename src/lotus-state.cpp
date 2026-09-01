@@ -146,16 +146,20 @@ namespace fcitx {
             return false;
         }
 
+        auto               textRange         = fcitx::utf8::MakeUTF8CharRange(s.text());
+        auto               oldPreBufferRange = fcitx::utf8::MakeUTF8CharRange(oldPreBuffer_);
+        std::u32string     u32Text(textRange.begin(), textRange.end());
+        std::u32string     u32OldPreBuffer(oldPreBufferRange.begin(), oldPreBufferRange.end());
+
         const unsigned int cursor  = s.cursor();
         const unsigned int anchor  = s.anchor();
-        const auto&        text    = s.text();
-        const size_t       textLen = utf8::length(text);
+        const size_t       textLen = u32Text.length();
 
         // Fix that surrounding text is delay update
-        const size_t buffLen    = utf8::length(oldPreBuffer_);
-        const size_t pb         = text.find(oldPreBuffer_);
+        const size_t buffLen    = u32OldPreBuffer.length();
+        const size_t pb         = u32Text.find(u32OldPreBuffer);
         size_t       rangeStart = static_cast<size_t>(cursor) >= buffLen ? static_cast<size_t>(cursor) - buffLen : 0;
-        const bool   sameprefix = pb != std::string::npos && pb >= rangeStart && pb <= static_cast<size_t>(cursor);
+        const bool   sameprefix = pb != std::u32string::npos && pb >= rangeStart && pb <= static_cast<size_t>(cursor);
 
         // Detect browser autofill/autocomplete suggestions via selection.
         if (cursor != anchor) {
@@ -169,8 +173,8 @@ namespace fcitx {
                     return false;
                 // If the selection contains a newline, it's likely a multiline editor (AI ghost text),
                 // not a single-line URL/Search bar.
-                size_t p = text.find('\n', selectionStart);
-                return p == std::string::npos || p >= static_cast<size_t>(selectionEnd);
+                size_t p = u32Text.find(U'\n', selectionStart);
+                return p == std::u32string::npos || p >= static_cast<size_t>(selectionEnd);
             }
         }
 
@@ -185,7 +189,7 @@ namespace fcitx {
         if (buffLen > textLen) {
             return false;
         }
-        if (textLen > static_cast<size_t>(cursor) + 1 && cursor == realtextLen.load(std::memory_order_acquire) && text.find('\n', cursor) == std::string::npos && sameprefix)
+        if (textLen > static_cast<size_t>(cursor) + 1 && cursor == realtextLen.load(std::memory_order_acquire) && u32Text.find(U'\n', cursor) == std::u32string::npos && sameprefix)
             return true;
 
         for (auto v = realtextLen.load(std::memory_order_acquire); v < cursor && !realtextLen.compare_exchange_weak(v, cursor, std::memory_order_acq_rel);)

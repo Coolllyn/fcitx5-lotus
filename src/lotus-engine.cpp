@@ -476,7 +476,7 @@ namespace fcitx {
         }
         if (event.type() == EventType::InputContextFocusIn && is_dbus && !surrvalid) {
             LOTUS_INFO("Skip clearAllBuffers");
-        } else if (surrvalid && !state->oldPreBuffer_.empty() && (now_ms() - state->lastDeactivateTime_) < 100) {
+        } else if (surrvalid && !state->oldPreBuffer_.empty() && (now_ms() - state->lastDeactivateTime_) >= 100) {
             state->clearAllBuffers();
         }
         is_deleting_.store(false);
@@ -770,7 +770,7 @@ namespace fcitx {
                 state->lastDeactivateTime_ = now_ms();
                 LOTUS_INFO("Skip clearAllBuffers");
             } else {
-                if (surrvalid && state->oldPreBuffer_.empty())
+                if (surrvalid && !state->oldPreBuffer_.empty())
                     state->clearAllBuffers();
             }
             is_deleting_.store(false);

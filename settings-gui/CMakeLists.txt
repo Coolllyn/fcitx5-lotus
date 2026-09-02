@@ -36,7 +36,8 @@ if(LOTUS_BYTECOMPILE_PYTHON)
     install(CODE "
         message(STATUS \"Byte-compiling Python scripts...\")
         execute_process(
-            COMMAND \"${Python3_EXECUTABLE}\" -m compileall -q \"\$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/${SETTINGS_GUI_INSTALL_DIR}\"
+            COMMAND \"${Python3_EXECUTABLE}\" -m compileall -q -o 0 -o 1 -d \"${SETTINGS_GUI_FULL_PATH}\"
+                \"\$ENV{DESTDIR}${SETTINGS_GUI_FULL_PATH}\"
         )
     ")
 endif()

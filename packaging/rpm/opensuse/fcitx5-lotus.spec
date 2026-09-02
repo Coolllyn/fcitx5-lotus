@@ -35,7 +35,7 @@ Vietnamese input method for fcitx5
 find . -type f -name '*.py' -exec sed -i '1s|^#!.*env python3|#!/usr/bin/python3|' {} +
 
 %build
-%cmake
+%cmake -DLOTUS_BYTECOMPILE_PYTHON=OFF
 %cmake_build
 cd %{_builddir}/%{name}-%{version}
 %sysusers_generate_pre build/misc/user-lotus.conf lotus lotus.conf
@@ -43,6 +43,7 @@ cd %{_builddir}/%{name}-%{version}
 %install
 %cmake_install
 %find_lang %{name}
+%py3_compile %{buildroot}%{_datadir}/fcitx5-lotus
 
 %files -f %{name}.lang
 %{_datadir}/licenses/%{name}/GPL-3.0-or-later.txt

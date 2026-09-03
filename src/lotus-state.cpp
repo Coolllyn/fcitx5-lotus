@@ -146,16 +146,20 @@ namespace fcitx {
             return false;
         }
 
+        auto               textRange         = fcitx::utf8::MakeUTF8CharRange(s.text());
+        auto               oldPreBufferRange = fcitx::utf8::MakeUTF8CharRange(oldPreBuffer_);
+        std::u32string     u32Text(textRange.begin(), textRange.end());
+        std::u32string     u32OldPreBuffer(oldPreBufferRange.begin(), oldPreBufferRange.end());
+
         const unsigned int cursor  = s.cursor();
         const unsigned int anchor  = s.anchor();
-        const auto&        text    = s.text();
-        const size_t       textLen = utf8::length(text);
+        const size_t       textLen = u32Text.length();
 
         // Fix that surrounding text is delay update
-        const size_t buffLen    = utf8::length(oldPreBuffer_);
-        const size_t pb         = text.find(oldPreBuffer_);
+        const size_t buffLen    = u32OldPreBuffer.length();
+        const size_t pb         = u32Text.find(u32OldPreBuffer);
         size_t       rangeStart = static_cast<size_t>(cursor) >= buffLen ? static_cast<size_t>(cursor) - buffLen : 0;
-        const bool   sameprefix = pb != std::string::npos && pb >= rangeStart && pb <= static_cast<size_t>(cursor);
+        const bool   sameprefix = pb != std::u32string::npos && pb >= rangeStart && pb <= static_cast<size_t>(cursor);
 
         // Detect browser autofill/autocomplete suggestions via selection.
         if (cursor != anchor) {
@@ -169,8 +173,8 @@ namespace fcitx {
                     return false;
                 // If the selection contains a newline, it's likely a multiline editor (AI ghost text),
                 // not a single-line URL/Search bar.
-                size_t p = text.find('\n', selectionStart);
-                return p == std::string::npos || p >= static_cast<size_t>(selectionEnd);
+                size_t p = u32Text.find(U'\n', selectionStart);
+                return p == std::u32string::npos || p >= static_cast<size_t>(selectionEnd);
             }
         }
 
@@ -185,7 +189,7 @@ namespace fcitx {
         if (buffLen > textLen) {
             return false;
         }
-        if (textLen > static_cast<size_t>(cursor) + 1 && cursor == realtextLen.load(std::memory_order_acquire) && text.find('\n', cursor) == std::string::npos && sameprefix)
+        if (textLen > static_cast<size_t>(cursor) + 1 && cursor == realtextLen.load(std::memory_order_acquire) && u32Text.find(U'\n', cursor) == std::u32string::npos && sameprefix)
             return true;
 
         for (auto v = realtextLen.load(std::memory_order_acquire); v < cursor && !realtextLen.compare_exchange_weak(v, cursor, std::memory_order_acq_rel);)
@@ -473,12 +477,13 @@ namespace fcitx {
 
     void LotusState::performReplacement(const std::string& deletedPart, const std::string& addedPart) {
         LOTUS_INFO("Perform replacement: " + deletedPart + " -> " + addedPart); //NOLINT
-        current_backspace_count_ = 0;
-        pending_commit_string_   = addedPart;
-        expected_backspaces_     = static_cast<int>(utf8::length(deletedPart));
-        const auto& surrounding  = ic_->surroundingText();
-        bool        isSurrText = engine_->config().useSurroundingTextIfPossible.value() && ic_->capabilityFlags().test(CapabilityFlag::SurroundingText) && surrounding.isValid() &&
-            !surrounding.text().empty();
+        current_backspace_count_      = 0;
+        pending_commit_string_        = addedPart;
+        expected_backspaces_          = static_cast<int>(utf8::length(deletedPart));
+        const auto&       surrounding = ic_->surroundingText();
+        const std::string surrText    = surrounding.text();
+        bool isSurrText = engine_->config().useSurroundingTextIfPossible.value() && ic_->capabilityFlags().test(CapabilityFlag::SurroundingText) && surrounding.isValid() &&
+            !surrText.empty() && surrounding.cursor() == utf8::length(surrText);
         if (!isSurrText && realMode != LotusMode::Minecraft) {
             ++expected_backspaces_;
             if (realMode != LotusMode::SuperSmooth) {
@@ -495,10 +500,11 @@ namespace fcitx {
         if (isSurrText) {
             ic_->deleteSurroundingText(-expected_backspaces_, expected_backspaces_);
             LOTUS_INFO("Delete using surrounding text");
-            std::this_thread::sleep_for(std::chrono::milliseconds((realMode == LotusMode::Uinput) ? 20 : 5));
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
             if (!pending_commit_string_.empty()) {
                 ic_->commitString(pending_commit_string_);
                 LOTUS_INFO("Commit: " + pending_commit_string_);
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
             }
             expected_backspaces_     = 0;
             current_backspace_count_ = 0;

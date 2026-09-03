@@ -1,5 +1,5 @@
-fcitx5-lotus (3.5.6-1) unstable; urgency=medium
+fcitx5-lotus (3.5.7-1) unstable; urgency=medium
 
-  * Add surrtext as option
+  * Fix some small bug
 
- -- Nguyen Hoang Ky <nhktmdzhg@gmail.com>  Sat, 29 Aug 2026 09:45:00 +0700
+ -- Nguyen Hoang Ky <nhktmdzhg@gmail.com>  Thu, 03 Sep 2026 11:44:00 +0700

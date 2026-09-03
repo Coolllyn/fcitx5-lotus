@@ -1,45 +1,17 @@
 #!/bin/sh
 set -e
 
-blue='\033[1;34m'
-green='\033[1;32m'
-yellow='\033[1;33m'
-bold='\033[1;1m'
-all_off='\033[0m'
-
-REAL_USER="${SUDO_USER:-${PKEXEC_UID:+$(id -nu "$PKEXEC_UID" 2>/dev/null)}}"
-REAL_USER="${REAL_USER:-$(logname 2>/dev/null || id -nu 1000 2>/dev/null || echo "$USER")}"
-
-if [ "$1" = "configure" ]; then
-    modprobe uinput || true
-    if command -v udevadm >/dev/null; then
-        udevadm control --reload-rules || true
-        udevadm trigger || true
-    fi
-    systemd-sysusers || true
-    
-    if [ -z "$2" ]; then
-        if systemctl enable --now "fcitx5-lotus-server@${REAL_USER}.service" 2>/dev/null; then
-        else
-            printf "%b\n" "  ${yellow}⚠ Chạy lệnh sau để bật service: sudo systemctl enable --now fcitx5-lotus-server@${REAL_USER}.service${all_off}"
-        fi
-        
-        killall ibus-daemon 2>/dev/null || true
-        USER_HOME=$(getent passwd "$REAL_USER" | cut -d: -f6)
-        rm -f "$USER_HOME/.config/autostart/ibus"* 2>/dev/null || true
-        
-        printf "%b\n" "${blue}─────────────────────────────────────────────${all_off}"
-        printf "%b\n" "${bold}Hướng dẫn sau cài đặt:${all_off}"
-        printf "%b\n" "  1. Cấu hình bộ gõ: Chạy ${green}fcitx5-configtool${all_off} để thêm Lotus."
-        printf "%b\n" "${bold}Các bước bổ sung nếu cần:${all_off}"
-        printf "%b\n" "  - Wayland (KDE/Hyprland): Thiết lập Virtual Keyboard & Permission."
-        printf "%b\n" "  - Kanata: Exclude 'Lotus-Uinput-Server' trong cấu hình."
-        printf "%b\n" "${blue}─────────────────────────────────────────────${all_off}"
-        echo ""
-    else
-        systemctl restart "fcitx5-lotus-server@${REAL_USER}.service" || true
-    fi
+if [ "$1" = "configure" ] && [ -z "$2" ]; then
+    echo "─────────────────────────────────────────────"
+    echo "Hướng dẫn sau cài đặt:"
+    echo "  1. Cấu hình bộ gõ: Chạy fcitx5-configtool để thêm Lotus."
+    echo "  2. Bật dịch vụ systemd: sudo systemctl enable --now fcitx5-lotus-server@\$USER.service"
+    echo "Các bước bổ sung nếu cần:"
+    echo "  - Wayland (KDE/Hyprland): Thiết lập Virtual Keyboard & Permission."
+    echo "  - Kanata: Exclude 'Lotus-Uinput-Server' trong cấu hình."
+    echo "─────────────────────────────────────────────"
 fi
 
 #DEBHELPER#
+
 exit 0

@@ -62,7 +62,7 @@ stdenv.mkDerivation rec {
       pname = "fcitx5-lotus-go-modules";
       inherit version src;
       modRoot = "bamboo";
-      vendorHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+      vendorHash = "sha256-Y8sh1PqmBjXko2X9YOxwCrtrGLQ565aewrq4sRvLdpw=";
     }).goModules;
 
   preConfigure = ''

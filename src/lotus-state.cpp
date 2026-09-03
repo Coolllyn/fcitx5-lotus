@@ -500,10 +500,11 @@ namespace fcitx {
         if (isSurrText) {
             ic_->deleteSurroundingText(-expected_backspaces_, expected_backspaces_);
             LOTUS_INFO("Delete using surrounding text");
-            std::this_thread::sleep_for(std::chrono::milliseconds((realMode == LotusMode::Uinput) ? 20 : 5));
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
             if (!pending_commit_string_.empty()) {
                 ic_->commitString(pending_commit_string_);
                 LOTUS_INFO("Commit: " + pending_commit_string_);
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
             }
             expected_backspaces_     = 0;
             current_backspace_count_ = 0;

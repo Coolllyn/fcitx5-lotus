@@ -2,10 +2,6 @@
 set -e
 
 if [ "$1" = "configure" ]; then
-    if command -v systemd-sysusers >/dev/null 2>&1; then
-        systemd-sysusers lotus.conf
-    fi
-    
     if [ -z "$2" ]; then
         echo "--- Cấu hình Lotus ---"
         echo "Hướng dẫn sau cài đặt:"
@@ -26,6 +22,7 @@ if [ "$1" = "configure" ]; then
         echo ""
         echo "2. Cấu hình Fcitx5:"
         echo "   - Mở 'Fcitx5 Configuration', nhấn restart để khởi động lại."
+        echo "------------------------------------------------"
     fi
 fi
 

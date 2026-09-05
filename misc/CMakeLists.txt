@@ -1,3 +1,5 @@
+include(GNUInstallDirs)
+
 set(LOTUS_UINPUT_PROXY_USER "uinput_proxy" CACHE STRING
     "System user granted rw ACL on /dev/uinput (udev rules, sysusers.d, service scripts)")
 
@@ -10,31 +12,31 @@ configure_file(user-lotus.conf.in ${CMAKE_CURRENT_BINARY_DIR}/user-lotus.conf @O
 
 if(INSTALL_OPENRC)
     configure_file(fcitx5-lotus.openrc.in ${CMAKE_CURRENT_BINARY_DIR}/fcitx5-lotus.openrc @ONLY)
-endif(INSTALL_OPENRC)
+endif()
 
 if(INSTALL_RUNIT)
     configure_file(fcitx5-lotus.runit.in ${CMAKE_CURRENT_BINARY_DIR}/fcitx5-lotus.runit @ONLY)
-endif(INSTALL_RUNIT)
+endif()
 
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/fcitx5-lotus-server@.service"
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/systemd/system)
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/systemd/system)
 
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/99-lotus.rules"
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/udev/rules.d)
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/udev/rules.d)
 
 install(FILES module-fcitx5-lotus.conf
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/modules-load.d
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/modules-load.d
     RENAME fcitx5-lotus.conf)
 
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/user-lotus.conf"
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/sysusers.d
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/sysusers.d
     RENAME lotus.conf)
 
 if(INSTALL_OPENRC)
     install(PROGRAMS "${CMAKE_CURRENT_BINARY_DIR}/fcitx5-lotus.openrc"
         DESTINATION /etc/init.d
         RENAME fcitx5-lotus)
-endif(INSTALL_OPENRC)
+endif()
 
 if(INSTALL_RUNIT)
     set(RUNIT_SV_DIR "/etc/sv" CACHE PATH
@@ -42,4 +44,4 @@ if(INSTALL_RUNIT)
     install(PROGRAMS "${CMAKE_CURRENT_BINARY_DIR}/fcitx5-lotus.runit"
         DESTINATION "${RUNIT_SV_DIR}/fcitx5-lotus"
         RENAME run)
-endif(INSTALL_RUNIT)
+endif()

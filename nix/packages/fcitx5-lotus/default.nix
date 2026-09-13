@@ -12,7 +12,6 @@
   kdePackages,
   libinput,
   librsvg,
-  libx11,
   nix-update-script,
   pkg-config,
   python3,
@@ -71,7 +70,6 @@ stdenv.mkDerivation (finalAttrs: {
     fcitx5
     kdePackages.extra-cmake-modules
     libinput
-    libx11
     pythonEnv
     qt6.qtbase
     qt6.qtsvg

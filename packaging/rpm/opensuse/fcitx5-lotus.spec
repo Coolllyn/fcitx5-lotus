@@ -13,7 +13,6 @@ BuildRequires:  glibc-devel
 BuildRequires:  fcitx5-devel
 BuildRequires:  libinput-devel
 BuildRequires:  systemd-devel
-BuildRequires:  libX11-devel
 
 BuildRequires:  go
 BuildRequires:  sysuser-tools

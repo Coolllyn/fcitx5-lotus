@@ -13,7 +13,6 @@ BuildRequires:  gettext-devel
 BuildRequires:  cmake(Fcitx5Core)
 BuildRequires:  libinput-devel
 BuildRequires:  pkgconfig(libudev)
-BuildRequires:  libX11-devel
 
 BuildRequires:  golang
 BuildRequires:  python3-devel

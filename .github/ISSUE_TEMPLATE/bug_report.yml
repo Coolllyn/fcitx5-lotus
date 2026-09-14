@@ -68,6 +68,7 @@ body:
         - Cloudflare Pages (Debian/Ubuntu/Fedora/OpenSUSE)
         - NixOS
         - VUR (Void Linux)
+        - GURU (Gentoo)
         - Tự build từ source
         - Khác
     validations:

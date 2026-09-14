@@ -67,6 +67,7 @@ body:
         - AUR (fcitx5-lotus-git)
         - Cloudflare Pages (Debian/Ubuntu/Fedora/OpenSUSE)
         - NixOS
+        - VUR (Void Linux)
         - Tự build từ source
         - Khác
     validations:

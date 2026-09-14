@@ -15,6 +15,7 @@
 #include "lotus-utils.h"
 #include "lotus-icon-resolver.h"
 #include "ack-apps.h"
+#include "lotus-plasma-theme.h"
 #include <optional>
 #include <sys/socket.h>
 #include <utility>
@@ -107,6 +108,16 @@ namespace fcitx {
         }
         lastCheckMs = now;
         cachedValue = false;
+
+        // KDE Plasma: the tray sits on the panel, painted by the Plasma Style,
+        // while the portal below reports the application colour scheme.  The
+        // two differ in the default Fedora/Kubuntu look (#374).
+        if (isKdePlasmaSession(std::getenv("XDG_CURRENT_DESKTOP"))) {
+            if (const auto dark = isPlasmaPanelDark(plasmaThemeSearchPathsFromEnv())) {
+                cachedValue = *dark;
+                return cachedValue;
+            }
+        }
 
         // GTK_THEME is honored by lightweight DEs that lack the settings
         // portal; covers XFCE, openbox, etc. with a dark theme.

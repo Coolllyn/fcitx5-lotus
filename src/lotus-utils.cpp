@@ -116,3 +116,8 @@ void eraseLastUtf8Codepoint(std::string& buffer) {
     }
     buffer.erase(pos);
 }
+
+std::string getEnv(const std::string& name) {
+    const char* value = std::getenv(name.c_str());
+    return ((value != nullptr) && ((*value) != 0)) ? value : "";
+}

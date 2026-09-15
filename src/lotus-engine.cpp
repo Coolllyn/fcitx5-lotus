@@ -15,6 +15,7 @@
 #include "lotus-utils.h"
 #include "lotus-icon-resolver.h"
 #include "ack-apps.h"
+#include "lotus-plasma-theme.h"
 #include <optional>
 #include <sys/socket.h>
 #include <utility>
@@ -108,12 +109,21 @@ namespace fcitx {
         lastCheckMs = now;
         cachedValue = false;
 
+        // KDE Plasma: the tray sits on the panel, painted by the Plasma Style,
+        // while the portal below reports the application colour scheme.  The
+        // two differ in the default Fedora/Kubuntu look (#374).
+        if (isKdePlasmaSession(getEnv("XDG_CURRENT_DESKTOP"))) {
+            if (const auto dark = isPlasmaPanelDark(plasmaThemeSearchPathsFromEnv())) {
+                cachedValue = *dark;
+                return cachedValue;
+            }
+        }
+
         // GTK_THEME is honored by lightweight DEs that lack the settings
         // portal; covers XFCE, openbox, etc. with a dark theme.
-        if (const char* theme = std::getenv("GTK_THEME")) {
-            std::string t(theme);
-            std::transform(t.begin(), t.end(), t.begin(), ::tolower);
-            if (t.find("dark") != std::string::npos) {
+        if (std::string theme = getEnv("GTK_THEME"); !theme.empty()) {
+            std::transform(theme.begin(), theme.end(), theme.begin(), ::tolower);
+            if (theme.find("dark") != std::string::npos) {
                 cachedValue = true;
                 return cachedValue;
             }
@@ -148,8 +158,8 @@ namespace fcitx {
 
         // GTK settings file — covers DEs where the dark preference is stored
         // there instead of being exposed via portal/gsettings.
-        if (const char* home = std::getenv("HOME")) {
-            std::ifstream settingsFile(std::string(home) + "/.config/gtk-3.0/settings.ini");
+        if (std::string home = getEnv("HOME"); !home.empty()) {
+            std::ifstream settingsFile(home + "/.config/gtk-3.0/settings.ini");
             if (settingsFile.is_open()) {
                 std::string line;
                 while (std::getline(settingsFile, line)) {
@@ -198,8 +208,8 @@ namespace fcitx {
     }
 
     LotusEngine::LotusEngine(Instance* instance) : instance_(instance), factory_([this](InputContext& ic) { return new LotusState(this, &ic); }) { //NOLINT
-        const char* desktop = std::getenv("XDG_CURRENT_DESKTOP");
-        isGnome_            = (desktop != nullptr) && std::string(desktop).find("GNOME") != std::string::npos;
+        std::string desktop = getEnv("XDG_CURRENT_DESKTOP");
+        isGnome_            = (!desktop.empty()) && desktop.find("GNOME") != std::string::npos;
         // emptyCustomKeymap_.customKeymap is implicitly initialized to empty by fcitx::Option default value macro.
         Init();
         {
@@ -1198,10 +1208,10 @@ namespace fcitx {
         // On KDE and GNOME, absolute paths work correctly — their compositors
         // or SNI hosts handle filesystem paths in IconName.
         static const bool kIsCinnamon = [] {
-            const char* de = std::getenv("XDG_CURRENT_DESKTOP");
-            if (!de)
-                de = std::getenv("DESKTOP_SESSION");
-            return de && (std::string(de) == "cinnamon" || std::string(de) == "X-Cinnamon");
+            std::string de = getEnv("XDG_CURRENT_DESKTOP");
+            if (de.empty())
+                de = getEnv("DESKTOP_SESSION");
+            return !de.empty() && (de == "cinnamon" || de == "X-Cinnamon");
         }();
 
         if (kIsCinnamon) {

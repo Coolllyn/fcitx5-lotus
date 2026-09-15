@@ -116,4 +116,11 @@ struct KeyEntry {
     uint32_t state; ///< Key state (modifiers)
 };
 
+/**
+ * @brief get environement variable.
+ * @param name Name of the variable.
+ * @return Value of the variable.
+ */
+std::string getEnv(const std::string& name);
+
 #endif // _FCITX5_LOTUS_UTILS_H_

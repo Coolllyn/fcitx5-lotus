@@ -14,7 +14,6 @@ set(fcitx_lotus_core_sources
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lotus-utils.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lotus-monitor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lotus-icon-resolver.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/lotus-plasma-theme.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/emoji.cpp
 )
 

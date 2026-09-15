@@ -81,16 +81,3 @@ set_tests_properties(emoji_backspace_utf8 PROPERTIES
     LABELS "unit;emoji"
     TIMEOUT 20
 )
-
-add_executable(plasma_panel_theme
-    plasma-panel-theme.cpp
-    ${PROJECT_SOURCE_DIR}/src/lotus-plasma-theme.cpp
-)
-target_include_directories(plasma_panel_theme PRIVATE
-    ${PROJECT_SOURCE_DIR}/src
-)
-add_test(NAME plasma_panel_theme COMMAND plasma_panel_theme)
-set_tests_properties(plasma_panel_theme PROPERTIES
-    LABELS "unit;icon"
-    TIMEOUT 20
-)

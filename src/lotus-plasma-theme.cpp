@@ -4,6 +4,7 @@
  */
 
 #include "lotus-plasma-theme.h"
+#include "lotus-utils.h"
 
 #include <algorithm>
 #include <array>
@@ -31,11 +32,6 @@ namespace fcitx {
         return dir + "/" + name;
     }
 
-    static bool isDirectory(const std::string& path) {
-        struct stat st{};
-        return stat(path.c_str(), &st) == 0 && S_ISDIR(st.st_mode);
-    }
-
     static std::vector<std::string> splitPathList(const std::string& list) {
         std::vector<std::string> result;
         std::stringstream        ss(list);
@@ -47,9 +43,9 @@ namespace fcitx {
         return result;
     }
 
-    static std::string envOr(const char* name, const std::string& fallback) {
-        const char* value = std::getenv(name);
-        return (value != nullptr && *value != '\0') ? std::string(value) : fallback;
+    static std::string envOr(const std::string& name, const std::string& fallback) {
+        std::string value = getEnv(name);
+        return !value.empty() ? value : fallback;
     }
 
     // Reads "key=value" from "[group]" of a KConfig-style INI file.
@@ -112,7 +108,7 @@ namespace fcitx {
             if (component > 255)
                 return std::nullopt;
             if (count < rgb.size())
-                rgb[count] = component;
+                rgb[count] = component; // NOLINT
             ++count;
         }
         if (count != 3 && count != 4)
@@ -127,12 +123,9 @@ namespace fcitx {
         const auto rgb = parseRgb(*value);
         if (!rgb)
             return std::nullopt;
-        const int gray = ((*rgb)[0] * 11 + (*rgb)[1] * 16 + (*rgb)[2] * 5) / 32;
-        return gray < 192;
-    }
 
-    static std::optional<bool> isDarkColorsFile(const std::string& path) {
-        return isDarkBackground(readIniValue(path, "Colors:Window", "BackgroundNormal"));
+        const int gray = (((*rgb)[0] * 11) + ((*rgb)[1] * 16) + ((*rgb)[2] * 5)) / 32;
+        return gray < 192;
     }
 
     static std::optional<bool> isDarkSystemScheme(const PlasmaThemeSearchPaths& paths) {
@@ -146,7 +139,7 @@ namespace fcitx {
         for (const auto& dir : dataSearchDirs(paths)) {
             const std::string file = joinPath(dir, "color-schemes/" + *scheme + ".colors");
             if (access(file.c_str(), R_OK) == 0)
-                return isDarkColorsFile(file);
+                return isDarkBackground(readIniValue(file, "Colors:Window", "BackgroundNormal"));
         }
         return std::nullopt;
     }
@@ -165,12 +158,11 @@ namespace fcitx {
         const std::string kdeDefaults = joinPath(paths.configHome, "kdedefaults");
         if (std::find(paths.configDirs.begin(), paths.configDirs.end(), kdeDefaults) == paths.configDirs.end())
             paths.configDirs.insert(paths.configDirs.begin(), kdeDefaults);
+
         return paths;
     }
 
-    bool isKdePlasmaSession(const char* xdgCurrentDesktop) {
-        if (xdgCurrentDesktop == nullptr)
-            return false;
+    bool isKdePlasmaSession(const std::string& xdgCurrentDesktop) {
         const auto desktops = splitPathList(xdgCurrentDesktop);
         return std::find(desktops.begin(), desktops.end(), "KDE") != desktops.end();
     }
@@ -185,11 +177,12 @@ namespace fcitx {
         // "default") follows the system colour scheme.
         for (const auto& dir : dataSearchDirs(paths)) {
             const std::string themeDir = joinPath(dir, "plasma/desktoptheme/" + *theme);
-            if (!isDirectory(themeDir))
+            struct stat       st{};
+            if (stat(themeDir.c_str(), &st) != 0 || !S_ISDIR(st.st_mode))
                 continue;
             const std::string colors = joinPath(themeDir, "colors");
             if (access(colors.c_str(), R_OK) == 0)
-                return isDarkColorsFile(colors);
+                return isDarkBackground(readIniValue(colors, "Colors:Window", "BackgroundNormal"));
             break;
         }
         return isDarkSystemScheme(paths);

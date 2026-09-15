@@ -47,7 +47,7 @@ namespace fcitx {
     /**
      * @brief Tells whether XDG_CURRENT_DESKTOP names KDE.
      */
-    bool isKdePlasmaSession(const char* xdgCurrentDesktop);
+    bool isKdePlasmaSession(const std::string& xdgCurrentDesktop);
 
     /**
      * @brief Reports whether the Plasma panel background is dark.

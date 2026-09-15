@@ -1221,10 +1221,8 @@ namespace fcitx {
         // hicolor and breeze fallback directories.
         LotusIconSearchPaths paths;
         // hicolor status/apps dirs; SVG preferred, PNG only as raster fallback.
-        paths.systemDirs = {
-            "/usr/share/icons/hicolor/22x22/status",  "/usr/share/icons/hicolor/24x24/status", "/usr/share/icons/hicolor/scalable/status",
-            "/usr/share/icons/hicolor/scalable/apps", "/usr/share/icons/hicolor/48x48/apps",
-        };
+        paths.systemDirs  = {"/usr/share/icons/hicolor/scalable/apps", "/usr/share/icons/hicolor/scalable/status", "/usr/share/icons/hicolor/22x22/status",
+                             "/usr/share/icons/hicolor/24x24/status"};
         paths.fallbackDir = FCITX_LOTUS_ICON_DIR; // compile-time install dir
 
         iconCachePath_ = resolveLotusIconPath({iconName, baseIconName}, paths);

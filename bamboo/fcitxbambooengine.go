@@ -68,15 +68,13 @@ const (
 func determineMacroCase(str string) uint8 {
 	var hasLower, hasUpper bool
 	for _, c := range str {
-		if unicode.IsLetter(c) {
-			if unicode.IsLower(c) {
-				hasLower = true
-			} else if unicode.IsUpper(c) {
-				hasUpper = true
-			}
-			if hasLower && hasUpper {
-				return VnCaseNoChange
-			}
+		if unicode.IsLower(c) {
+			hasLower = true
+		} else if unicode.IsUpper(c) {
+			hasUpper = true
+		}
+		if hasLower && hasUpper {
+			return VnCaseNoChange
 		}
 	}
 	if hasLower {

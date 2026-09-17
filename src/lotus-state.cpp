@@ -460,15 +460,33 @@ namespace fcitx {
                     }
                 }
             }
-            ic_->commitString(pending_commit_string_);
-            LOTUS_INFO("Commit: " + pending_commit_string_);
+            const bool  dbusDefer  = getFrontendName(ic_) == "dbus";
+            std::string commitText = std::move(pending_commit_string_);
+            pending_commit_string_.clear();
+            if (dbusDefer) {
+                auto icRef           = ic_->watch();
+                deferredCommitTimer_ = engine_->instance()->eventLoop().addTimeEvent(CLOCK_MONOTONIC, now(CLOCK_MONOTONIC), 0,
+                                                                                     [this, icRef, commitText = std::move(commitText)](EventSourceTime*, uint64_t) {
+                                                                                         deferredCommitTimer_.reset();
+                                                                                         if (auto* ic = icRef.get()) {
+                                                                                             ic->commitString(commitText);
+                                                                                             LOTUS_INFO("Commit (deferred): " + commitText);
+                                                                                         }
+                                                                                         replayBufferedKeys();
+                                                                                         return true;
+                                                                                     });
+            } else {
+                ic_->commitString(commitText);
+                LOTUS_INFO("Commit: " + commitText);
+            }
             expected_backspaces_     = 0;
             current_backspace_count_ = 0;
-            pending_commit_string_.clear();
 
             event.filterAndAccept(); // Filter out the final trigger backspace.
             is_deleting_.store(false);
-            replayBufferedKeys();
+            if (!dbusDefer) {
+                replayBufferedKeys();
+            }
             return true;
         }
         return false;

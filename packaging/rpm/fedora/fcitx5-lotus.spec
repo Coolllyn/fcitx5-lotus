@@ -32,7 +32,7 @@ Vietnamese input method for fcitx5
 %setup -q
 
 %build
-%cmake -DLOTUS_BYTECOMPILE_PYTHON=OFF
+%cmake -DLOTUS_BYTECOMPILE_PYTHON:BOOL=OFF -DBUILD_TESTING:BOOL=ON
 %cmake_build
 
 %install
@@ -40,6 +40,8 @@ Vietnamese input method for fcitx5
 %find_lang %{name}
 %py_byte_compile %{__python3} %{buildroot}%{_datadir}/fcitx5-lotus
 
+%check
+%ctest
 
 %files -f %{name}.lang
 %{_datadir}/licenses/%{name}/GPL-3.0-or-later.txt

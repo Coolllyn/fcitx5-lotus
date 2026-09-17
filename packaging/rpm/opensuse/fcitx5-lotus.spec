@@ -34,7 +34,7 @@ Vietnamese input method for fcitx5
 find . -type f -name '*.py' -exec sed -i '1s|^#!.*env python3|#!/usr/bin/python3|' {} +
 
 %build
-%cmake -DLOTUS_BYTECOMPILE_PYTHON=OFF
+%cmake -DLOTUS_BYTECOMPILE_PYTHON:BOOL=OFF -DBUILD_TESTING:BOOL=ON
 %cmake_build
 cd %{_builddir}/%{name}-%{version}
 %sysusers_generate_pre build/misc/user-lotus.conf lotus lotus.conf
@@ -127,3 +127,6 @@ fi
 - Fixed an issue where save failures reported a false success status.
 - Fixed loading errors by safely skipping malformed application rule entries.
 - Dynamically scaled sleep delays based on text length to improve responsiveness and smooth text rendering.
+
+%check
+%ctest

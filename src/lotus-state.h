@@ -20,6 +20,7 @@
 #include "lotus-utils.h"
 
 #include <cstddef>
+#include <fcitx-utils/event.h>
 #include <fcitx-utils/misc.h>
 #include <fcitx/inputcontext.h>
 
@@ -85,28 +86,30 @@ namespace fcitx {
         friend class LotusEngine;
 
       private:
-        static constexpr size_t MAX_BUFFERED_KEYS = 50;
+        static constexpr size_t          MAX_BUFFERED_KEYS = 50;
 
-        LotusEngine*            engine_;
-        InputContext*           ic_;
-        CGoObject               lotusEngine_;
-        std::string             oldPreBuffer_;
-        bool                    hasHistory_              = false;
-        int                     expected_backspaces_     = 0;
-        int                     current_backspace_count_ = 0;
-        std::string             pending_commit_string_;
-        std::string             emojiBuffer_;
-        std::vector<EmojiEntry> emojiCandidates_;
-        bool                    waitAck_ = false;
-        std::vector<KeyEntry>   buffered_keys_; ///< Keystrokes buffered during replacement
-        bool                    isPrevSpace_           = false;
-        bool                    isPrevHyphen_          = false;
-        bool                    shouldCapitalize_      = false;
-        bool                    isPrevPunctuation_     = false;
-        int64_t                 lastDeactivateTime_    = 0;
-        bool                    wa_chromium_flag       = false;
-        bool                    tracking_modifier_tap_ = false; ///< Selected modifier held, waiting for consecutive keyup
-        bool                    macro_skip_            = false; ///< Macro disabled for the current word
+        LotusEngine*                     engine_;
+        InputContext*                    ic_;
+        CGoObject                        lotusEngine_;
+        std::string                      oldPreBuffer_;
+        bool                             hasHistory_              = false;
+        int                              expected_backspaces_     = 0;
+        int                              current_backspace_count_ = 0;
+        std::string                      pending_commit_string_;
+        std::unique_ptr<EventSourceTime> deferredCommitTimer_;
+        std::string                      emojiBuffer_;
+        std::vector<EmojiEntry>          emojiCandidates_;
+        bool                             waitAck_ = false;
+        std::vector<KeyEntry>            buffered_keys_; ///< Keystrokes buffered during replacement
+        bool                             isPrevSpace_           = false;
+        bool                             isPrevHyphen_          = false;
+        bool                             shouldCapitalize_      = false;
+        bool                             isPrevPunctuation_     = false;
+        int64_t                          lastDeactivateTime_    = 0;
+        int64_t                          deletionInterruptedAt_ = 0; ///< when deactivate() cut an in-flight replacement (0 = none)
+        bool                             wa_chromium_flag       = false;
+        bool                             tracking_modifier_tap_ = false; ///< Selected modifier held, waiting for consecutive keyup
+        bool                             macro_skip_            = false; ///< Macro disabled for the current word
 
         /**
          * @brief Connects to the uinput server.

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(fcitx5-lotus VERSION 3.5.9)
+project(fcitx5-lotus VERSION 3.5.10)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(BUILD_TESTING "Build Lotus tests" OFF)
 
@@ -14,6 +14,7 @@ set(fcitx_lotus_core_sources
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lotus-utils.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lotus-monitor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lotus-icon-resolver.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/lotus-plasma-theme.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/emoji.cpp
 )
 
@@ -28,12 +29,10 @@ find_package(Fcitx5Core ${REQUIRED_FCITX_VERSION} REQUIRED)
 find_package(Fcitx5ModuleEmoji REQUIRED)
 find_package(Pthread REQUIRED)
 find_package(Gettext REQUIRED)
-find_package(X11 REQUIRED)
 
 include("${FCITX_INSTALL_CMAKECONFIG_DIR}/Fcitx5Utils/Fcitx5CompilerSettings.cmake")
 add_definitions(-DFCITX_GETTEXT_DOMAIN=\"fcitx5-lotus\") 
 
-find_package(Fcitx5Utils REQUIRED)
 if (Fcitx5Utils_VERSION VERSION_GREATER_EQUAL "5.1.13")
     add_definitions(-DLOTUS_USE_MODERN_FCITX_API)
     message(STATUS "Fcitx5 version ${Fcitx5Utils_VERSION} detected: Using modern API")

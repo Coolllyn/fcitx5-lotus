@@ -380,33 +380,34 @@ int main(int argc, char* argv[]) {
         }
 
         // handle mouse (libinput)
-        if ((fds[1].revents & POLLIN) != 0) {
-            struct libinput_event* event = nullptr;
+        // libinput_dispatch() may have already consumed the fd in an iteration where
+        // fds[1].revents was 0 (poll timeout, or another fd woke us up).  Always drain
+        // the queue; libinput_get_event() returns nullptr when it is empty.
+        struct libinput_event* event = nullptr;
 
-            while ((event = libinput_get_event(li_ctx.get_li())) != nullptr) {
-                enum libinput_event_type type = libinput_event_get_type(event);
+        while ((event = libinput_get_event(li_ctx.get_li())) != nullptr) {
+            enum libinput_event_type type = libinput_event_get_type(event);
 
-                if (type == LIBINPUT_EVENT_POINTER_BUTTON) {
-                    struct libinput_event_pointer* p = libinput_event_get_pointer_event(event);
-                    if (libinput_event_pointer_get_button_state(p) == LIBINPUT_BUTTON_STATE_PRESSED) {
-                        if (addon_fd.is_valid()) {
-                            if (send(addon_fd.get(), "C", 1, MSG_NOSIGNAL | MSG_DONTWAIT) <= 0) {
-                                LotusLogger::instance().warn("Failed to send to mouse flag client, closing connection");
-                                addon_fd.reset(-1);
-                            }
+            if (type == LIBINPUT_EVENT_POINTER_BUTTON) {
+                struct libinput_event_pointer* p = libinput_event_get_pointer_event(event);
+                if (libinput_event_pointer_get_button_state(p) == LIBINPUT_BUTTON_STATE_PRESSED) {
+                    if (addon_fd.is_valid()) {
+                        if (send(addon_fd.get(), "C", 1, MSG_NOSIGNAL | MSG_DONTWAIT) <= 0) {
+                            LotusLogger::instance().warn("Failed to send to mouse flag client, closing connection");
+                            addon_fd.reset(-1);
                         }
                     }
-                } else if (type == LIBINPUT_EVENT_DEVICE_ADDED) {
-                    struct libinput_device* dev  = libinput_event_get_device(event);
-                    const char*             name = libinput_device_get_name(dev);
-                    LotusLogger::instance().info("Device added: " + std::string(name));
-                    if (libinput_device_config_tap_get_finger_count(dev) > 0) {
-                        libinput_device_config_tap_set_enabled(dev, LIBINPUT_CONFIG_TAP_ENABLED);
-                        libinput_device_config_tap_set_button_map(dev, LIBINPUT_CONFIG_TAP_MAP_LRM);
-                    }
                 }
-                libinput_event_destroy(event);
+            } else if (type == LIBINPUT_EVENT_DEVICE_ADDED) {
+                struct libinput_device* dev  = libinput_event_get_device(event);
+                const char*             name = libinput_device_get_name(dev);
+                LotusLogger::instance().info("Device added: " + std::string(name));
+                if (libinput_device_config_tap_get_finger_count(dev) > 0) {
+                    libinput_device_config_tap_set_enabled(dev, LIBINPUT_CONFIG_TAP_ENABLED);
+                    libinput_device_config_tap_set_button_map(dev, LIBINPUT_CONFIG_TAP_MAP_LRM);
+                }
             }
+            libinput_event_destroy(event);
         }
     }
     LotusLogger::instance().info("Terminating server...");

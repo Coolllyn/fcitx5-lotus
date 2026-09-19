@@ -44,7 +44,7 @@ jobs:
     steps:
       - name: Install dependencies
         run: |
-          pacman -Syu --noconfirm base-devel clang cmake ninja extra-cmake-modules fmt libuv boost git go libinput systemd-libs extra-cmake-modules libx11 python librsvg
+          pacman -Syu --noconfirm base-devel clang cmake ninja extra-cmake-modules fmt libuv boost git go libinput systemd-libs extra-cmake-modules python librsvg
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           git config --global --add safe.directory "$GITHUB_WORKSPACE/fcitx5-lotus"
           git config --global --add safe.directory "$GITHUB_WORKSPACE/fcitx5"
@@ -72,7 +72,7 @@ jobs:
           submodules: true
       - name: Init CodeQL
         if: matrix.compiler == 'gcc'
-        uses: github/codeql-action/init@v4.37.9
+        uses: github/codeql-action/init@v4.38.0
         with:
           languages: cpp,go
           source-root: fcitx5-lotus
@@ -89,7 +89,7 @@ jobs:
           ctest --test-dir fcitx5-lotus/build --output-on-failure --no-tests=error
       - name: CodeQL Analysis
         if: matrix.compiler == 'gcc'
-        uses: github/codeql-action/analyze@v4.37.9
+        uses: github/codeql-action/analyze@v4.38.0
         with:
           checkout_path: fcitx5-lotus
 

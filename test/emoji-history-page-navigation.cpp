@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "lotus-engine.h"
+#include "lotus-utils.h"
 #include "test-input-context.h"
 
 #include <fcitx/candidatelist.h>
 #include <fcitx/inputpanel.h>
 
-#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -35,7 +35,7 @@ namespace {
 
 int main() {
     configureTestPaths("fcitx5-lotus-emoji-history-page-navigation");
-    const auto    historyPath = std::filesystem::path(std::getenv("XDG_CONFIG_HOME")) / "fcitx5/conf/lotus-emoji-history.conf";
+    const auto    historyPath = std::filesystem::path(getEnv("XDG_CONFIG_HOME")) / "fcitx5/conf/lotus-emoji-history.conf";
     std::ofstream history(historyPath);
     const char*   emoji[] = {"😀", "😁", "😂", "😃", "😄", "😅", "😆", "😉", "😊", "😋", "😎", "😍", "😘", "😗", "😙", "😚", "🙂", "🤗"};
     for (int i = 0; i < 18; ++i)

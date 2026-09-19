@@ -1,5 +1,5 @@
 Name:           fcitx5-lotus
-Version:        3.5.9
+Version:        3.5.10
 Release:        1
 Summary:        Vietnamese input method for fcitx5
 License:        GPL-3.0-or-later
@@ -13,7 +13,6 @@ BuildRequires:  gettext-devel
 BuildRequires:  cmake(Fcitx5Core)
 BuildRequires:  libinput-devel
 BuildRequires:  pkgconfig(libudev)
-BuildRequires:  libX11-devel
 
 BuildRequires:  golang
 BuildRequires:  python3-devel
@@ -33,7 +32,7 @@ Vietnamese input method for fcitx5
 %setup -q
 
 %build
-%cmake -DLOTUS_BYTECOMPILE_PYTHON=OFF
+%cmake -DLOTUS_BYTECOMPILE_PYTHON:BOOL=OFF -DBUILD_TESTING:BOOL=ON
 %cmake_build
 
 %install
@@ -41,6 +40,8 @@ Vietnamese input method for fcitx5
 %find_lang %{name}
 %py_byte_compile %{__python3} %{buildroot}%{_datadir}/fcitx5-lotus
 
+%check
+%ctest
 
 %files -f %{name}.lang
 %{_datadir}/licenses/%{name}/GPL-3.0-or-later.txt
@@ -115,11 +116,12 @@ fi
 %systemd_postun_with_restart fcitx5-lotus-server@.service
 
 %changelog
-* Thu Sep 10 2026 Nguyen Hoang Ky <nhktmdzhg@gmail.com> - 3.5.9-1
-- Fixed an edge case when typing English words containing numbers while macro mode is enabled.
-- Fixed an issue where switching back to the default typing mode did not properly clear per-app rules.
-- Fixed potential process crashes caused by invalid CGO handles.
-- Added protection against data loss during load failures and implemented atomic file saves.
-- Fixed an issue where save failures reported a false success status.
-- Fixed loading errors by safely skipping malformed application rule entries.
-- Dynamically scaled sleep delays based on text length to improve responsiveness and smooth text rendering.
+* Sat Sep 19 2026 Nguyen Hoang Ky <nhktmdzhg@gmail.com> - 3.5.10-1
+- Added desktop notifications when switching typing modes via the mode menu.
+- Fixed typing and key event handling for GTK4 applications on Wayland.
+- Fixed focus loss issues in Chromium on X11 when using uinput modes.
+- Fixed tray icon coloring to match KDE Plasma panel themes dynamically.
+- Improved icon rendering by prioritizing scalable vector assets over raster images.
+- Preserved per-app typing mode rules across configuration reloads and input context switches.
+- Fixed input engine crashes when initialized without an external dictionary loaded.
+- Fixed input lag caused by unhandled mouse/touchpad input events.

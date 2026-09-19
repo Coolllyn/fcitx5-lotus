@@ -15,6 +15,7 @@
 #include "lotus-utils.h"
 #include "lotus-icon-resolver.h"
 #include "ack-apps.h"
+#include "lotus-plasma-theme.h"
 #include <optional>
 #include <sys/socket.h>
 #include <utility>
@@ -108,12 +109,21 @@ namespace fcitx {
         lastCheckMs = now;
         cachedValue = false;
 
+        // KDE Plasma: the tray sits on the panel, painted by the Plasma Style,
+        // while the portal below reports the application colour scheme.  The
+        // two differ in the default Fedora/Kubuntu look (#374).
+        if (isKdePlasmaSession(getEnv("XDG_CURRENT_DESKTOP"))) {
+            if (const auto dark = isPlasmaPanelDark(plasmaThemeSearchPathsFromEnv())) {
+                cachedValue = *dark;
+                return cachedValue;
+            }
+        }
+
         // GTK_THEME is honored by lightweight DEs that lack the settings
         // portal; covers XFCE, openbox, etc. with a dark theme.
-        if (const char* theme = std::getenv("GTK_THEME")) {
-            std::string t(theme);
-            std::transform(t.begin(), t.end(), t.begin(), ::tolower);
-            if (t.find("dark") != std::string::npos) {
+        if (std::string theme = getEnv("GTK_THEME"); !theme.empty()) {
+            std::transform(theme.begin(), theme.end(), theme.begin(), ::tolower);
+            if (theme.find("dark") != std::string::npos) {
                 cachedValue = true;
                 return cachedValue;
             }
@@ -148,8 +158,8 @@ namespace fcitx {
 
         // GTK settings file — covers DEs where the dark preference is stored
         // there instead of being exposed via portal/gsettings.
-        if (const char* home = std::getenv("HOME")) {
-            std::ifstream settingsFile(std::string(home) + "/.config/gtk-3.0/settings.ini");
+        if (std::string home = getEnv("HOME"); !home.empty()) {
+            std::ifstream settingsFile(home + "/.config/gtk-3.0/settings.ini");
             if (settingsFile.is_open()) {
                 std::string line;
                 while (std::getline(settingsFile, line)) {
@@ -198,8 +208,8 @@ namespace fcitx {
     }
 
     LotusEngine::LotusEngine(Instance* instance) : instance_(instance), factory_([this](InputContext& ic) { return new LotusState(this, &ic); }) { //NOLINT
-        const char* desktop = std::getenv("XDG_CURRENT_DESKTOP");
-        isGnome_            = (desktop != nullptr) && std::string(desktop).find("GNOME") != std::string::npos;
+        std::string desktop = getEnv("XDG_CURRENT_DESKTOP");
+        isGnome_            = (!desktop.empty()) && desktop.find("GNOME") != std::string::npos;
         // emptyCustomKeymap_.customKeymap is implicitly initialized to empty by fcitx::Option default value macro.
         Init();
         {
@@ -264,6 +274,7 @@ namespace fcitx {
             std::filesystem::create_directories(configDir);
         }
         reloadConfig();
+        realMode = config_.mode.value();
         instance_->inputContextManager().registerProperty("LotusState", &factory_);
         appRulesPath_ = configDir + "/lotus-app-rules.conf";
         loadAppRules();
@@ -440,9 +451,24 @@ namespace fcitx {
 
         updateCharsetAction(event.inputContext());
 
-        setMode(targetMode, event.inputContext());
+        auto*      state = ic->propertyFor(&factory_);
 
-        auto* state = ic->propertyFor(&factory_);
+        const bool uinputMode         = isUinputMode(targetMode);
+        const bool focusBounce        = uinputMode && state->lastDeactivateTime_ > 0 && now_ms() - state->lastDeactivateTime_ < 100;
+        const bool resumeReplacement  = focusBounce && state->deletionInterruptedAt_ > 0 && is_deleting_.load();
+        state->deletionInterruptedAt_ = 0;
+
+        if (!resumeReplacement) {
+            is_deleting_.store(false);
+        }
+
+        if (focusBounce) {
+            realMode = targetMode;
+            ic->updateUserInterface(UserInterfaceComponent::StatusArea);
+            LOTUS_INFO("Focus bounce: keep word buffers");
+        } else {
+            setMode(targetMode, event.inputContext());
+        }
 
         // Workaround for chromium wayland issue where suggestions cause a doubled
         // first character. Forwarding may prevent BS from being sent
@@ -456,7 +482,7 @@ namespace fcitx {
 
         state->waitAck_ = false;
         if (*config_.fixUinputWithAck) {
-            if (targetMode == LotusMode::Uinput || targetMode == LotusMode::Smooth || targetMode == LotusMode::Minecraft || targetMode == LotusMode::SuperSmooth) {
+            if (isUinputMode(targetMode)) {
 #if __cplusplus >= 202002L
                 std::ranges::transform(appName, appName.begin(), ::tolower);
 #else
@@ -479,7 +505,9 @@ namespace fcitx {
         } else if (surrvalid && !state->oldPreBuffer_.empty() && (now_ms() - state->lastDeactivateTime_) >= 100) {
             state->clearAllBuffers();
         }
-        is_deleting_.store(false);
+        if (!resumeReplacement) {
+            is_deleting_.store(false);
+        }
         needEngineReset.store(false);
         if (targetMode == LotusMode::Emoji) {
             state->updateEmojiPreedit();
@@ -632,6 +660,8 @@ namespace fcitx {
                     setMode(selectedMode.value(), ic);
                     if (selectedMode == LotusMode::Emoji) {
                         state->updateEmojiPreedit();
+                    } else {
+                        showCycleModeNotification(selectedMode.value(), ic);
                     }
                 }
             }
@@ -768,7 +798,13 @@ namespace fcitx {
                 if (surrvalid && !state->oldPreBuffer_.empty())
                     state->clearAllBuffers();
             }
-            is_deleting_.store(false);
+            const bool uinputMode = isUinputMode(realMode);
+            if (uinputMode && is_deleting_.load() && state->expected_backspaces_ > 0) {
+                state->deletionInterruptedAt_ = now_ms();
+                LOTUS_INFO("Replacement interrupted by focus out");
+            } else {
+                is_deleting_.store(false);
+            }
             needEngineReset.store(false);
             ic->inputPanel().reset();
             ic->updateUserInterface(UserInterfaceComponent::InputPanel);
@@ -783,8 +819,12 @@ namespace fcitx {
         instance_->inputContextManager().foreach ([this](InputContext* ic) {
             auto* state = ic->propertyFor(&factory_);
             state->setEngine();
-            if (ic->hasFocus())
+            if (ic->hasFocus()) {
+                // Re-resolve the focused window's rule; setEngine() must not
+                // reset it to the global mode.
+                setMode(getAppRule(getProgramName(ic)), ic);
                 state->reset();
+            }
             return true;
         });
     }
@@ -966,6 +1006,8 @@ namespace fcitx {
                 if (mode == LotusMode::Emoji) {
                     auto* state = ic->propertyFor(&factory_);
                     state->updateEmojiPreedit();
+                } else {
+                    showCycleModeNotification(mode, ic);
                 }
             };
         };
@@ -1166,10 +1208,10 @@ namespace fcitx {
         // On KDE and GNOME, absolute paths work correctly — their compositors
         // or SNI hosts handle filesystem paths in IconName.
         static const bool kIsCinnamon = [] {
-            const char* de = std::getenv("XDG_CURRENT_DESKTOP");
-            if (!de)
-                de = std::getenv("DESKTOP_SESSION");
-            return de && (std::string(de) == "cinnamon" || std::string(de) == "X-Cinnamon");
+            std::string de = getEnv("XDG_CURRENT_DESKTOP");
+            if (de.empty())
+                de = getEnv("DESKTOP_SESSION");
+            return !de.empty() && (de == "cinnamon" || de == "X-Cinnamon");
         }();
 
         if (kIsCinnamon) {
@@ -1189,10 +1231,8 @@ namespace fcitx {
         // hicolor and breeze fallback directories.
         LotusIconSearchPaths paths;
         // hicolor status/apps dirs; SVG preferred, PNG only as raster fallback.
-        paths.systemDirs = {
-            "/usr/share/icons/hicolor/22x22/status",  "/usr/share/icons/hicolor/24x24/status", "/usr/share/icons/hicolor/scalable/status",
-            "/usr/share/icons/hicolor/scalable/apps", "/usr/share/icons/hicolor/48x48/apps",
-        };
+        paths.systemDirs  = {"/usr/share/icons/hicolor/scalable/apps", "/usr/share/icons/hicolor/scalable/status", "/usr/share/icons/hicolor/22x22/status",
+                             "/usr/share/icons/hicolor/24x24/status"};
         paths.fallbackDir = FCITX_LOTUS_ICON_DIR; // compile-time install dir
 
         iconCachePath_ = resolveLotusIconPath({iconName, baseIconName}, paths);

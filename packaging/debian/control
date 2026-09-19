@@ -16,7 +16,6 @@ Build-Depends: debhelper-compat (= 13),
                libinput-dev,
                libudev-dev,
                pkg-config,
-               libx11-dev,
                python3,
                librsvg2-bin
 Standards-Version: 4.6.0

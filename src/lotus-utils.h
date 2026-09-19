@@ -67,6 +67,13 @@ int64_t now_ms();
 bool isBackspace(uint32_t sym);
 
 /**
+ * @brief Whether a mode delivers text through the uinput (fake backspace) path.
+ * @param mode Mode to check.
+ * @return True for Uinput, Smooth, SuperSmooth and Minecraft.
+ */
+bool isUinputMode(fcitx::LotusMode mode);
+
+/**
  * @brief Erases the last UTF-8 codepoint from a string in place.
  *
  * Walks back past any continuation bytes (10xxxxxx) to find the leading
@@ -108,5 +115,12 @@ struct KeyEntry {
     uint32_t sym;   ///< Key symbol
     uint32_t state; ///< Key state (modifiers)
 };
+
+/**
+ * @brief get environement variable.
+ * @param name Name of the variable.
+ * @return Value of the variable.
+ */
+std::string getEnv(const std::string& name);
 
 #endif // _FCITX5_LOTUS_UTILS_H_

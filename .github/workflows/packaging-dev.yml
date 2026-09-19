@@ -4,6 +4,9 @@ on:
   push:
   pull_request:
 
+permissions:
+  actions: write
+
 concurrency:
   group: ${{ github.workflow }}-${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')) && github.run_id || (github.head_ref || github.ref) }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/') }}
@@ -210,3 +213,16 @@ jobs:
           name: arch-tar-zst
           path: fcitx5-lotus-*-x86_64-archlinux.tar.zst
           retention-days: 3
+
+  retry-failed-jobs:
+    name: Auto Retry Failed Jobs
+    needs: [build-deb, build-rpm-fedora, build-rpm-opensuse, build-arch]
+    if: failure() && fromJSON(github.run_attempt) < 3
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Re-run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "Packaging attempt ${{ github.run_attempt }} failed. Triggering re-run for failed matrix/distro targets..."
+          gh run rerun ${{ github.run_id }} --failed

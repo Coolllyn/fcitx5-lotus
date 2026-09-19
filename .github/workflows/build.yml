@@ -6,6 +6,7 @@ on:
 permissions:
   contents: read
   security-events: write
+  actions: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')) && github.run_id || (github.head_ref || github.ref) }}
@@ -127,3 +128,16 @@ jobs:
         uses: astral-sh/ruff-action@v4.1.0
         with:
           args: 'format --check settings-gui'
+
+  retry-failed-jobs:
+    name: Auto Retry Failed Jobs
+    needs: [clang-format, check, go-test, python-lint]
+    if: failure() && fromJSON(github.run_attempt) < 3
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Re-run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "Attempt ${{ github.run_attempt }} encountered failure. Re-running failed jobs..."
+          gh run rerun ${{ github.run_id }} --failed

@@ -52,6 +52,7 @@ namespace fcitx {
             case LotusMode::Preedit: return 5;
             case LotusMode::Emoji: return 6;
             case LotusMode::Minecraft: return 8;
+            case LotusMode::UinputSurrText: return 7;
             default: return 0;
         }
     }
@@ -66,6 +67,7 @@ namespace fcitx {
             case 5: return LotusMode::Preedit;
             case 6: return LotusMode::Emoji;
             case 8: return LotusMode::Minecraft;
+            case 7: return LotusMode::UinputSurrText;
             default: return LotusMode::Off;
         }
     }
@@ -76,7 +78,8 @@ namespace fcitx {
     static bool isAppModeMenuReservedKey(KeySym sym, const lotusConfig& config) {
         if (sym == Key(*config.shortcutSmooth).sym() || sym == Key(*config.shortcutUinput).sym() || sym == Key(*config.shortcutMinecraft).sym() ||
             sym == Key(*config.shortcutSurroundingText).sym() || sym == Key(*config.shortcutPreedit).sym() || sym == Key(*config.shortcutEmoji).sym() ||
-            sym == Key(*config.shortcutOff).sym() || sym == Key(*config.shortcutSuperSmooth).sym() || sym == Key(*config.shortcutDefault).sym()) {
+            sym == Key(*config.shortcutOff).sym() || sym == Key(*config.shortcutSuperSmooth).sym() || sym == Key(*config.shortcutUinputSurrText).sym() ||
+            sym == Key(*config.shortcutDefault).sym()) {
             return true;
         }
 
@@ -682,6 +685,7 @@ namespace fcitx {
                                                                     {"Emoji", *config_.showModeEmoji},
                                                                     {"Off", *config_.showModeOff},
                                                                     {"SuperSmooth", *config_.showModeSuperSmooth},
+                                                                    {"UinputSurrText", *config_.showModeUinputSurrText},
                                                                     {"Default", *config_.showModeDefault}};
 
             std::vector<LotusMode>                    enabledModes;
@@ -711,6 +715,8 @@ namespace fcitx {
                         mode = LotusMode::Off;
                     else if (name == "SuperSmooth")
                         mode = LotusMode::SuperSmooth;
+                    else if (name == "UinputSurrText")
+                        mode = LotusMode::UinputSurrText;
                     else if (name == "Default")
                         mode = config().mode.value();
                     else
@@ -913,7 +919,8 @@ namespace fcitx {
             return;
 
         file << "# Lotus Per-App Configuration\n";
-        file << "# 0 = Off, 1 = Uinput (Smooth), 2 = Uinput (Slow), 3 = Uinput (Super Smooth), 4 = Surrounding Text, 5 = Preedit, 6 = Emoji Picker, 8 = Minecraft\n";
+        file << "# 0 = Off, 1 = Uinput (Smooth), 2 = Uinput (Slow), 3 = Uinput (Super Smooth), 4 = Surrounding Text, 5 = Preedit, 6 = Emoji Picker, 8 = Minecraft, 7 = Uinput "
+                "(Surrounding Text)\n";
         std::lock_guard<std::mutex> lock(appRulesMutex_);
         for (const auto& pair : appRules_) {
             bool currentIsCtx = isStartsWith(pair.first, "ctx_");
@@ -1030,6 +1037,7 @@ namespace fcitx {
             {"Emoji", {LotusMode::Emoji, _("Emoji Picker"), getShortcut(*config_.shortcutEmoji), *config_.showModeEmoji}},
             {"Off", {LotusMode::Off, _("OFF"), getShortcut(*config_.shortcutOff), *config_.showModeOff}},
             {"SuperSmooth", {LotusMode::SuperSmooth, _("Uinput (Super Smooth)"), getShortcut(*config_.shortcutSuperSmooth), *config_.showModeSuperSmooth}},
+            {"UinputSurrText", {LotusMode::UinputSurrText, _("Uinput (Surrounding Text)"), getShortcut(*config_.shortcutUinputSurrText), *config_.showModeUinputSurrText}},
             {"Default", {config_.mode.value(), _("Default Typing"), getShortcut(*config_.shortcutDefault), *config_.showModeDefault}}};
 
         std::vector<ModeInfo> allModes;
@@ -1138,6 +1146,7 @@ namespace fcitx {
             case LotusMode::Emoji: modeLabel = _("Emoji Picker"); break;
             case LotusMode::Off: modeLabel = _("OFF"); break;
             case LotusMode::SuperSmooth: modeLabel = _("Uinput (Super Smooth)"); break;
+            case LotusMode::UinputSurrText: modeLabel = _("Uinput (Surrounding Text)"); break;
             default: modeLabel = _("Unknown Mode"); break;
         }
 

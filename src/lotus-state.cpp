@@ -499,8 +499,8 @@ namespace fcitx {
         expected_backspaces_          = static_cast<int>(utf8::length(deletedPart));
         const auto&       surrounding = ic_->surroundingText();
         const std::string surrText    = surrounding.text();
-        bool isSurrText = engine_->config().useSurroundingTextIfPossible.value() && ic_->capabilityFlags().test(CapabilityFlag::SurroundingText) && surrounding.isValid() &&
-            !surrText.empty() && surrounding.cursor() == utf8::length(surrText);
+        bool isSurrText = realMode == LotusMode::UinputSurrText && ic_->capabilityFlags().test(CapabilityFlag::SurroundingText) && surrounding.isValid() && !surrText.empty() &&
+            surrounding.cursor() == utf8::length(surrText);
         if (!isSurrText && realMode != LotusMode::Minecraft) {
             ++expected_backspaces_;
             if (realMode != LotusMode::SuperSmooth) {
@@ -1140,6 +1140,7 @@ namespace fcitx {
             case LotusMode::Uinput:
             case LotusMode::Smooth:
             case LotusMode::Minecraft:
+            case LotusMode::UinputSurrText:
             case LotusMode::SuperSmooth: {
                 handleUinputMode(keyEvent, currentSym);
                 break;
@@ -1207,6 +1208,7 @@ namespace fcitx {
             case LotusMode::Uinput:
             case LotusMode::Smooth:
             case LotusMode::Minecraft:
+            case LotusMode::UinputSurrText:
             case LotusMode::SuperSmooth: {
                 ic_->inputPanel().reset();
                 break;
@@ -1242,6 +1244,7 @@ namespace fcitx {
             case LotusMode::Smooth:
             case LotusMode::SurroundingText:
             case LotusMode::Minecraft:
+            case LotusMode::UinputSurrText:
             case LotusMode::SuperSmooth: {
                 if (lotusEngine_) {
                     ResetEngine(lotusEngine_.handle());

@@ -13,7 +13,6 @@
 #include "lotus-candidates.h"
 #include "lotus-monitor.h"
 #include "lotus-utils.h"
-#include "lotus-icon-resolver.h"
 #include "ack-apps.h"
 #include "lotus-plasma-theme.h"
 #include <optional>
@@ -1208,44 +1207,7 @@ namespace fcitx {
                 iconName = baseIconName + (isDarkMode() ? "-default" : "-default-black");
             }
         }
-
-        // ── Cinnamon: return icon NAME (not absolute path) ──────────────────
-        // Cinnamon's tray uses XApp Status Applet (SNI).  The IconName property
-        // is sent over D-Bus and resolved via Gtk.IconTheme — which only
-        // understands theme icon names, not filesystem paths.
-        //
-        // On KDE and GNOME, absolute paths work correctly — their compositors
-        // or SNI hosts handle filesystem paths in IconName.
-        static const bool kIsCinnamon = [] {
-            std::string de = getEnv("XDG_CURRENT_DESKTOP");
-            if (de.empty())
-                de = getEnv("DESKTOP_SESSION");
-            return !de.empty() && (de == "cinnamon" || de == "X-Cinnamon");
-        }();
-
-        if (kIsCinnamon) {
-            return iconName;
-        }
-
-        // Cache keyed on the resolved icon name — mode/theme changes
-        // re-resolve automatically, no manual invalidation needed.
-        if (iconCacheName_ == iconName && !iconCachePath_.empty()) {
-            return iconCachePath_;
-        }
-        iconCacheName_ = iconName;
-
-        // ── Default: resolve to absolute path (KDE, GNOME, etc.) ───────────
-        // Return absolute path to bypass XDG icon theme lookup, which fails on
-        // many non-Breeze icon themes despite the icon being installed in
-        // hicolor and breeze fallback directories.
-        LotusIconSearchPaths paths;
-        // hicolor status/apps dirs; SVG preferred, PNG only as raster fallback.
-        paths.systemDirs  = {"/usr/share/icons/hicolor/scalable/apps", "/usr/share/icons/hicolor/scalable/status", "/usr/share/icons/hicolor/22x22/status",
-                             "/usr/share/icons/hicolor/24x24/status"};
-        paths.fallbackDir = FCITX_LOTUS_ICON_DIR; // compile-time install dir
-
-        iconCachePath_ = resolveLotusIconPath({iconName, baseIconName}, paths);
-        return iconCachePath_;
+        return iconName;
     }
 
     std::string LotusEngine::subModeLabelImpl(const InputMethodEntry& /*entry*/, InputContext& /*inputContext*/) {

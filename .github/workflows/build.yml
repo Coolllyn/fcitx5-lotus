@@ -24,23 +24,13 @@ jobs:
       - uses: actions/checkout@v7
       - uses: fcitx/github-actions@clang-format
 
-  check:
-    name: Build and test
+  check-gcc:
+    name: Build and test (gcc, g++)
     runs-on: ubuntu-latest
     container: archlinux:latest
-
-    strategy:
-      fail-fast: false
-      matrix:
-        compiler: [gcc, clang]
-        include:
-          - compiler: gcc
-            cxx_compiler: g++
-          - compiler: clang
-            cxx_compiler: clang++
     env:
-      CC: ${{ matrix.compiler }}
-      CXX: ${{ matrix.cxx_compiler }}
+      CC: gcc
+      CXX: g++
     steps:
       - name: Install dependencies
         run: |
@@ -56,9 +46,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: 'fcitx5/**/*.tar.*'
-          key:
-            ${{ runner.os }}-${{ hashFiles('fcitx5/src/modules/spell/CMakeLists.txt')
-            }}
+          key: ${{ runner.os }}-${{ hashFiles('fcitx5/src/modules/spell/CMakeLists.txt') }}
       - name: Build and Install fcitx5
         uses: fcitx/github-actions@cmake
         with:
@@ -71,7 +59,6 @@ jobs:
           path: fcitx5-lotus
           submodules: true
       - name: Init CodeQL
-        if: matrix.compiler == 'gcc'
         uses: github/codeql-action/init@v4.38.1
         with:
           languages: cpp,go
@@ -88,10 +75,55 @@ jobs:
         run: |
           ctest --test-dir fcitx5-lotus/build --output-on-failure --no-tests=error
       - name: CodeQL Analysis
-        if: matrix.compiler == 'gcc'
         uses: github/codeql-action/analyze@v4.38.1
         with:
           checkout_path: fcitx5-lotus
+
+  check-clang:
+    name: Build and test (clang, clang++)
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    env:
+      CC: clang
+      CXX: clang++
+    steps:
+      - name: Install dependencies
+        run: |
+          pacman -Syu --noconfirm base-devel clang cmake ninja extra-cmake-modules fmt libuv boost git go libinput systemd-libs extra-cmake-modules python librsvg
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git config --global --add safe.directory "$GITHUB_WORKSPACE/fcitx5-lotus"
+          git config --global --add safe.directory "$GITHUB_WORKSPACE/fcitx5"
+      - uses: actions/checkout@v7
+        with:
+          repository: fcitx/fcitx5
+          path: fcitx5
+      - name: Cache fcitx5 data files
+        uses: actions/cache@v6
+        with:
+          path: 'fcitx5/**/*.tar.*'
+          key: ${{ runner.os }}-${{ hashFiles('fcitx5/src/modules/spell/CMakeLists.txt') }}
+      - name: Build and Install fcitx5
+        uses: fcitx/github-actions@cmake
+        with:
+          path: fcitx5
+          cmake-option: >-
+            -DENABLE_KEYBOARD=Off -DENABLE_X11=Off -DENABLE_WAYLAND=Off -DENABLE_ENCHANT=Off
+            -DENABLE_DBUS=Off -DENABLE_SERVER=Off -DUSE_SYSTEMD=Off -DENABLE_EMOJI=On
+      - uses: actions/checkout@v7
+        with:
+          path: fcitx5-lotus
+          submodules: true
+      - name: Build and Install fcitx5-lotus
+        uses: fcitx/github-actions@cmake
+        with:
+          path: fcitx5-lotus
+          cmake-option: -DBUILD_TESTING=ON
+      - name: Discover tests
+        run: |
+          ctest --test-dir fcitx5-lotus/build -N
+      - name: Test
+        run: |
+          ctest --test-dir fcitx5-lotus/build --output-on-failure --no-tests=error
 
   go-test:
     name: Go test

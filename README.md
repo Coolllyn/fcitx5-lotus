@@ -10,7 +10,7 @@
 <h2 align="center">Fcitx5 Lotus</h2>
 
 <p align="center">
-    <b>Bộ gõ tiếng Việt đơn giản, hiệu năng cao cho Linux (not for you)</b>
+    <b>Bộ gõ tiếng Việt đơn giản, hiệu năng cao cho Linux (not for yo)</b>
     <br />
     <a href="https://lotusinputmethod.github.io/"><strong>Khám phá trang chủ »</strong></a>
     <br />

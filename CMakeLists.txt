@@ -4,9 +4,9 @@ project(fcitx5-lotus VERSION 3.5.10)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(BUILD_TESTING "Build Lotus tests" OFF)
 
-# The addon entry point is intentionally excluded: each headless test links
-# the production implementation directly, without a reusable archive/object
-# target that could differ from the module build.
+# The addon entry point is intentionally excluded: headless tests link the
+# production implementation through the lotus_test_core target, never the
+# module build itself.
 set(fcitx_lotus_core_sources
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lotus-engine.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lotus-state.cpp

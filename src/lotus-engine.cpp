@@ -15,6 +15,9 @@
 #include "lotus-utils.h"
 #include "ack-apps.h"
 #include "lotus-plasma-theme.h"
+
+#include "bamboo-core.h" // generated cgo header; only included where the bridge is called
+
 #include <optional>
 #include <sys/socket.h>
 #include <utility>

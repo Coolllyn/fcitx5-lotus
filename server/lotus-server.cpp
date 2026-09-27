@@ -118,7 +118,7 @@ void UinputDevice::send_shift_up() {
     send_mod(KEY_LEFTSHIFT, 0);
 }
 
-void UinputDevice::send_shift_left() {
+void UinputDevice::send_left() {
     send_tap(KEY_LEFT);
 }
 
@@ -321,7 +321,7 @@ int main(int argc, char* argv[]) {
                 --pending_backspaces;
             } else if (pending_selects > 0) {
                 if (pending_selects > 1) {
-                    uinput.send_shift_left();
+                    uinput.send_left();
                     --pending_selects;
                 } else {
                     if (shift_held) {
@@ -330,7 +330,7 @@ int main(int argc, char* argv[]) {
                     } else {
                         uinput.send_delete();
                         std::this_thread::sleep_for(std::chrono::milliseconds(5));
-                        uinput.send_shift_left();
+                        uinput.send_left();
                         --pending_selects;
                     }
                 }
@@ -403,13 +403,13 @@ int main(int argc, char* argv[]) {
                 }
                 if (msg.count > 0 && msg.op == KB_OP_SELECT) {
                     if (msg.count == 1) {
-                        uinput.send_shift_left();
+                        uinput.send_left();
                     } else {
                         if (!shift_held) {
                             uinput.send_shift_down();
                             shift_held = true;
                         }
-                        uinput.send_shift_left();
+                        uinput.send_left();
                         pending_selects += msg.count - 1;
                     }
                 } else if (msg.count > 0 && msg.op == KB_OP_BACKSPACE) {

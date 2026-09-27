@@ -1109,7 +1109,7 @@ namespace fcitx {
                 if (handleUInputKeyPress(keyEvent, currentSym, sleepTime)) {
                     return;
                 }
-            } else if (realMode == LotusMode::Select) {
+            } else if (realMode == LotusMode::Select && (currentSym == FcitxKey_Left || currentSym == FcitxKey_Delete)) {
                 if (currentSym == FcitxKey_Left) {
                     // Echoed left arrow extends the selection in the app: consume it as
                     // a selection signal, never buffer it for replay.

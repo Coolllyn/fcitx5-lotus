@@ -79,7 +79,7 @@ class UinputDevice {
     void          send_delete();
     void          send_shift_down();
     void          send_shift_up();
-    void          send_shift_left();
+    void          send_left();
     int           get_fd() const {
         return guard_.get();
     }

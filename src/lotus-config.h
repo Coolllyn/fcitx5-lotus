@@ -272,8 +272,7 @@ namespace fcitx {
 
         Option<bool>        useSurroundingTextIfPossible{this, "useSurroundingTextIfPossible", _("Use Surrounding Text if possible"), false};
 
-        Option<std::string> modeOrder{this, "ModeOrder", _("Mode Order"),
-                                       "Smooth,Uinput,UinputSurrText,Minecraft,Select,SurroundingText,Preedit,Emoji,Off,SuperSmooth,Default"};
+        Option<std::string> modeOrder{this, "ModeOrder", _("Mode Order"), "Smooth,Uinput,UinputSurrText,Minecraft,Select,SurroundingText,Preedit,Emoji,Off,SuperSmooth,Default"};
 
         OptionWithAnnotation<std::string, TimeFormatAnnotation>  timeFormat{this, "TimeFormat", _("Time Format ($TIME in macro)"), "%H:%M", {}, {}, TimeFormatAnnotation()};
         OptionWithAnnotation<std::string, DateFormatAnnotation>  dateFormat{this, "DateFormat", _("Date Format ($DATE in macro)"), "%d/%m/%Y", {}, {}, DateFormatAnnotation()};

@@ -40,9 +40,9 @@ class KbSocketListener {
             return;
         }
         sockaddr_un address{};
-        address.sun_family  = AF_UNIX;
+        address.sun_family    = AF_UNIX;
         const auto socketPath = buildSocketPath("kb_socket");
-        address.sun_path[0] = '\0';
+        address.sun_path[0]   = '\0';
         std::memcpy(&address.sun_path[1], socketPath.data(), socketPath.size());
         const auto length = static_cast<socklen_t>(offsetof(sockaddr_un, sun_path) + socketPath.size() + 1);
         if (bind(fd_, reinterpret_cast<const sockaddr*>(&address), length) < 0 || listen(fd_, 5) < 0) {
@@ -61,7 +61,7 @@ class KbSocketListener {
     KbSocketListener(KbSocketListener&&)                 = delete;
     KbSocketListener& operator=(KbSocketListener&&)      = delete;
 
-    bool receive(KbMsg& msg, const char* meaning, const char* requestTimeoutExpected = "request within 5000 ms") {
+    bool              receive(KbMsg& msg, const char* meaning, const char* requestTimeoutExpected = "request within 5000 ms") {
         int remainingTimeout = kDefaultTimeoutMs;
 
         while (remainingTimeout > 0) {
@@ -143,7 +143,7 @@ class KbSocketListener {
   private:
     static constexpr int kDefaultTimeoutMs = 5000;
 
-    void closeClient() {
+    void                 closeClient() {
         if (client_ >= 0) {
             close(client_);
             client_ = -1;

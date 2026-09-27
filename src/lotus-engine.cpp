@@ -85,12 +85,9 @@ namespace fcitx {
         // Not a static local on purpose: these shortcuts can be reassigned at
         // runtime, and a static table would keep the values from the first call.
         const std::array<KeySym, 11> modeShortcuts = {
-            Key(*config.shortcutSmooth).sym(),        Key(*config.shortcutUinput).sym(),
-            Key(*config.shortcutSuperSmooth).sym(),   Key(*config.shortcutMinecraft).sym(),
-            Key(*config.shortcutUinputSurrText).sym(), Key(*config.shortcutSelect).sym(),
-            Key(*config.shortcutSurroundingText).sym(), Key(*config.shortcutPreedit).sym(),
-            Key(*config.shortcutEmoji).sym(),         Key(*config.shortcutOff).sym(),
-            Key(*config.shortcutDefault).sym(),
+            Key(*config.shortcutSmooth).sym(),         Key(*config.shortcutUinput).sym(), Key(*config.shortcutSuperSmooth).sym(),     Key(*config.shortcutMinecraft).sym(),
+            Key(*config.shortcutUinputSurrText).sym(), Key(*config.shortcutSelect).sym(), Key(*config.shortcutSurroundingText).sym(), Key(*config.shortcutPreedit).sym(),
+            Key(*config.shortcutEmoji).sym(),          Key(*config.shortcutOff).sym(),    Key(*config.shortcutDefault).sym(),
         };
         if (std::find(modeShortcuts.begin(), modeShortcuts.end(), sym) != modeShortcuts.end()) {
             return true;

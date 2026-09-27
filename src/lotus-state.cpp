@@ -1022,8 +1022,10 @@ namespace fcitx {
                 return;
         } else {
             if (keyEvent.rawKey().isModifier()) {
-                handleModifierTap(keyEvent);
-                return;
+                if (!is_deleting_.load(std::memory_order_acquire)) {
+                    handleModifierTap(keyEvent);
+                    return;
+                }
             }
             cancelModifierTap();
         }
@@ -1107,12 +1109,14 @@ namespace fcitx {
                 if (handleUInputKeyPress(keyEvent, currentSym, sleepTime)) {
                     return;
                 }
-            } else if (realMode == LotusMode::Select && currentSym == FcitxKey_Left) {
-                // Echoed left arrow extends the selection in the app: consume it as
-                // a selection signal, never buffer it for replay.
-                if (realtextLen.load(std::memory_order_acquire) > 0)
-                    realtextLen.fetch_sub(1, std::memory_order_acq_rel);
-                handleUInputKeyPress(keyEvent, currentSym, sleepTime);
+            } else if (realMode == LotusMode::Select) {
+                if (currentSym == FcitxKey_Left) {
+                    // Echoed left arrow extends the selection in the app: consume it as
+                    // a selection signal, never buffer it for replay.
+                    if (realtextLen.load(std::memory_order_acquire) > 0)
+                        realtextLen.fetch_sub(1, std::memory_order_acq_rel);
+                    handleUInputKeyPress(keyEvent, currentSym, sleepTime);
+                }
                 return;
             } else {
                 std::string keyUtf8Check = Key::keySymToUTF8(currentSym);

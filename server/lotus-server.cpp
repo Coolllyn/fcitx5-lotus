@@ -9,8 +9,10 @@
 #include "lotus-server.h"
 #include "lotus-logger.h"
 
+#include <chrono>
 #include <cstdint>
 #include <cstring>
+#include <thread>
 #include <vector>
 #include <csignal>
 #include <cstddef>
@@ -57,7 +59,7 @@ bool UinputDevice::initialize() {
     guard_.reset(fd);
 
     if (ioctl(fd, UI_SET_EVBIT, EV_KEY) < 0 || ioctl(fd, UI_SET_KEYBIT, KEY_BACKSPACE) < 0 || ioctl(fd, UI_SET_KEYBIT, KEY_LEFT) < 0 ||
-        ioctl(fd, UI_SET_KEYBIT, KEY_LEFTSHIFT) < 0) {
+        ioctl(fd, UI_SET_KEYBIT, KEY_LEFTSHIFT) < 0 || ioctl(fd, UI_SET_KEYBIT, KEY_DELETE) < 0) {
         return false;
     }
 
@@ -102,6 +104,10 @@ void UinputDevice::send_mod(uint16_t code, int value) {
 
 void UinputDevice::send_backspace() {
     send_tap(KEY_BACKSPACE);
+}
+
+void UinputDevice::send_delete() {
+    send_tap(KEY_DELETE);
 }
 
 void UinputDevice::send_shift_down() {
@@ -314,11 +320,19 @@ int main(int argc, char* argv[]) {
                 uinput.send_backspace();
                 --pending_backspaces;
             } else if (pending_selects > 0) {
-                uinput.send_shift_left();
-                --pending_selects;
-                if (pending_selects == 0 && shift_held) {
-                    uinput.send_shift_up();
-                    shift_held = false;
+                if (pending_selects > 1) {
+                    uinput.send_shift_left();
+                    --pending_selects;
+                } else {
+                    if (shift_held) {
+                        uinput.send_shift_up();
+                        shift_held = false;
+                    } else {
+                        uinput.send_delete();
+                        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+                        uinput.send_shift_left();
+                        --pending_selects;
+                    }
                 }
             }
         }
@@ -388,15 +402,15 @@ int main(int argc, char* argv[]) {
                     msg.op    = KB_OP_BACKSPACE;
                 }
                 if (msg.count > 0 && msg.op == KB_OP_SELECT) {
-                    if (!shift_held) {
-                        uinput.send_shift_down();
-                        shift_held = true;
-                    }
-                    uinput.send_shift_left();
-                    pending_selects += msg.count - 1;
-                    if (pending_selects == 0 && shift_held) {
-                        uinput.send_shift_up();
-                        shift_held = false;
+                    if (msg.count == 1) {
+                        uinput.send_shift_left();
+                    } else {
+                        if (!shift_held) {
+                            uinput.send_shift_down();
+                            shift_held = true;
+                        }
+                        uinput.send_shift_left();
+                        pending_selects += msg.count - 1;
                     }
                 } else if (msg.count > 0 && msg.op == KB_OP_BACKSPACE) {
                     if (shift_held) {

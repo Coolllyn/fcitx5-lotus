@@ -76,6 +76,7 @@ class UinputDevice {
 
     bool          initialize();
     void          send_backspace();
+    void          send_delete();
     void          send_shift_down();
     void          send_shift_up();
     void          send_shift_left();
@@ -158,7 +159,7 @@ struct KbMsg {
     int32_t count; ///< number of backspaces / characters to select
 };
 
-enum KbOp : int32_t {
+enum KbOp : int32_t {    //NOLINT
     KB_OP_BACKSPACE = 0, ///< emit count BackSpace key events
     KB_OP_SELECT    = 1, ///< select count characters via Shift+Left
 };

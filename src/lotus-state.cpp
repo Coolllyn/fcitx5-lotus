@@ -448,7 +448,11 @@ namespace fcitx {
     }
 
     void LotusState::finishReplacement(KeyEvent& event, int sleepTime) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(sleepTime * (expected_backspaces_ - 1)));
+        if (realMode == LotusMode::Select) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        } else {
+            std::this_thread::sleep_for(std::chrono::milliseconds(sleepTime * (expected_backspaces_ - 1)));
+        }
         // Validate surr cursor pos should match realtextLen after all BS/Left applied
         const auto& surr = ic_->surroundingText();
         if (surr.isValid() && surr.cursor() == realtextLen.load(std::memory_order_acquire)) {

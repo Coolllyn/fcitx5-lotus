@@ -409,6 +409,7 @@ int main(int argc, char* argv[]) {
                             uinput.send_shift_down();
                             shift_held = true;
                         }
+                        std::this_thread::sleep_for(std::chrono::milliseconds(5));
                         uinput.send_left();
                         pending_selects += msg.count - 1;
                     }

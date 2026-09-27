@@ -519,44 +519,24 @@ namespace fcitx {
         const auto& surrounding        = ic_->surroundingText();
         bool        isAutofillCertain_ = isAutofillCertain(surrounding);
         if (realMode != LotusMode::Minecraft) {
-            if (realMode == LotusMode::Select && !isAutofillCertain_) {
+            ++expected_backspaces_;
+            // Enable Autofill detection for all frontends (Wayland/IBus).
+            // This fixes the "toôi" duplication bug in Chromium-based search bars.
+            // The isAutofillCertain function has been optimized to differentiate
+            // between browser autofill and AI ghost text.
+            // Skipped for Select: the app only sees expected_backspaces_ - 1
+            // arrows, and the autofill suffix is already selected, so the one
+            // arrow reaches the character being replaced and the commit swaps
+            // both at once.
+            if (realMode != LotusMode::SuperSmooth && isAutofillCertain_) {
                 ++expected_backspaces_;
-            } else {
-                ++expected_backspaces_;
-                // Enable Autofill detection for all frontends (Wayland/IBus).
-                // This fixes the "toôi" duplication bug in Chromium-based search bars.
-                // The isAutofillCertain function has been optimized to differentiate
-                // between browser autofill and AI ghost text.
-                // Skipped for Select: the app only sees expected_backspaces_ - 1
-                // arrows, and the autofill suffix is already selected, so the one
-                // arrow reaches the character being replaced and the commit swaps
-                // both at once.
-                if (realMode != LotusMode::SuperSmooth && isAutofillCertain_) {
-                    ++expected_backspaces_;
-                }
             }
         }
         is_deleting_.store(true, std::memory_order_release);
-        if (isAutofillCertain_ && realMode == LotusMode::Select) {
-            ic_->deleteSurroundingText(-expected_backspaces_, expected_backspaces_);
-            LOTUS_INFO("Delete using surrounding text");
-            std::this_thread::sleep_for(std::chrono::milliseconds(4 * expected_backspaces_));
-            if (!pending_commit_string_.empty()) {
-                ic_->commitString(pending_commit_string_);
-                LOTUS_INFO("Commit: " + pending_commit_string_);
-                std::this_thread::sleep_for(std::chrono::milliseconds(3 * utf8::length(addedPart)));
-            }
-            expected_backspaces_     = 0;
-            current_backspace_count_ = 0;
-            pending_commit_string_.clear();
-            is_deleting_.store(false);
-            replayBufferedKeys();
-            return;
-        }
         // Select mode: the uinput server selects with Shift+Left instead. The
         // trigger-key compensation above still applies because the last echoed
         // Left is swallowed; autofill compensation does not, see above.
-        if (realMode == LotusMode::Select) {
+        if (realMode == LotusMode::Select && !isAutofillCertain_) {
             send_select_uinput(expected_backspaces_);
             LOTUS_INFO("Send select of " + std::to_string(expected_backspaces_) + " characters");
             return;

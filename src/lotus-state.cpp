@@ -513,16 +513,16 @@ namespace fcitx {
 
     void LotusState::performReplacement(const std::string& deletedPart, const std::string& addedPart) {
         LOTUS_INFO("Perform replacement: " + deletedPart + " -> " + addedPart); //NOLINT
-        current_backspace_count_      = 0;
-        pending_commit_string_        = addedPart;
-        expected_backspaces_          = static_cast<int>(utf8::length(deletedPart));
-        const auto&       surrounding = ic_->surroundingText();
-        const std::string surrText    = surrounding.text();
-        bool isSurrText = realMode == LotusMode::UinputSurrText && ic_->capabilityFlags().test(CapabilityFlag::SurroundingText) && surrounding.isValid() && !surrText.empty() &&
-            surrounding.cursor() == utf8::length(surrText);
-        if (!isSurrText && realMode != LotusMode::Minecraft) {
-            ++expected_backspaces_;
-            if (realMode != LotusMode::SuperSmooth && realMode != LotusMode::Select) {
+        current_backspace_count_       = 0;
+        pending_commit_string_         = addedPart;
+        expected_backspaces_           = static_cast<int>(utf8::length(deletedPart));
+        const auto& surrounding        = ic_->surroundingText();
+        bool        isAutofillCertain_ = isAutofillCertain(surrounding);
+        if (realMode != LotusMode::Minecraft) {
+            if (realMode == LotusMode::Select && !isAutofillCertain_) {
+                ++expected_backspaces_;
+            } else {
+                ++expected_backspaces_;
                 // Enable Autofill detection for all frontends (Wayland/IBus).
                 // This fixes the "toôi" duplication bug in Chromium-based search bars.
                 // The isAutofillCertain function has been optimized to differentiate
@@ -531,13 +531,13 @@ namespace fcitx {
                 // arrows, and the autofill suffix is already selected, so the one
                 // arrow reaches the character being replaced and the commit swaps
                 // both at once.
-                if (isAutofillCertain(surrounding)) {
+                if (realMode != LotusMode::SuperSmooth && isAutofillCertain_) {
                     ++expected_backspaces_;
                 }
             }
         }
         is_deleting_.store(true, std::memory_order_release);
-        if (isSurrText) {
+        if (isAutofillCertain_ && realMode == LotusMode::Select) {
             ic_->deleteSurroundingText(-expected_backspaces_, expected_backspaces_);
             LOTUS_INFO("Delete using surrounding text");
             std::this_thread::sleep_for(std::chrono::milliseconds(4 * expected_backspaces_));
@@ -1179,7 +1179,6 @@ namespace fcitx {
             case LotusMode::Uinput:
             case LotusMode::Smooth:
             case LotusMode::Minecraft:
-            case LotusMode::UinputSurrText:
             case LotusMode::SuperSmooth:
             case LotusMode::Select: {
                 handleUinputMode(keyEvent, currentSym);
@@ -1248,7 +1247,6 @@ namespace fcitx {
             case LotusMode::Uinput:
             case LotusMode::Smooth:
             case LotusMode::Minecraft:
-            case LotusMode::UinputSurrText:
             case LotusMode::SuperSmooth:
             case LotusMode::Select: {
                 ic_->inputPanel().reset();
@@ -1285,7 +1283,6 @@ namespace fcitx {
             case LotusMode::Smooth:
             case LotusMode::SurroundingText:
             case LotusMode::Minecraft:
-            case LotusMode::UinputSurrText:
             case LotusMode::SuperSmooth:
             case LotusMode::Select: {
                 if (lotusEngine_) {

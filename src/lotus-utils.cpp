@@ -67,7 +67,7 @@ bool isUinputMode(fcitx::LotusMode mode) {
     // Constant set, so unlike the configurable shortcuts elsewhere a static
     // table stays correct.
     static const std::array<fcitx::LotusMode, 6> modes = {
-        fcitx::LotusMode::Uinput, fcitx::LotusMode::Smooth, fcitx::LotusMode::SuperSmooth, fcitx::LotusMode::Minecraft, fcitx::LotusMode::UinputSurrText, fcitx::LotusMode::Select,
+        fcitx::LotusMode::Uinput, fcitx::LotusMode::Smooth, fcitx::LotusMode::SuperSmooth, fcitx::LotusMode::Minecraft, fcitx::LotusMode::Select,
     };
     return std::find(modes.begin(), modes.end(), mode) != modes.end();
 }

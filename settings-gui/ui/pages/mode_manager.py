@@ -41,8 +41,7 @@ MODE_SURROUNDING = 4
 MODE_PREEDIT = 5
 MODE_EMOJI = 6
 MODE_MINECRAFT = 8
-MODE_UINPUT_SURROUNDING = 7
-MODE_SELECT = 9
+MODE_SELECT = 7
 MODE_DEFAULT = -1  # UI special value for "Use Global Default"
 
 MODE_INFO = {
@@ -50,7 +49,6 @@ MODE_INFO = {
     MODE_OFF: {"title": "OFF", "icon": "input-keyboard"},
     MODE_SMOOTH: {"title": "Uinput (Smooth)", "icon": "input-keyboard"},
     MODE_SLOW: {"title": "Uinput (Slow)", "icon": "input-keyboard"},
-    MODE_UINPUT_SURROUNDING: {"title": "Uinput (Surrounding Text)", "icon": "input-keyboard"},
     MODE_SUPER_SMOOTH: {"title": "Uinput (Super Smooth)", "icon": "input-keyboard"},
     MODE_SURROUNDING: {"title": "Surrounding Text", "icon": "text-field"},
     MODE_PREEDIT: {"title": "Preedit", "icon": "text-field"},
@@ -63,7 +61,6 @@ MODE_INFO = {
 SELECTABLE_MODES = [
     MODE_SMOOTH,
     MODE_SLOW,
-    MODE_UINPUT_SURROUNDING,
     MODE_SUPER_SMOOTH,
     MODE_MINECRAFT,
     MODE_SELECT,

@@ -73,4 +73,12 @@ install(FILES
         DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/${PROJECT_NAME}
 )
 
+if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/bamboo/bamboo-core/LICENSE")
+    install(FILES
+            bamboo/bamboo-core/LICENSE
+            DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/${PROJECT_NAME}
+            RENAME BAMBOO_CORE_LICENSE.txt
+    )
+endif()
+
 feature_summary(WHAT ALL FATAL_ON_MISSING_REQUIRED_PACKAGES)

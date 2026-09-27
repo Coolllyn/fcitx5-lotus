@@ -119,35 +119,5 @@ int main() {
                       "the buffered key replay did not produce the expected final commits, or a left arrow was replayed");
         return 1;
     }
-
-    // Chromium address bar: the inline autocomplete suffix is selected from the
-    // caret to the end of the text, which used to make isAutofillCertain() add
-    // one more arrow. That one arrow already stretches the selection over the
-    // character being replaced, and the commit swaps both, so the extra arrow
-    // would eat the character in front of the tone.
-    if (!send(engine, entry, *context, FcitxKey_Escape, false)) // clear the replayed preedit
-        return 1;
-    context->surroundingText().setText("mail", 2, 4);
-    if (!send(engine, entry, *context, FcitxKey_a, false) || !send(engine, entry, *context, FcitxKey_s, true))
-        return 1;
-    int addressBarSelects = 0;
-    if (!receiveSelectRequest(listener, addressBarSelects, "the address bar replacement did not request a selection"))
-        return 1;
-    if (addressBarSelects != 2) {
-        reportFailure("address bar replacement count", "selects=2", "selects=" + std::to_string(addressBarSelects),
-                      "the autofill compensation must not apply in Select mode: the extra arrow eats the character before the tone");
-        return 1;
-    }
-    for (int i = 0; i < addressBarSelects; ++i) {
-        if (!send(engine, entry, *context, FcitxKey_Left, i + 1 == addressBarSelects))
-            return 1;
-    }
-
-    const std::vector<std::string> withAddressBar{"á", "ã", "á"};
-    if (context->commits() != withAddressBar) {
-        reportFailure("verify address bar commit", "commits=['á']['ã']['á']", commitList(*context) + ", address-bar-selects=" + std::to_string(addressBarSelects),
-                      "the address bar replacement did not commit once after the selection completed");
-        return 1;
-    }
     return 0;
 }

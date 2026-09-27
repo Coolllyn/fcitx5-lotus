@@ -522,11 +522,13 @@ namespace fcitx {
             surrounding.cursor() == utf8::length(surrText);
         if (!isSurrText && realMode != LotusMode::Minecraft) {
             ++expected_backspaces_;
-            if (realMode != LotusMode::SuperSmooth) {
+            if (realMode != LotusMode::SuperSmooth && realMode != LotusMode::Select) {
                 // Enable Autofill detection for all frontends (Wayland/IBus).
                 // This fixes the "toôi" duplication bug in Chromium-based search bars.
                 // The isAutofillCertain function has been optimized to differentiate
                 // between browser autofill and AI ghost text.
+                // Skipped for Select: the app only sees expected_backspaces_ - 1 arrows,
+                // and Shift+Left can never clear text to the right of the cursor.
                 if (isAutofillCertain(surrounding)) {
                     ++expected_backspaces_;
                 }
@@ -550,8 +552,8 @@ namespace fcitx {
             return;
         }
         // Select mode: the uinput server selects the same number of characters
-        // with Shift+Left; the compensation counts above apply unchanged because
-        // selection extends leftward from the cursor exactly like BackSpace deletes.
+        // with Shift+Left. The trigger-key compensation above still applies because
+        // the last echoed Left is swallowed; autofill compensation does not, see above.
         if (realMode == LotusMode::Select) {
             send_select_uinput(expected_backspaces_);
             LOTUS_INFO("Send select of " + std::to_string(expected_backspaces_) + " characters");

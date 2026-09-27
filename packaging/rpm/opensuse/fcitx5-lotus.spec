@@ -2,7 +2,7 @@ Name:           fcitx5-lotus
 Version:        3.6.0
 Release:        1
 Summary:        Vietnamese input method for fcitx5
-License:        GPL-3.0-or-later
+License:        GPL-3.0-or-later AND LGPL-2.1-or-later AND MIT AND GPL-2.0-or-later
 URL:            https://github.com/LotusInputMethod/fcitx5-lotus
 Source0:        %{url}/archive/v%{version}/%{name}-%{version}.tar.gz
 
@@ -47,6 +47,7 @@ cd %{_builddir}/%{name}-%{version}
 %files -f %{name}.lang
 %{_datadir}/licenses/%{name}/GPL-3.0-or-later.txt
 %{_datadir}/licenses/%{name}/LGPL-2.1-or-later.txt
+%{_datadir}/licenses/%{name}/BAMBOO_CORE_LICENSE.txt
 
 %dir %{_datadir}/licenses/%{name}
 %dir %{_modulesloaddir}

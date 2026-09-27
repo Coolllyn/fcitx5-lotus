@@ -120,10 +120,11 @@ int main() {
         return 1;
     }
 
-    // Chromium address bar: the inline autocomplete suffix sits to the right of
-    // the caret as a selection starting at the caret, which used to make
-    // isAutofillCertain() add one more arrow. In Select mode that arrow eats a
-    // real character, and the suffix is cleared by the commit anyway.
+    // Chromium address bar: the inline autocomplete suffix is selected from the
+    // caret to the end of the text, which used to make isAutofillCertain() add
+    // one more arrow. That one arrow already stretches the selection over the
+    // character being replaced, and the commit swaps both, so the extra arrow
+    // would eat the character in front of the tone.
     if (!send(engine, entry, *context, FcitxKey_Escape, false)) // clear the replayed preedit
         return 1;
     context->surroundingText().setText("mail", 2, 4);

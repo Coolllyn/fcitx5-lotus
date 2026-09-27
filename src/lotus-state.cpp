@@ -527,8 +527,10 @@ namespace fcitx {
                 // This fixes the "toôi" duplication bug in Chromium-based search bars.
                 // The isAutofillCertain function has been optimized to differentiate
                 // between browser autofill and AI ghost text.
-                // Skipped for Select: the app only sees expected_backspaces_ - 1 arrows,
-                // and Shift+Left can never clear text to the right of the cursor.
+                // Skipped for Select: the app only sees expected_backspaces_ - 1
+                // arrows, and the autofill suffix is already selected, so the one
+                // arrow reaches the character being replaced and the commit swaps
+                // both at once.
                 if (isAutofillCertain(surrounding)) {
                     ++expected_backspaces_;
                 }
@@ -551,9 +553,9 @@ namespace fcitx {
             replayBufferedKeys();
             return;
         }
-        // Select mode: the uinput server selects the same number of characters
-        // with Shift+Left. The trigger-key compensation above still applies because
-        // the last echoed Left is swallowed; autofill compensation does not, see above.
+        // Select mode: the uinput server selects with Shift+Left instead. The
+        // trigger-key compensation above still applies because the last echoed
+        // Left is swallowed; autofill compensation does not, see above.
         if (realMode == LotusMode::Select) {
             send_select_uinput(expected_backspaces_);
             LOTUS_INFO("Send select of " + std::to_string(expected_backspaces_) + " characters");

@@ -1127,10 +1127,16 @@ namespace fcitx {
                 }
                 return;
             } else {
-                std::string keyUtf8Check = Key::keySymToUTF8(currentSym);
+                KeySym    symToBuffer   = currentSym;
+                KeyStates stateToBuffer = keyEvent.rawKey().states();
+                if (realMode == LotusMode::Select && stateToBuffer.test(KeyState::Shift)) {
+                    symToBuffer   = unshiftKeySym(symToBuffer);
+                    stateToBuffer = stateToBuffer.unset(KeyState::Shift);
+                }
+                std::string keyUtf8Check = Key::keySymToUTF8(symToBuffer);
                 if (!keyUtf8Check.empty() && buffered_keys_.size() < MAX_BUFFERED_KEYS) {
                     LOTUS_WARN("Typing so fast, add key to queue");
-                    buffered_keys_.push_back({.sym = currentSym, .state = keyEvent.rawKey().states()});
+                    buffered_keys_.push_back({.sym = symToBuffer, .state = stateToBuffer});
                 }
                 keyEvent.filterAndAccept();
             }
@@ -1460,6 +1466,36 @@ namespace fcitx {
         macro_skip_            = false;
         if (lotusEngine_) {
             EngineSetMacroEnabled(lotusEngine_.handle(), *engine_->config().enableMacro ? 1 : 0);
+        }
+    }
+
+    KeySym LotusState::unshiftKeySym(KeySym sym) {
+        if (sym >= FcitxKey_A && sym <= FcitxKey_Z) {
+            return static_cast<KeySym>(sym + (FcitxKey_a - FcitxKey_A));
+        }
+        switch (sym) {
+            case FcitxKey_asciitilde: return FcitxKey_grave;
+            case FcitxKey_exclam: return FcitxKey_1;
+            case FcitxKey_at: return FcitxKey_2;
+            case FcitxKey_numbersign: return FcitxKey_3;
+            case FcitxKey_dollar: return FcitxKey_4;
+            case FcitxKey_percent: return FcitxKey_5;
+            case FcitxKey_asciicircum: return FcitxKey_6;
+            case FcitxKey_ampersand: return FcitxKey_7;
+            case FcitxKey_asterisk: return FcitxKey_8;
+            case FcitxKey_parenleft: return FcitxKey_9;
+            case FcitxKey_parenright: return FcitxKey_0;
+            case FcitxKey_underscore: return FcitxKey_minus;
+            case FcitxKey_plus: return FcitxKey_equal;
+            case FcitxKey_braceleft: return FcitxKey_bracketleft;
+            case FcitxKey_braceright: return FcitxKey_bracketright;
+            case FcitxKey_bar: return FcitxKey_backslash;
+            case FcitxKey_colon: return FcitxKey_semicolon;
+            case FcitxKey_quotedbl: return FcitxKey_apostrophe;
+            case FcitxKey_less: return FcitxKey_comma;
+            case FcitxKey_greater: return FcitxKey_period;
+            case FcitxKey_question: return FcitxKey_slash;
+            default: return sym;
         }
     }
 } // namespace fcitx

@@ -284,6 +284,13 @@ namespace fcitx {
          * @brief Clears the macro-skip state and re-syncs the engine.
          */
         void resetMacroSkip();
+
+        /**
+         * @brief get unshift key of a key symbol
+         * @param sym Key symbol need to unshift
+         * @return The unshifted key symbol
+         */
+        static KeySym unshiftKeySym(KeySym sym);
     };
 
 } // namespace fcitx

@@ -305,8 +305,14 @@ int main(int argc, char* argv[]) {
     sigaction(SIGINT, &sa, nullptr);
 
     while (g_running.load(std::memory_order_acquire)) {
-        int poll_timeout = (pending_backspaces > 0 || pending_selects > 0) ? 5 : -1;
-        int ret          = poll(fds.data(), fds.size(), poll_timeout);
+        int poll_timeout = -1;
+        if (pending_backspaces > 0) {
+            poll_timeout = 5;
+        }
+        if (pending_selects > 0) {
+            poll_timeout = 10;
+        }
+        int ret = poll(fds.data(), fds.size(), poll_timeout);
 
         if (ret < 0) {
             if (errno == EINTR) {
@@ -325,12 +331,13 @@ int main(int argc, char* argv[]) {
                     --pending_selects;
                 } else {
                     if (shift_held) {
+                        std::this_thread::sleep_for(std::chrono::milliseconds(10));
                         uinput.send_shift_up();
                         shift_held = false;
                     } else {
+                        std::this_thread::sleep_for(std::chrono::milliseconds(10));
                         uinput.send_delete();
-                        std::this_thread::sleep_for(std::chrono::milliseconds(5));
-                        uinput.send_left();
+                        std::this_thread::sleep_for(std::chrono::milliseconds(10));
                         --pending_selects;
                     }
                 }

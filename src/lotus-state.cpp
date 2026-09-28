@@ -488,8 +488,9 @@ namespace fcitx {
         }
         expected_backspaces_     = 0;
         current_backspace_count_ = 0;
-
-        event.filterAndAccept(); // Filter out the final trigger backspace / left arrow.
+        if (realMode != LotusMode::Select || event.rawKey().sym() != FcitxKey_Delete) {
+            event.filterAndAccept(); // Filter out the final trigger backspace / left arrow.
+        }
         is_deleting_.store(false);
         if (!dbusDefer) {
             replayBufferedKeys();
@@ -503,7 +504,7 @@ namespace fcitx {
         // In Select mode the uinput server emits Shift+Left, so the echoed Left
         // presses are the selection signal. The final one is swallowed in
         // finishReplacement so the app only sees the count it should select.
-        const bool isSelectEcho = (realMode == LotusMode::Select) && (currentSym == FcitxKey_Left);
+        const bool isSelectEcho = (realMode == LotusMode::Select) && (currentSym == FcitxKey_Left || currentSym == FcitxKey_Delete);
         if (!isBackspace(currentSym) && !isSelectEcho) {
             return false;
         }
@@ -1120,6 +1121,9 @@ namespace fcitx {
                     if (realtextLen.load(std::memory_order_acquire) > 0)
                         realtextLen.fetch_sub(1, std::memory_order_acq_rel);
                     handleUInputKeyPress(keyEvent, currentSym, sleepTime);
+                } else {
+                    handleUInputKeyPress(keyEvent, currentSym, sleepTime);
+                    keyEvent.forward();
                 }
                 return;
             } else {

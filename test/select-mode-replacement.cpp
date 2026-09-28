@@ -95,8 +95,6 @@ int main() {
     }
     if (!send(engine, entry, *context, FcitxKey_Delete, false))
         return 1;
-    if (!send(engine, entry, *context, FcitxKey_Left, true))
-        return 1;
     const std::vector<std::string> afterFirst{"á"};
     if (context->commits() != afterFirst) {
         reportFailure("verify commit after the last left arrow", "commits=['á']", commitList(*context) + ", selects=" + std::to_string(selects),
@@ -116,8 +114,6 @@ int main() {
             return 1;
     }
     if (!send(engine, entry, *context, FcitxKey_Delete, false))
-        return 1;
-    if (!send(engine, entry, *context, FcitxKey_Left, true))
         return 1;
 
     const std::vector<std::string> expected{"á", "ã"};

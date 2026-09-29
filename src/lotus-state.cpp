@@ -1140,7 +1140,7 @@ namespace fcitx {
             } else {
                 KeySym    symToBuffer   = currentSym;
                 KeyStates stateToBuffer = keyEvent.rawKey().states();
-                if (realMode == LotusMode::Select && stateToBuffer.test(KeyState::Shift)) {
+                if (realMode == LotusMode::Select && current_backspace_count_ < expected_backspaces_ && stateToBuffer.test(KeyState::Shift)) {
                     symToBuffer   = unshiftKeySym(symToBuffer);
                     stateToBuffer = stateToBuffer.unset(KeyState::Shift);
                 }

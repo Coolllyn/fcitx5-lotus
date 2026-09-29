@@ -477,6 +477,7 @@ namespace fcitx {
                                                                                      deferredCommitTimer_.reset();
                                                                                      if (auto* ic = icRef.get()) {
                                                                                          ic->commitString(commitText);
+                                                                                         updateLastCommitTime();
                                                                                          LOTUS_INFO("Commit (deferred): " + commitText);
                                                                                      }
                                                                                      replayBufferedKeys();
@@ -484,6 +485,7 @@ namespace fcitx {
                                                                                  });
         } else {
             ic_->commitString(commitText);
+            updateLastCommitTime();
             LOTUS_INFO("Commit: " + commitText);
         }
         expected_backspaces_     = 0;
@@ -517,6 +519,15 @@ namespace fcitx {
     }
 
     void LotusState::performReplacement(const std::string& deletedPart, const std::string& addedPart) {
+        if (last_commit_time_.time_since_epoch().count() > 0) {
+            auto          now              = std::chrono::steady_clock::now();
+            auto          elapsedMs        = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_commit_time_).count();
+            const int64_t requiredCooldown = (realMode == LotusMode::Select) ? 25 : 10;
+            auto          timeSleep        = requiredCooldown - elapsedMs;
+            if (timeSleep > 0) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(timeSleep));
+            }
+        }
         LOTUS_INFO("Perform replacement: " + deletedPart + " -> " + addedPart); //NOLINT
         current_backspace_count_       = 0;
         pending_commit_string_         = addedPart;
@@ -1353,7 +1364,6 @@ namespace fcitx {
                             buffered_keys_.push_back(keys[j]);
                         }
                     }
-                    std::this_thread::sleep_for(std::chrono::milliseconds(5));
                     performReplacement(deletedPart, addedPart);
                     hasHistory_ = false;
                     ResetEngine(lotusEngine_.handle());
@@ -1405,7 +1415,6 @@ namespace fcitx {
                             buffered_keys_.push_back(keys[j]);
                         }
                     }
-                    std::this_thread::sleep_for(std::chrono::milliseconds(5));
                     performReplacement(deletedPart, addedPart);
                     oldPreBuffer_ = preeditStr;
                     return;
@@ -1499,5 +1508,9 @@ namespace fcitx {
             case FcitxKey_question: return FcitxKey_slash;
             default: return sym;
         }
+    }
+
+    void LotusState::updateLastCommitTime() {
+        last_commit_time_ = std::chrono::steady_clock::now();
     }
 } // namespace fcitx

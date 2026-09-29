@@ -1353,6 +1353,7 @@ namespace fcitx {
                             buffered_keys_.push_back(keys[j]);
                         }
                     }
+                    std::this_thread::sleep_for(std::chrono::milliseconds(5));
                     performReplacement(deletedPart, addedPart);
                     hasHistory_ = false;
                     ResetEngine(lotusEngine_.handle());
@@ -1404,6 +1405,7 @@ namespace fcitx {
                             buffered_keys_.push_back(keys[j]);
                         }
                     }
+                    std::this_thread::sleep_for(std::chrono::milliseconds(5));
                     performReplacement(deletedPart, addedPart);
                     oldPreBuffer_ = preeditStr;
                     return;

@@ -187,10 +187,6 @@ func (e *FcitxBambooEngine) getProcessedString(mode bamboo.Mode) string {
 	return e.preeditor.GetProcessedString(mode)
 }
 
-func (e *FcitxBambooEngine) getRawKeyLen() int {
-	return len(e.getProcessedString(bamboo.EnglishMode | bamboo.FullText))
-}
-
 func (e *FcitxBambooEngine) getPreeditString() string {
 	if e.shouldFallbackToEnglish(true) {
 		return e.getProcessedString(bamboo.EnglishMode | bamboo.FullText)

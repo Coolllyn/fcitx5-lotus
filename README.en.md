@@ -34,7 +34,7 @@
       <img src="https://img.shields.io/github/issues/LotusInputMethod/fcitx5-lotus?style=flat&color=red" alt="Issues">
     </a>
     <a href="#contributors-">
-      <img src="https://img.shields.io/badge/all_contributors-16-orange.svg?style=flat-square" alt="All Contributors">
+      <img src="https://img.shields.io/badge/all_contributors-18-orange.svg?style=flat-square" alt="All Contributors">
     </a>
     <a href="https://deepwiki.com/LotusInputMethod/fcitx5-lotus"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
   </p>
@@ -137,7 +137,11 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/e
       <td align="center" valign="top" width="25%"><a href="https://github.com/naoNao89"><img src="https://avatars.githubusercontent.com/u/90588855?v=4?s=100" width="100px;" alt="Cả thế giới là Rust"/><br /><sub><b>Cả thế giới là Rust</b></sub></a><br /><a href="https://github.com/LotusInputMethod/fcitx5-lotus/commits?author=naoNao89" title="Code">💻</a></td>
       <td align="center" valign="top" width="25%"><a href="https://github.com/collyn"><img src="https://avatars.githubusercontent.com/u/13034759?v=4?s=100" width="100px;" alt="Nguyen Tien Huy"/><br /><sub><b>Nguyen Tien Huy</b></sub></a><br /><a href="https://github.com/LotusInputMethod/fcitx5-lotus/commits?author=collyn" title="Code">💻</a></td>
       <td align="center" valign="top" width="25%"><a href="https://github.com/ducky-duke"><img src="https://avatars.githubusercontent.com/u/96020037?v=4?s=100" width="100px;" alt="ducky-duke"/><br /><sub><b>ducky-duke</b></sub></a><br /><a href="https://github.com/LotusInputMethod/fcitx5-lotus/commits?author=ducky-duke" title="Code">💻</a></td>
-      <td align="center" valign="top" width="25%"><a href="https://github.com/Leanhduc-linux"><img src="https://avatars.githubusercontent.com/u/259352926?v=4?s=100" width="100px;" alt="nothing"/><br /><sub><b>nothing</b></sub></a><br /><a href="https://github.com/LotusInputMethod/fcitx5-lotus/commits?author=Leanhduc-linux" title="Code">💻</a> <a href="https://github.com/LotusInputMethod/fcitx5-lotus/issues?q=author%3ALeanhduc-linux" title="Bug reports">🐛</a> <a href="#platform-Leanhduc-linux" title="Packaging/porting to new platform">📦</a></td>
+      <td align="center" valign="top" width="25%"><a href="https://github.com/minhnbnt"><img src="https://avatars.githubusercontent.com/u/114562412?v=4?s=100" width="100px;" alt="Nguyễn Quang Minh"/><br /><sub><b>Nguyễn Quang Minh</b></sub></a><br /><a href="https://github.com/LotusInputMethod/fcitx5-lotus/commits?author=minhnbnt" title="Code">💻</a></td>
+    </tr>
+    <tr>
+      <td align="center" valign="top" width="25%"><a href="https://github.com/nguyenphivn"><img src="https://avatars.githubusercontent.com/u/19565657?v=4?s=100" width="100px;" alt="nguyenphivn"/><br /><sub><b>nguyenphivn</b></sub></a><br /><a href="https://github.com/LotusInputMethod/fcitx5-lotus/commits?author=nguyenphivn" title="Code">💻</a> <a href="https://github.com/LotusInputMethod/fcitx5-lotus/issues?q=author%3Anguyenphivn" title="Bug reports">🐛</a></td>
+      <td align="center" valign="top" width="25%"><a href="https://github.com/Coolllyn"><img src="https://avatars.githubusercontent.com/u/259352926?v=4?s=100" width="100px;" alt="Coolllyn"/><br /><sub><b>Coolllyn</b></sub></a><br /><a href="#platform-Coolllyn" title="Packaging/porting to new platform">📦</a> <a href="https://github.com/LotusInputMethod/fcitx5-lotus/commits?author=Coolllyn" title="Code">💻</a> <a href="https://github.com/LotusInputMethod/fcitx5-lotus/issues?q=author%3ACoolllyn" title="Bug reports">🐛</a></td>
     </tr>
   </tbody>
   <tfoot>

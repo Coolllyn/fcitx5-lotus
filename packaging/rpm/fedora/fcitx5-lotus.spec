@@ -1,5 +1,5 @@
 Name:           fcitx5-lotus
-Version:        3.6.0
+Version:        4.0.0
 Release:        1
 Summary:        Vietnamese input method for fcitx5
 License:        GPL-3.0-or-later
@@ -115,6 +115,10 @@ fi
 %systemd_postun_with_restart fcitx5-lotus-server@.service
 
 %changelog
-* Sat Sep 26 2026 Nguyen Hoang Ky <nhktmdzhg@gmail.com> - 3.6.0-1
-- Add Uinput (Surrounding Text) mode
-- Fix mode menu key don't reset state
+* Wed Sep 30 2026 Nguyen Hoang Ky <nhktmdzhg@gmail.com> - 4.0.0-1
+- Add Uinput (Select) mode using Shift+Left replacement
+- Fix text deletion, modifier keys, and character casing issues in Select mode
+- Resolve key racing and timing issues by adding commit cooldowns and protocol pre/post delays
+- Fix address bar autofill compensation
+- Integrate bamboo-core directly via git-subtree and drop git submodule dependencies
+- Unify project licensing to GPL-3.0-or-later and update credits and documentation

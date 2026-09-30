@@ -32,9 +32,6 @@ Thank you for your interest in contributing to the fcitx5-lotus project! This do
 git clone https://github.com/LotusInputMethod/fcitx5-lotus.git
 cd fcitx5-lotus
 
-# Initialize submodules
-git submodule update --init --recursive
-
 # Build
 mkdir build && cd build
 cmake ..

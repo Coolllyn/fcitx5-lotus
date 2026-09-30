@@ -32,9 +32,6 @@ Cảm ơn bạn quan tâm đến việc đóng góp cho dự án fcitx5-lotus! T
 git clone https://github.com/LotusInputMethod/fcitx5-lotus.git
 cd fcitx5-lotus
 
-# Khởi tạo submodules
-git submodule update --init --recursive
-
 # Build
 mkdir build && cd build
 cmake ..

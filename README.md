@@ -75,7 +75,7 @@ Nếu bạn muốn tự biên dịch bộ gõ từ mã nguồn để đóng góp
 ### Cài đặt
 
 ```bash
-git clone --recurse-submodules https://github.com/LotusInputMethod/fcitx5-lotus.git
+git clone https://github.com/LotusInputMethod/fcitx5-lotus.git
 cd fcitx5-lotus
 cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_INSTALL_LIBDIR=/usr/lib . #LIBDIR tuỳ vào distro
 make

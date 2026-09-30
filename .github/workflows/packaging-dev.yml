@@ -36,8 +36,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
-        with:
-          submodules: recursive
 
       - name: Prepare debian directory
         run: cp -r packaging/debian debian
@@ -72,8 +70,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
-        with:
-          submodules: recursive
 
       - name: Build Fedora RPM
         uses: addnab/docker-run-action@v3
@@ -119,8 +115,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
-        with:
-          submodules: recursive
 
       - name: Build openSUSE RPM
         uses: addnab/docker-run-action@v3
@@ -161,8 +155,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
-        with:
-          submodules: recursive
 
       - name: Build on Arch Linux
         uses: addnab/docker-run-action@v3

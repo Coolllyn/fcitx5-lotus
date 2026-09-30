@@ -17,6 +17,7 @@
 
 #include "lotus.h"
 #include "emoji-entry.h"
+#include "lotus-protocol.h"
 #include "lotus-utils.h"
 
 #include <chrono>
@@ -94,10 +95,9 @@ namespace fcitx {
         CGoObject                             lotusEngine_;
         std::string                           oldPreBuffer_;
         bool                                  hasHistory_              = false;
-        int                                   expected_backspaces_     = 0;
-        int                                   current_backspace_count_ = 0;
+        size_t                                expected_backspaces_     = 0;
+        size_t                                current_backspace_count_ = 0;
         std::string                           pending_commit_string_;
-        std::unique_ptr<EventSourceTime>      deferredCommitTimer_;
         std::string                           emojiBuffer_;
         std::vector<EmojiEntry>               emojiCandidates_;
         bool                                  waitAck_ = false;
@@ -129,20 +129,22 @@ namespace fcitx {
          * @brief Sends a keyboard request to the uinput server (reconnect on failure).
          * @param op Operation to request.
          * @param count Number of backspaces or characters to select.
+         * @param pre_delay 
+         * @param post_delay
          */
-        void send_kb_msg(KbOp op, int count) const;
+        void send_kb_msg(KbOp op, size_t count, uint32_t pre_delay, uint32_t post_delay) const;
 
         /**
          * @brief Sends backspace key events via uinput.
          * @param count Number of backspaces to send.
          */
-        void send_backspace_uinput(int count) const;
+        void send_backspace_uinput(size_t count, uint32_t pre_delay, uint32_t post_delay) const;
 
         /**
          * @brief Asks the uinput server to select count characters with Shift+Left.
          * @param count Number of characters to select.
          */
-        void send_select_uinput(int count) const;
+        void send_select_uinput(size_t count, uint32_t pre_delay, uint32_t post_delay) const;
 
         /**
          * @brief Checks if autofill is certain for surrounding text.
@@ -182,7 +184,7 @@ namespace fcitx {
          * @param sleepTime Delay in microseconds.
          * @return True if event was handled.
          */
-        bool handleUInputKeyPress(KeyEvent& event, KeySym currentSym, int sleepTime);
+        bool handleUInputKeyPress(KeyEvent& event, KeySym currentSym);
 
         /**
          * @brief Completes an in-flight replacement after all echoed events arrived.
@@ -194,7 +196,7 @@ namespace fcitx {
          * @param event The key event of the final echoed key.
          * @param sleepTime Pacing delay in milliseconds.
          */
-        void finishReplacement(KeyEvent& event, int sleepTime);
+        void finishReplacement(KeyEvent& event);
 
         /**
          * @brief Performs text replacement via uinput.

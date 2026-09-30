@@ -7,16 +7,16 @@
 // afterwards.
 #include "kb-socket-listener.h"
 #include "lotus-engine.h"
-#include "lotus-utils.h"
 #include "test-input-context.h"
 
+#include <cstddef>
 #include <memory>
 #include <string>
 #include <vector>
 
 namespace {
 
-    bool receiveSelectRequest(KbSocketListener& listener, int& count, const char* meaning, const char* timeoutExpected = "request within 5000 ms") {
+    bool receiveSelectRequest(KbSocketListener& listener, size_t& count, const char* meaning, const char* timeoutExpected = "request within 5000 ms") {
         KbMsg msg{};
         if (!listener.receive(msg, meaning, timeoutExpected))
             return false;
@@ -77,7 +77,7 @@ int main() {
     // uinput server to select the old character(s) instead of sending backspaces.
     if (!send(engine, entry, *context, FcitxKey_a, false) || !send(engine, entry, *context, FcitxKey_s, true))
         return 1;
-    int selects = 0;
+    size_t selects = 0;
     if (!receiveSelectRequest(listener, selects, "the initial Telex replacement did not request a selection"))
         return 1;
 
@@ -89,7 +89,7 @@ int main() {
 
     // Echoed left arrows: every press but the last passes through so the app can
     // extend the selection; the last one is swallowed and commits the replacement.
-    for (int i = 0; i < selects - 1; ++i) {
+    for (size_t i = 0; i < selects - 1; ++i) {
         if (!send(engine, entry, *context, FcitxKey_Left, false))
             return 1;
     }
@@ -105,11 +105,11 @@ int main() {
     // The buffered x is replayed after the commit and starts a second selection.
     // No left arrow is replayed: only one new request arrives and it matches the
     // count the replacement needs.
-    int replaySelects = 0;
+    size_t replaySelects = 0;
     if (!receiveSelectRequest(listener, replaySelects, "buffered key was not replayed after the selection completed",
                               "buffered x replay starts another selection request within 5000 ms"))
         return 1;
-    for (int i = 0; i < replaySelects - 1; ++i) {
+    for (size_t i = 0; i < replaySelects - 1; ++i) {
         if (!send(engine, entry, *context, FcitxKey_Left, false))
             return 1;
     }

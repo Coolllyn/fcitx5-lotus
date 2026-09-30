@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "kb-socket-listener.h"
 #include "lotus-engine.h"
-#include "lotus-utils.h"
 #include "test-input-context.h"
 
+#include <cstddef>
 #include <memory>
 #include <string>
 #include <vector>
 
 namespace {
 
-    bool receiveBackspaceRequest(KbSocketListener& listener, int& count, const char* meaning, const char* timeoutExpected = "request within 5000 ms") {
+    bool receiveBackspaceRequest(KbSocketListener& listener, size_t& count, const char* meaning, const char* timeoutExpected = "request within 5000 ms") {
         KbMsg msg{};
         if (!listener.receive(msg, meaning, timeoutExpected))
             return false;
@@ -64,7 +64,7 @@ int main() {
     // the old character through the kb_socket transport.
     if (!send(engine, entry, *context, FcitxKey_a, false) || !send(engine, entry, *context, FcitxKey_s, true))
         return 1;
-    int backspaces = 0;
+    size_t backspaces = 0;
     if (!receiveBackspaceRequest(listener, backspaces, "the initial Telex replacement request did not arrive"))
         return 1;
 
@@ -78,7 +78,7 @@ int main() {
             return 1;
     }
 
-    int replayBackspaces = 0;
+    size_t replayBackspaces = 0;
     if (!receiveBackspaceRequest(listener, replayBackspaces, "buffered key was not replayed after deletion", "buffered x replay starts another replacement request within 5000 ms"))
         return 1;
     for (int i = 0; i < replayBackspaces; ++i) {

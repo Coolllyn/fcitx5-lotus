@@ -8,6 +8,7 @@
 
 #include "lotus-server.h"
 #include "lotus-logger.h"
+#include "../src/lotus-protocol.h"
 
 #include <chrono>
 #include <cstdint>
@@ -293,9 +294,10 @@ int main(int argc, char* argv[]) {
 
     FdGuard          addon_fd;
     FdGuard          kb_client_fd;
-    int              pending_backspaces = 0;
-    int              pending_selects    = 0;     ///< remaining Shift+Left events to pace out
+    size_t           pending_backspaces = 0;
+    size_t           pending_selects    = 0;     ///< remaining Shift+Left events to pace out
     bool             shift_held         = false; ///< Shift pressed for an in-flight selection
+    uint32_t         current_post_delay = 0;     ///< stores post_delay from KbMsg
 
     struct sigaction sa{};
     sa.sa_handler = signal_handler;
@@ -310,7 +312,7 @@ int main(int argc, char* argv[]) {
             poll_timeout = 5;
         }
         if (pending_selects > 0) {
-            poll_timeout = 10;
+            poll_timeout = 8;
         }
         int ret = poll(fds.data(), fds.size(), poll_timeout);
 
@@ -323,6 +325,9 @@ int main(int argc, char* argv[]) {
 
         if (ret == 0) {
             if (pending_backspaces > 0) {
+                if (pending_backspaces == 1 && current_post_delay > 0) {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(current_post_delay));
+                }
                 uinput.send_backspace();
                 --pending_backspaces;
             } else if (pending_selects > 0) {
@@ -333,11 +338,12 @@ int main(int argc, char* argv[]) {
                     if (shift_held) {
                         std::this_thread::sleep_for(std::chrono::milliseconds(10));
                         uinput.send_shift_up();
+                        if (current_post_delay > 0) {
+                            std::this_thread::sleep_for(std::chrono::milliseconds(current_post_delay));
+                        }
                         shift_held = false;
                     } else {
-                        std::this_thread::sleep_for(std::chrono::milliseconds(10));
                         uinput.send_delete();
-                        std::this_thread::sleep_for(std::chrono::milliseconds(10));
                         --pending_selects;
                     }
                 }
@@ -403,24 +409,24 @@ int main(int argc, char* argv[]) {
             } else if (n != (ssize_t)sizeof(KbMsg) && n != (ssize_t)sizeof(int32_t)) {
                 LotusLogger::instance().warn("Malformed keyboard message (" + std::to_string(n) + " bytes)");
             } else {
-                if (n == (ssize_t)sizeof(int32_t)) {
-                    // Legacy datagram: bare backspace count.
-                    msg.count = msg.op;
-                    msg.op    = KB_OP_BACKSPACE;
-                }
                 if (msg.count > 0 && msg.op == KB_OP_SELECT) {
-                    if (msg.count == 1) {
-                        uinput.send_left();
-                    } else {
-                        if (!shift_held) {
-                            uinput.send_shift_down();
-                            shift_held = true;
-                        }
-                        std::this_thread::sleep_for(std::chrono::milliseconds(5));
-                        uinput.send_left();
-                        pending_selects += msg.count - 1;
+                    if (msg.pre_delay > 0) {
+                        std::this_thread::sleep_for(std::chrono::milliseconds(msg.pre_delay));
                     }
+                    current_post_delay = msg.post_delay;
+                    if (!shift_held) {
+                        uinput.send_shift_down();
+                        shift_held = true;
+                    }
+                    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+                    uinput.send_left();
+                    pending_selects += msg.count - 1;
+
                 } else if (msg.count > 0 && msg.op == KB_OP_BACKSPACE) {
+                    if (msg.pre_delay > 0) {
+                        std::this_thread::sleep_for(std::chrono::milliseconds(msg.pre_delay));
+                    }
+                    current_post_delay = msg.post_delay;
                     if (shift_held) {
                         // A stale in-flight selection must not mix with backspaces.
                         uinput.send_shift_up();

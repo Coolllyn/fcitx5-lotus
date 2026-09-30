@@ -129,20 +129,24 @@ namespace fcitx {
          * @brief Sends a keyboard request to the uinput server (reconnect on failure).
          * @param op Operation to request.
          * @param count Number of backspaces or characters to select.
-         * @param pre_delay 
-         * @param post_delay
+         * @param pre_delay Delay in milliseconds before executing the keyboard operation.
+         * @param post_delay Delay in milliseconds after completing the keyboard operation.
          */
         void send_kb_msg(KbOp op, size_t count, uint32_t pre_delay, uint32_t post_delay) const;
 
         /**
          * @brief Sends backspace key events via uinput.
          * @param count Number of backspaces to send.
+         * @param pre_delay Delay in milliseconds before executing the keyboard operation.
+         * @param post_delay Delay in milliseconds after completing the keyboard operation.
          */
         void send_backspace_uinput(size_t count, uint32_t pre_delay, uint32_t post_delay) const;
 
         /**
          * @brief Asks the uinput server to select count characters with Shift+Left.
          * @param count Number of characters to select.
+         * @param pre_delay Delay in milliseconds before executing the keyboard operation.
+         * @param post_delay Delay in milliseconds after completing the keyboard operation.
          */
         void send_select_uinput(size_t count, uint32_t pre_delay, uint32_t post_delay) const;
 
@@ -181,7 +185,6 @@ namespace fcitx {
          * @brief Handles key press in uinput mode.
          * @param event The key event.
          * @param currentSym Current key symbol.
-         * @param sleepTime Delay in microseconds.
          * @return True if event was handled.
          */
         bool handleUInputKeyPress(KeyEvent& event, KeySym currentSym);
@@ -194,7 +197,6 @@ namespace fcitx {
          * replacement state, swallows the final echo and replays buffered keys.
          *
          * @param event The key event of the final echoed key.
-         * @param sleepTime Pacing delay in milliseconds.
          */
         void finishReplacement(KeyEvent& event);
 
@@ -227,7 +229,6 @@ namespace fcitx {
          * @brief Handles uinput mode processing.
          * @param keyEvent The key event.
          * @param currentSym Current key symbol.
-         * @param sleepTime Delay in microseconds.
          */
         void handleUinputMode(KeyEvent& keyEvent, KeySym currentSym);
 

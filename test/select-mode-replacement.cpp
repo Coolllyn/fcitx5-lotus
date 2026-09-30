@@ -5,6 +5,7 @@
 // replacement once all echoed left arrows have arrived, the intermediate arrows
 // pass through so the app can extend the selection, and no arrow is replayed
 // afterwards.
+#include "fcitx-utils/keysym.h"
 #include "kb-socket-listener.h"
 #include "lotus-engine.h"
 #include "test-input-context.h"
@@ -95,6 +96,8 @@ int main() {
     }
     if (!send(engine, entry, *context, FcitxKey_Delete, false))
         return 1;
+    if (!send(engine, entry, *context, FcitxKey_Left, true))
+        return 1;
     const std::vector<std::string> afterFirst{"á"};
     if (context->commits() != afterFirst) {
         reportFailure("verify commit after the last left arrow", "commits=['á']", commitList(*context) + ", selects=" + std::to_string(selects),
@@ -114,6 +117,8 @@ int main() {
             return 1;
     }
     if (!send(engine, entry, *context, FcitxKey_Delete, false))
+        return 1;
+    if (!send(engine, entry, *context, FcitxKey_Left, true))
         return 1;
 
     const std::vector<std::string> expected{"á", "ã"};

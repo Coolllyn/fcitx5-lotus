@@ -338,12 +338,13 @@ int main(int argc, char* argv[]) {
                     if (shift_held) {
                         std::this_thread::sleep_for(std::chrono::milliseconds(10));
                         uinput.send_shift_up();
-                        if (current_post_delay > 0) {
-                            std::this_thread::sleep_for(std::chrono::milliseconds(current_post_delay));
-                        }
                         shift_held = false;
                     } else {
                         uinput.send_delete();
+                        if (current_post_delay > 0) {
+                            std::this_thread::sleep_for(std::chrono::milliseconds(current_post_delay));
+                        }
+                        uinput.send_left();
                         --pending_selects;
                     }
                 }

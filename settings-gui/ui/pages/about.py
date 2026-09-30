@@ -136,41 +136,54 @@ class AboutPage(QWidget):
         credits_title.setObjectName("CreditsTitle")
         layout.addWidget(credits_title, alignment=Qt.AlignCenter)
 
-        # Authors List - Single Column with wrap-round support
-        authors_layout = QVBoxLayout()
-        authors_layout.setSpacing(12)
+        # General Contributors Link
+        contributors_link = QLabel(
+            '<a href="https://github.com/LotusInputMethod/fcitx5-lotus/graphs/contributors" style="text-decoration: none;">'
+            + _("Fcitx5 Lotus Contributors")
+            + "</a>"
+        )
+        contributors_link.setOpenExternalLinks(True)
+        contributors_link.setCursor(Qt.PointingHandCursor)
+        contributors_link.setObjectName("AuthorLink")
+        layout.addWidget(contributors_link, alignment=Qt.AlignCenter)
 
-        authors_data = [
-            ("Nguyễn Hoàng Kỳ", "https://github.com/nhktmdzhg"),
-            ("Nguyễn Hồng Hiệp", "https://github.com/justanoobcoder"),
-            ("Đặng Quang Hiển", "https://github.com/Miho1254"),
-            ("Zebra2711", "https://github.com/Zebra2711"),
-            ("Huỳnh Thiện Lộc", "https://github.com/hthienloc"),
-        ]
-
-        for name, profile_url in authors_data:
-            author_link = QLabel(
-                f'<a href="{profile_url}" style="text-decoration: none;">{name}</a>'
-            )
-            author_link.setOpenExternalLinks(True)
-            author_link.setCursor(Qt.PointingHandCursor)
-            author_link.setObjectName("AuthorLink")
-            author_link.setAlignment(Qt.AlignCenter)
-            author_link.setMinimumHeight(24)
-            authors_layout.addWidget(author_link)
-
-        layout.addLayout(authors_layout)
         layout.addStretch()
 
-        # Footer
+        # Footer (Open Source Licenses)
         footer_line = QFrame()
         footer_line.setFrameShape(QFrame.HLine)
         footer_line.setObjectName("AboutLine")
         layout.addWidget(footer_line)
 
-        license_info = QLabel(_("Licensed under the GNU General Public License v3.0"))
-        license_info.setObjectName("LicenseInfo")
-        layout.addWidget(license_info, alignment=Qt.AlignCenter)
+        license_title = QLabel(_("Open Source Licenses"))
+        license_title.setObjectName("CreditsTitle")
+        layout.addWidget(license_title, alignment=Qt.AlignCenter)
+
+        # Main License
+        main_license_info = QLabel(
+            _(
+                "This project is licensed under the <b>GNU General Public License v3.0 or later (GPL-3.0-or-later)</b>."
+            )
+        )
+        main_license_info.setTextFormat(Qt.RichText)
+        main_license_info.setWordWrap(True)
+        main_license_info.setAlignment(Qt.AlignCenter)
+        main_license_info.setObjectName("LicenseInfo")
+        layout.addWidget(main_license_info)
+
+        # Third-party & Upstream Info
+        third_party_info = QLabel(
+            _(
+                "Based on upstream work originally licensed under <b>LGPL-2.1-or-later</b>.<br>"
+                "Includes third-party components licensed under the <b>MIT License</b>."
+            )
+        )
+        third_party_info.setTextFormat(Qt.RichText)
+        third_party_info.setWordWrap(True)
+        third_party_info.setAlignment(Qt.AlignCenter)
+        third_party_info.setObjectName("LicenseInfo")
+        third_party_info.setStyleSheet("opacity: 0.8; margin-top: 5px;")
+        layout.addWidget(third_party_info)
 
         scroll.setWidget(content_widget)
         root_layout.addWidget(scroll)

@@ -125,7 +125,6 @@ stdenv.mkDerivation (finalAttrs: {
     homepage = "https://github.com/LotusInputMethod/fcitx5-lotus";
     license = with lib.licenses; [
       gpl3Plus
-      lgpl21Plus
     ];
     maintainers = with lib.maintainers; [
       justanoobcoder

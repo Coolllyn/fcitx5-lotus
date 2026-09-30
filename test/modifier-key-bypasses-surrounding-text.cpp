@@ -45,7 +45,7 @@ int main() {
     engine.keyEvent(entry, event);
     if (event.accepted() || !context->deletes().empty() || !context->commits().empty() || !context->forwarded().empty()) {
         reportFailure("send Control_L press with selected surrounding text", "accepted=false, deletes=0, commits=0, forwarded=0",
-                      "accepted=" + std::to_string(event.accepted()) + ", deletes=" + std::to_string(context->deletes().size()) +
+                      "accepted=" + std::to_string(static_cast<int>(event.accepted())) + ", deletes=" + std::to_string(context->deletes().size()) +
                           ", commits=" + std::to_string(context->commits().size()) + ", forwarded=" + std::to_string(context->forwarded().size()),
                       "a modifier-only key must not enter surrounding-text processing");
         return 1;

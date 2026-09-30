@@ -17,8 +17,10 @@
 
 #include "lotus.h"
 #include "emoji-entry.h"
+#include "lotus-protocol.h"
 #include "lotus-utils.h"
 
+#include <chrono>
 #include <cstddef>
 #include <fcitx-utils/event.h>
 #include <fcitx-utils/misc.h>
@@ -86,30 +88,30 @@ namespace fcitx {
         friend class LotusEngine;
 
       private:
-        static constexpr size_t          MAX_BUFFERED_KEYS = 50;
+        static constexpr size_t               MAX_BUFFERED_KEYS = 50;
 
-        LotusEngine*                     engine_;
-        InputContext*                    ic_;
-        CGoObject                        lotusEngine_;
-        std::string                      oldPreBuffer_;
-        bool                             hasHistory_              = false;
-        int                              expected_backspaces_     = 0;
-        int                              current_backspace_count_ = 0;
-        std::string                      pending_commit_string_;
-        std::unique_ptr<EventSourceTime> deferredCommitTimer_;
-        std::string                      emojiBuffer_;
-        std::vector<EmojiEntry>          emojiCandidates_;
-        bool                             waitAck_ = false;
-        std::vector<KeyEntry>            buffered_keys_; ///< Keystrokes buffered during replacement
-        bool                             isPrevSpace_           = false;
-        bool                             isPrevHyphen_          = false;
-        bool                             shouldCapitalize_      = false;
-        bool                             isPrevPunctuation_     = false;
-        int64_t                          lastDeactivateTime_    = 0;
-        int64_t                          deletionInterruptedAt_ = 0; ///< when deactivate() cut an in-flight replacement (0 = none)
-        bool                             wa_chromium_flag       = false;
-        bool                             tracking_modifier_tap_ = false; ///< Selected modifier held, waiting for consecutive keyup
-        bool                             macro_skip_            = false; ///< Macro disabled for the current word
+        LotusEngine*                          engine_;
+        InputContext*                         ic_;
+        CGoObject                             lotusEngine_;
+        std::string                           oldPreBuffer_;
+        bool                                  hasHistory_              = false;
+        size_t                                expected_backspaces_     = 0;
+        size_t                                current_backspace_count_ = 0;
+        std::string                           pending_commit_string_;
+        std::string                           emojiBuffer_;
+        std::vector<EmojiEntry>               emojiCandidates_;
+        bool                                  waitAck_ = false;
+        std::vector<KeyEntry>                 buffered_keys_; ///< Keystrokes buffered during replacement
+        bool                                  isPrevSpace_           = false;
+        bool                                  isPrevHyphen_          = false;
+        bool                                  shouldCapitalize_      = false;
+        bool                                  isPrevPunctuation_     = false;
+        int64_t                               lastDeactivateTime_    = 0;
+        int64_t                               deletionInterruptedAt_ = 0; ///< when deactivate() cut an in-flight replacement (0 = none)
+        bool                                  wa_chromium_flag       = false;
+        bool                                  tracking_modifier_tap_ = false; ///< Selected modifier held, waiting for consecutive keyup
+        bool                                  macro_skip_            = false; ///< Macro disabled for the current word
+        std::chrono::steady_clock::time_point last_commit_time_;
 
         /**
          * @brief Connects to the uinput server.
@@ -124,10 +126,29 @@ namespace fcitx {
         static int setup_uinput();
 
         /**
+         * @brief Sends a keyboard request to the uinput server (reconnect on failure).
+         * @param op Operation to request.
+         * @param count Number of backspaces or characters to select.
+         * @param pre_delay Delay in milliseconds before executing the keyboard operation.
+         * @param post_delay Delay in milliseconds after completing the keyboard operation.
+         */
+        void send_kb_msg(KbOp op, size_t count, uint32_t pre_delay, uint32_t post_delay) const;
+
+        /**
          * @brief Sends backspace key events via uinput.
          * @param count Number of backspaces to send.
+         * @param pre_delay Delay in milliseconds before executing the keyboard operation.
+         * @param post_delay Delay in milliseconds after completing the keyboard operation.
          */
-        void send_backspace_uinput(int count) const;
+        void send_backspace_uinput(size_t count, uint32_t pre_delay, uint32_t post_delay) const;
+
+        /**
+         * @brief Asks the uinput server to select count characters with Shift+Left.
+         * @param count Number of characters to select.
+         * @param pre_delay Delay in milliseconds before executing the keyboard operation.
+         * @param post_delay Delay in milliseconds after completing the keyboard operation.
+         */
+        void send_select_uinput(size_t count, uint32_t pre_delay, uint32_t post_delay) const;
 
         /**
          * @brief Checks if autofill is certain for surrounding text.
@@ -164,10 +185,20 @@ namespace fcitx {
          * @brief Handles key press in uinput mode.
          * @param event The key event.
          * @param currentSym Current key symbol.
-         * @param sleepTime Delay in microseconds.
          * @return True if event was handled.
          */
-        bool handleUInputKeyPress(KeyEvent& event, KeySym currentSym, int sleepTime);
+        bool handleUInputKeyPress(KeyEvent& event, KeySym currentSym);
+
+        /**
+         * @brief Completes an in-flight replacement after all echoed events arrived.
+         *
+         * Shared tail of the BackSpace and Shift+Left echo handlers: waits for the
+         * app to settle, commits the pending replacement string, resets the
+         * replacement state, swallows the final echo and replays buffered keys.
+         *
+         * @param event The key event of the final echoed key.
+         */
+        void finishReplacement(KeyEvent& event);
 
         /**
          * @brief Performs text replacement via uinput.
@@ -198,7 +229,6 @@ namespace fcitx {
          * @brief Handles uinput mode processing.
          * @param keyEvent The key event.
          * @param currentSym Current key symbol.
-         * @param sleepTime Delay in microseconds.
          */
         void handleUinputMode(KeyEvent& keyEvent, KeySym currentSym);
 
@@ -259,6 +289,18 @@ namespace fcitx {
          * @brief Clears the macro-skip state and re-syncs the engine.
          */
         void resetMacroSkip();
+
+        /**
+         * @brief get unshift key of a key symbol
+         * @param sym Key symbol need to unshift
+         * @return The unshifted key symbol
+         */
+        static KeySym unshiftKeySym(KeySym sym);
+
+        /**
+         * @brief update last commit time.
+         */
+        void updateLastCommitTime();
     };
 
 } // namespace fcitx

@@ -75,7 +75,7 @@ Nếu bạn muốn tự biên dịch bộ gõ từ mã nguồn để đóng góp
 ### Cài đặt
 
 ```bash
-git clone --recurse-submodules https://github.com/LotusInputMethod/fcitx5-lotus.git
+git clone https://github.com/LotusInputMethod/fcitx5-lotus.git
 cd fcitx5-lotus
 cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_INSTALL_LIBDIR=/usr/lib . #LIBDIR tuỳ vào distro
 make
@@ -154,7 +154,9 @@ Dự án này tuân thủ cấu trúc của [all-contributors](https://github.co
 
 ## 📃 Giấy phép
 
-Dự án được phân phối dưới giấy phép GNU General Public License v3. Xem [`LICENSE`](LICENSE) để biết thêm chi tiết.
+Dự án được phân phối dưới giấy phép **GNU General Public License v3 (GPL-3.0-or-later)**. Xem [`LICENSE`](LICENSE) để biết thêm chi tiết.
+
+Các thư viện bên thứ ba (bao gồm các thành phần theo giấy phép MIT) vẫn giữ nguyên bản quyền của các tác giả gốc. Danh sách ghi công đầy đủ có trong mục **About** của ứng dụng.
 
 ---
 

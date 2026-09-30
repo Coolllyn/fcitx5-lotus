@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(fcitx5-lotus VERSION 3.6.0)
+project(fcitx5-lotus VERSION 4.0.0)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(BUILD_TESTING "Build Lotus tests" OFF)
 
@@ -68,8 +68,7 @@ fcitx5_translate_desktop_file(
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/org.fcitx.Fcitx5.Addon.Lotus.metainfo.xml" DESTINATION ${CMAKE_INSTALL_DATADIR}/metainfo)
 
 install(FILES 
-        LICENSES/GPL-3.0-or-later.txt
-        LICENSES/LGPL-2.1-or-later.txt
+        LICENSE
         DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/${PROJECT_NAME}
 )
 

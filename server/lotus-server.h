@@ -76,11 +76,28 @@ class UinputDevice {
 
     bool          initialize();
     void          send_backspace();
+    void          send_delete();
+    void          send_shift_down();
+    void          send_shift_up();
+    void          send_left();
     int           get_fd() const {
         return guard_.get();
     }
 
   private:
+    /**
+     * @brief Emits a press+release batch for one key (press, SYN, release, SYN),
+     *        same style as the original backspace write.
+     * @param code Linux KEY_* code.
+     */
+    void send_tap(uint16_t code);
+    /**
+     * @brief Emits a single modifier-style event with its SYN.
+     * @param code Linux KEY_* code.
+     * @param value 1 = press, 0 = release.
+     */
+    void    send_mod(uint16_t code, int value);
+
     FdGuard guard_;
 };
 

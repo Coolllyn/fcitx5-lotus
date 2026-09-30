@@ -43,9 +43,12 @@ settings-gui/org.fcitx.Fcitx5.Addon.Lotus.Settings.desktop.in
 
 msgcat \
 --use-first \
+--sort-output \
 /tmp/lotus-cpp.pot \
 /tmp/lotus-xml.pot \
 /tmp/lotus-conf.pot \
 /tmp/lotus-python.pot \
 /tmp/lotus-desktop.pot \
 -o po/fcitx5-lotus.pot
+
+rm -f /tmp/lotus-*.pot

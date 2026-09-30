@@ -15,6 +15,7 @@
 #define _FCITX5_LOTUS_UTILS_H_
 
 #include <atomic>
+#include <cstdint>
 #include <sys/un.h>
 #include <fcitx-utils/log.h>
 #include <fcitx/inputcontext.h>
@@ -69,7 +70,7 @@ bool isBackspace(uint32_t sym);
 /**
  * @brief Whether a mode delivers text through the uinput (fake backspace) path.
  * @param mode Mode to check.
- * @return True for Uinput, Smooth, SuperSmooth and Minecraft.
+ * @return True for Uinput, Smooth, SuperSmooth, Minecraft and Select.
  */
 bool isUinputMode(fcitx::LotusMode mode);
 

@@ -75,7 +75,7 @@ If you want to compile the input method from source to contribute or customize (
 ### Install
 
 ```bash
-git clone --recurse-submodules https://github.com/LotusInputMethod/fcitx5-lotus.git
+git clone https://github.com/LotusInputMethod/fcitx5-lotus.git
 cd fcitx5-lotus
 cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_INSTALL_LIBDIR=/usr/lib . #LIBDIR will vary depending on the distro
 make
@@ -100,7 +100,9 @@ Don't forget to give the project a ⭐! Thank you very much!
 
 ## 📃 License
 
-The project is distributed under the GNU General Public License v3. See [`LICENSE`](LICENSE) for details.
+This project is distributed under the terms of the **GNU General Public License v3 (GPL-3.0-or-later)**. See [`LICENSE`](LICENSE) for details.
+
+Third-party libraries (including MIT-licensed components) retain their original licenses and copyrights. Full attributions are available in the application's **About** page.
 
 ---
 

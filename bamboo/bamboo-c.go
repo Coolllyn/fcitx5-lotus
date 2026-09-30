@@ -2,7 +2,7 @@
  * SPDX-FileCopyrightText: 2022-2022 CSSlayer <wengxt@gmail.com>
  * SPDX-FileCopyrightText: 2026-2026 Nguyen Hoang Ky <nhktmdzhg@gmail.com>
  *
- * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-License-Identifier: GPL-3.0-or-later
  *
  */
 package main
@@ -53,15 +53,6 @@ func EngineProcessKeyEvent(engine uintptr, keyVal, state uint32) bool {
 		return false
 	}
 	return bambooEngine.preeditProcessKeyEvent(keyVal, state)
-}
-
-//export EngineSetRestoreKeyStroke
-func EngineSetRestoreKeyStroke(engine uintptr) {
-	bambooEngine, ok := engineFromHandle(engine)
-	if !ok {
-		return
-	}
-	bambooEngine.shouldRestoreKeyStrokes = true
 }
 
 //export EnginePullPreedit

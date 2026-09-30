@@ -69,10 +69,9 @@ jobs:
       - uses: actions/checkout@v7
         with:
           path: fcitx5-lotus
-          submodules: true
       - name: Init CodeQL
         if: matrix.compiler == 'gcc'
-        uses: github/codeql-action/init@v4.38.1
+        uses: github/codeql-action/init@v4.38.2
         with:
           languages: cpp,go
           source-root: fcitx5-lotus
@@ -89,17 +88,15 @@ jobs:
           ctest --test-dir fcitx5-lotus/build --output-on-failure --no-tests=error
       - name: CodeQL Analysis
         if: matrix.compiler == 'gcc'
-        uses: github/codeql-action/analyze@v4.38.1
+        uses: github/codeql-action/analyze@v4.38.2
         with:
           checkout_path: fcitx5-lotus
 
-  go-test:
-    name: Go test
+  go-bamboo:
+    name: Go (bamboo)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-        with:
-          submodules: true
       - uses: actions/setup-go@v7
         with:
           go-version: '1.18'
@@ -114,12 +111,38 @@ jobs:
         run: |
           test -z "$(gofmt -l *_test.go)"
 
+  go-bamboo-core-test:
+    name: Bamboo Core Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: '1.18'
+      - name: Test engine
+        working-directory: bamboo/bamboo-core
+        run: go test -race ./...
+
+  go-bamboo-core-lint:
+    name: Bamboo Core Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: '1.18'
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.60
+          working-directory: bamboo/bamboo-core
+
   python-lint:
     name: Python lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - name: Run Ruff Lint and Format check
+      - name: Run Ruff Lint check
         uses: astral-sh/ruff-action@v4.1.0
         with:
           args: 'check settings-gui'

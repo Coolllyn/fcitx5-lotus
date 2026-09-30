@@ -43,7 +43,7 @@ namespace {
     };
 
     bool processKey(uintptr_t engine, uint32_t key, const char* name) {
-        if (!EngineProcessKeyEvent(engine, key, 0)) {
+        if (EngineProcessKeyEvent(engine, key, 0) == 0U) {
             reportFailure("process key " + std::string(name), "key event accepted", "key event rejected", "the production Bamboo engine did not retain the numeric macro trigger");
             return false;
         }

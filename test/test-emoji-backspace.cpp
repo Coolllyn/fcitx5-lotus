@@ -64,7 +64,7 @@ int main() {
             dumpBytes("input   ", tc.input);
             dumpBytes("expected", tc.expected);
             dumpBytes("got     ", buffer);
-            std::printf("    matches=%d validUtf8=%d\n", matches, valid);
+            std::printf("    matches=%d validUtf8=%d\n", static_cast<int>(matches), static_cast<int>(valid));
             ++failures;
         }
     }

@@ -26,8 +26,8 @@ namespace {
         fcitx::KeyEvent event(&context, fcitx::Key(symbol), false);
         engine.keyEvent(entry, event);
         if (event.accepted() != requireAccepted) {
-            reportFailure("process key " + std::to_string(symbol), "accepted=" + std::to_string(requireAccepted),
-                          "accepted=" + std::to_string(event.accepted()) + ", commits=" + std::to_string(context.commits().size()),
+            reportFailure("process key " + std::to_string(symbol), "accepted=" + std::to_string(static_cast<int>(requireAccepted)),
+                          "accepted=" + std::to_string(static_cast<int>(event.accepted())) + ", commits=" + std::to_string(context.commits().size()),
                           "Smooth buffered-key handling accepted or rejected the key unexpectedly");
             return false;
         }
@@ -73,7 +73,7 @@ int main() {
                       "buffered key x was emitted before the first replacement completed");
         return 1;
     }
-    for (int i = 0; i < backspaces; ++i) {
+    for (size_t i = 0; i < backspaces; ++i) {
         if (!send(engine, entry, *context, FcitxKey_BackSpace, i + 1 == backspaces))
             return 1;
     }
@@ -81,7 +81,7 @@ int main() {
     size_t replayBackspaces = 0;
     if (!receiveBackspaceRequest(listener, replayBackspaces, "buffered key was not replayed after deletion", "buffered x replay starts another replacement request within 5000 ms"))
         return 1;
-    for (int i = 0; i < replayBackspaces; ++i) {
+    for (size_t i = 0; i < replayBackspaces; ++i) {
         if (!send(engine, entry, *context, FcitxKey_BackSpace, i + 1 == replayBackspaces))
             return 1;
     }

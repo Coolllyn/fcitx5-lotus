@@ -34,8 +34,8 @@ inline void reportFailure(const std::string& step, const std::string& expected, 
 
 class KbSocketListener {
   public:
-    KbSocketListener() {
-        fd_ = socket(AF_UNIX, SOCK_SEQPACKET, 0);
+    KbSocketListener() : fd_(socket(AF_UNIX, SOCK_SEQPACKET, 0)) {
+
         if (fd_ < 0) {
             fail("socket");
             return;
@@ -84,7 +84,7 @@ class KbSocketListener {
                     reportFailure("wait for replacement socket connection", "poll succeeds", "poll failed: " + std::string(std::strerror(errno)), meaning);
                     return false;
                 }
-                if (!(pfd.revents & POLLIN)) {
+                if ((pfd.revents & POLLIN) == 0) {
                     reportFailure("wait for replacement socket connection", "POLLIN revents", "revents=" + std::to_string(pfd.revents), meaning);
                     return false;
                 }
@@ -109,7 +109,7 @@ class KbSocketListener {
                 reportFailure("wait for replacement request", "poll succeeds", "poll failed: " + std::string(std::strerror(errno)), meaning);
                 return false;
             }
-            if ((pfd.revents & (POLLHUP | POLLRDHUP)) && !(pfd.revents & POLLIN)) {
+            if (((pfd.revents & (POLLHUP | POLLRDHUP)) != 0) && ((pfd.revents & POLLIN) == 0)) {
                 closeClient();
                 continue;
             }

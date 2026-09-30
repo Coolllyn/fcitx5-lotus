@@ -33,8 +33,8 @@ namespace {
         fcitx::KeyEvent event(&context, fcitx::Key(symbol), false);
         engine.keyEvent(entry, event);
         if (event.accepted() != requireAccepted) {
-            reportFailure("process key " + std::to_string(symbol), "accepted=" + std::to_string(requireAccepted),
-                          "accepted=" + std::to_string(event.accepted()) + ", commits=" + std::to_string(context.commits().size()),
+            reportFailure("process key " + std::to_string(symbol), "accepted=" + std::to_string(static_cast<int>(requireAccepted)),
+                          "accepted=" + std::to_string(static_cast<int>(event.accepted())) + ", commits=" + std::to_string(context.commits().size()),
                           "Select echo handling accepted or rejected the key unexpectedly");
             return false;
         }

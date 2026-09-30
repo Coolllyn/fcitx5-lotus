@@ -100,7 +100,9 @@ Don't forget to give the project a ⭐! Thank you very much!
 
 ## 📃 License
 
-The project is distributed under the GNU General Public License v3. See [`LICENSE`](LICENSE) for details.
+This project is distributed under the terms of the **GNU General Public License v3 (GPL-3.0-or-later)**. See [`LICENSE`](LICENSE) for details.
+
+Third-party libraries (including MIT-licensed components) retain their original licenses and copyrights. Full attributions are available in the application's **About** page.
 
 ---
 

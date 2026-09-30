@@ -154,7 +154,9 @@ Dự án này tuân thủ cấu trúc của [all-contributors](https://github.co
 
 ## 📃 Giấy phép
 
-Dự án được phân phối dưới giấy phép GNU General Public License v3. Xem [`LICENSE`](LICENSE) để biết thêm chi tiết.
+Dự án được phân phối dưới giấy phép **GNU General Public License v3 (GPL-3.0-or-later)**. Xem [`LICENSE`](LICENSE) để biết thêm chi tiết.
+
+Các thư viện bên thứ ba (bao gồm các thành phần theo giấy phép MIT) vẫn giữ nguyên bản quyền của các tác giả gốc. Danh sách ghi công đầy đủ có trong mục **About** của ứng dụng.
 
 ---
 

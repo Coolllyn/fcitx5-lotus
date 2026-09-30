@@ -45,8 +45,7 @@ cd %{_builddir}/%{name}-%{version}
 %py3_compile %{buildroot}%{_datadir}/fcitx5-lotus
 
 %files -f %{name}.lang
-%{_datadir}/licenses/%{name}/GPL-3.0-or-later.txt
-%{_datadir}/licenses/%{name}/LGPL-2.1-or-later.txt
+%{_datadir}/licenses/%{name}/LICENSE
 
 %dir %{_datadir}/licenses/%{name}
 %dir %{_modulesloaddir}

@@ -2,7 +2,6 @@
   lib,
   stdenv,
   acl,
-  buildGoModule,
   cmake,
   fcitx5,
   fetchFromGitHub,
@@ -30,27 +29,16 @@ let
 in
 stdenv.mkDerivation (finalAttrs: {
   pname = "fcitx5-lotus";
-  version = "3.6.0";
+  version = "4.0.0";
 
   src = fetchFromGitHub {
     owner = "LotusInputMethod";
     repo = "fcitx5-lotus";
     tag = "v${finalAttrs.version}";
-    hash = "sha256-q0NT54HFH3grCppiWR00taATOSUv7t3PEaTlbcIehlg=";
-    fetchSubmodules = true;
+    hash = "sha256-Gyf4xUZbBCsV8xL63xweWY0BqRhJwYUJroanQoAbzhw=";
   };
 
-  vendorDir = finalAttrs.passthru."go-modules";
-
   passthru = {
-    "go-modules" =
-      (buildGoModule {
-        pname = "fcitx5-lotus-go-modules";
-        inherit (finalAttrs) version src;
-        modRoot = "bamboo";
-        vendorHash = "sha256-p9YpDSRtOkYa6cZHzWOfcYKaFb5LXXfXXnQo9xTEnWI=";
-      }).goModules;
-
     updateScript = nix-update-script { };
   };
 
@@ -85,9 +73,6 @@ stdenv.mkDerivation (finalAttrs: {
   preConfigure = ''
     export GOCACHE=$TMPDIR/go-cache
     export GOPATH=$TMPDIR/go
-
-    rm -rf bamboo/vendor
-    cp -r $vendorDir bamboo/vendor
   '';
 
   postPatch = ''

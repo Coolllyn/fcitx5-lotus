@@ -157,14 +157,33 @@
       ]
     },
     {
-      "login": "Leanhduc-linux",
-      "name": "nothing",
-      "avatar_url": "https://avatars.githubusercontent.com/u/259352926?v=4",
-      "profile": "https://github.com/Leanhduc-linux",
+      "login": "minhnbnt",
+      "name": "Nguyễn Quang Minh",
+      "avatar_url": "https://avatars.githubusercontent.com/u/114562412?v=4",
+      "profile": "https://github.com/minhnbnt",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "nguyenphivn",
+      "name": "nguyenphivn",
+      "avatar_url": "https://avatars.githubusercontent.com/u/19565657?v=4",
+      "profile": "https://github.com/nguyenphivn",
       "contributions": [
         "code",
-        "bug",
-        "platform"
+        "bug"
+      ]
+    },
+    {
+      "login": "Coolllyn",
+      "name": "Coolllyn",
+      "avatar_url": "https://avatars.githubusercontent.com/u/259352926?v=4",
+      "profile": "https://github.com/Coolllyn",
+      "contributions": [
+        "platform",
+        "code",
+        "bug"
       ]
     }
   ],

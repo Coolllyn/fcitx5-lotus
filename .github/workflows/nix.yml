@@ -63,11 +63,7 @@ jobs:
           while IFS= read -r line; do
             if echo "$line" | grep -q "hash mismatch"; then
               FOUND=1
-              if echo "$line" | grep -q "go-modules"; then
-                HASH_TYPE="vendorHash (Go modules)"
-              else
-                HASH_TYPE="hash (src fetchFromGitHub)"
-              fi
+              HASH_TYPE="hash (src fetchFromGitHub)"
               echo "📦 Hash mismatch: $HASH_TYPE"
             fi
             if [ "$FOUND" = "1" ]; then

@@ -18,7 +18,6 @@
 #include "lotus-config.h"
 #include "emoji.h"
 #include "lotus.h"
-#include <fcitx-utils/eventloopinterface.h>
 #include <mutex>
 #include <memory>
 #include <fcitx-config/iniparser.h>

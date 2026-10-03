@@ -784,6 +784,10 @@ namespace fcitx {
     }
 
     void LotusEngine::reset(const InputMethodEntry& /*entry*/, InputContextEvent& event) {
+        if (is_deleting_.load(std::memory_order_acquire)) {
+            LOTUS_INFO("Ignore reset while is_deleting");
+            return;
+        }
         LOTUS_INFO("Reset engine");
         auto* state = event.inputContext()->propertyFor(&factory_);
         if (!state->isEmptyHistory() && event.type() != EventType::InputContextFocusOut) {
@@ -796,8 +800,17 @@ namespace fcitx {
     }
 
     void LotusEngine::deactivate(const InputMethodEntry& /*entry*/, InputContextEvent& event) {
-        auto*      ic              = event.inputContext();
-        auto*      state           = ic->propertyFor(&factory_);
+        auto*      ic         = event.inputContext();
+        auto*      state      = ic->propertyFor(&factory_);
+        const bool uinputMode = isUinputMode(realMode);
+
+        if (uinputMode && is_deleting_.load(std::memory_order_acquire) && state->expected_backspaces_ > 0) {
+            state->lastDeactivateTime_    = now_ms();
+            state->deletionInterruptedAt_ = state->lastDeactivateTime_;
+            LOTUS_INFO("Replacement interrupted by focus out");
+            return;
+        }
+
         const bool surrvalid       = ic->surroundingText().isValid();
         const bool is_dbus         = getFrontendName(ic) == "dbus";
         state->lastDeactivateTime_ = now_ms();
@@ -811,13 +824,8 @@ namespace fcitx {
                 if (surrvalid && !state->oldPreBuffer_.empty())
                     state->clearAllBuffers();
             }
-            const bool uinputMode = isUinputMode(realMode);
-            if (uinputMode && is_deleting_.load() && state->expected_backspaces_ > 0) {
-                state->deletionInterruptedAt_ = now_ms();
-                LOTUS_INFO("Replacement interrupted by focus out");
-            } else {
-                is_deleting_.store(false);
-            }
+
+            is_deleting_.store(false, std::memory_order_release);
             needEngineReset.store(false);
             ic->inputPanel().reset();
             ic->updateUserInterface(UserInterfaceComponent::InputPanel);

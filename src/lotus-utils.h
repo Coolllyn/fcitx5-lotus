@@ -39,7 +39,6 @@ using KeySym = uint32_t;
 
 // Global state variables for input processing
 extern std::atomic<fcitx::LotusMode> realMode;          ///< Current active input mode
-extern std::atomic<bool>             needEngineReset;   ///< Flag to trigger engine reset
 extern std::atomic<bool>             g_mouse_clicked;   ///< Mouse click detection flag
 extern std::atomic<bool>             is_deleting_;      ///< Deletion in progress flag
 extern std::atomic<bool>             stop_flag_monitor; ///< Signal to stop monitor threads

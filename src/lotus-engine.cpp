@@ -510,7 +510,6 @@ namespace fcitx {
         if (!resumeReplacement) {
             is_deleting_.store(false);
         }
-        needEngineReset.store(false);
         if (targetMode == LotusMode::Emoji) {
             state->updateEmojiPreedit();
         } else {
@@ -823,7 +822,6 @@ namespace fcitx {
             }
 
             is_deleting_.store(false, std::memory_order_release);
-            needEngineReset.store(false);
             ic->inputPanel().reset();
             ic->updateUserInterface(UserInterfaceComponent::InputPanel);
             if (realMode == LotusMode::Preedit || realMode == LotusMode::Emoji || realMode == LotusMode::SurroundingText)
@@ -1306,6 +1304,7 @@ namespace fcitx {
 
             if (n >= 1 && buf[0] == 'C') {
                 LOTUS_DEBUG("Mouse click detected from server. Resetting.....");
+                g_mouse_clicked.store(true, std::memory_order_release);
                 instance_->inputContextManager().foreachFocused([this](InputContext* ic) {
                     if (ic) {
                         auto* state = ic->propertyFor(&factory_);

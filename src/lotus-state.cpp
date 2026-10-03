@@ -1039,18 +1039,6 @@ namespace fcitx {
                 replayBufferedKeys();
             }
         }
-        if (needEngineReset.load() && realMode != LotusMode::Off) {
-            LOTUS_INFO("Need engine reset");
-            oldPreBuffer_.clear();
-            hasHistory_ = false;
-            ResetEngine(lotusEngine_.handle());
-            is_deleting_.store(false);
-            current_backspace_count_ = 0;
-            isPrevSpace_             = false;
-            shouldCapitalize_        = false;
-            isPrevPunctuation_       = false;
-            needEngineReset.store(false);
-        }
 
         if (g_mouse_clicked.load(std::memory_order_acquire) && !is_deleting_.load(std::memory_order_acquire)) {
             g_mouse_clicked.store(false, std::memory_order_release);

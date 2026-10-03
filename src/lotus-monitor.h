@@ -14,20 +14,7 @@
 #ifndef _FCITX5_LOTUS_MONITOR_H_
 #define _FCITX5_LOTUS_MONITOR_H_
 
-#include <thread>
+#include <string>
 
-extern std::thread mouse_thread;
-
-/**
- * @brief Thread function for mouse press detection and reset.
- *
- * Monitors mouse events to reset input state when needed.
- */
-void mousePressResetThread();
-
-/**
- * @brief Starts the mouse reset monitoring.
- */
-void startMouseReset();
-
+bool authenticateMouseSocketPeer(int sock, std::string& out_exe_path);
 #endif // _FCITX5_LOTUS_MONITOR_H_

@@ -227,6 +227,7 @@ namespace fcitx {
         bool                                  isGnome_ = false;
         mutable std::mutex                    appRulesMutex_;
         std::unordered_map<KeySym, LotusMode> modeMenuMapping_;
+        std::unique_ptr<EventSourceIO>        mouseEventSource_;
 
         /**
          * @brief Refreshes the bamboo engine with current settings.
@@ -347,6 +348,11 @@ namespace fcitx {
          * @param appName Name of application.
          */
         void clearAppRule(const std::string& appName);
+
+        /**
+         * @brief Connects and sets up IO watcher on Fcitx EventLoop for mouse click events.
+         */
+        void setupMouseWatcher();
     };
 
     /**

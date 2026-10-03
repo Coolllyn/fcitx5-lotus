@@ -150,15 +150,28 @@ class TestInputContext final : public fcitx::InputContext {
  * 3. Parallel-safe: Each test target passes a unique test name for isolated folders.
  */
 inline void configureTestPaths(const char* name) {
-    const auto root = std::filesystem::temp_directory_path() / name;
-    std::filesystem::remove_all(root);
-    std::filesystem::create_directories(root / "config/fcitx5/conf");
-    std::filesystem::create_directories(root / "data");
-    std::filesystem::create_directories(root / "cache");
+    const auto      root = std::filesystem::temp_directory_path() / name;
+    std::error_code ec;
+    std::filesystem::remove_all(root, ec);
+    std::filesystem::create_directories(root / "config/fcitx5/conf", ec);
+    std::filesystem::create_directories(root / "data", ec);
+    std::filesystem::create_directories(root / "cache", ec);
+
     setenv("HOME", root.c_str(), 1);
     setenv("XDG_CONFIG_HOME", (root / "config").c_str(), 1);
     setenv("XDG_DATA_HOME", (root / "data").c_str(), 1);
     setenv("XDG_CACHE_HOME", (root / "cache").c_str(), 1);
+
+    static std::filesystem::path s_cleanupPath;
+    s_cleanupPath                = root;
+    static const bool registered = []() {
+        std::atexit([]() {
+            std::error_code err;
+            std::filesystem::remove_all(s_cleanupPath, err);
+        });
+        return true;
+    }();
+    (void)registered;
 }
 
 /**

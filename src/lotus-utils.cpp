@@ -19,7 +19,6 @@
 
 // Global variables
 std::atomic<fcitx::LotusMode> realMode{fcitx::LotusMode::Smooth};
-std::atomic<bool>             needEngineReset{false};
 std::atomic<bool>             g_mouse_clicked{false};
 std::atomic<bool>             is_deleting_{false};
 std::atomic<bool>             stop_flag_monitor{false};

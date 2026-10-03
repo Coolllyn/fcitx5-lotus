@@ -311,12 +311,11 @@ namespace fcitx {
 
     LotusEngine::~LotusEngine() {
         stop_flag_monitor.store(true, std::memory_order_release);
-        int fd = mouse_socket_fd.load(std::memory_order_acquire);
+        mouseEventSource_.reset();
+        int fd = mouse_socket_fd.exchange(-1, std::memory_order_acq_rel);
         if (fd >= 0) {
             shutdown(fd, SHUT_RDWR);
-        }
-        if (mouse_thread.joinable()) {
-            mouse_thread.join();
+            close(fd);
         }
         int old_fd = uinput_client_fd_.exchange(-1);
         if (old_fd != -1) {
@@ -437,12 +436,10 @@ namespace fcitx {
     }
 
     void LotusEngine::activate(const InputMethodEntry& /*entry*/, InputContextEvent& event) {
-        auto*                    ic        = event.inputContext();
-        const bool               surrvalid = ic->surroundingText().isValid();
-        const bool               is_dbus   = getFrontendName(ic) == "dbus";
-        static std::atomic<bool> mouseThreadStarted{false};
-        if (!mouseThreadStarted.exchange(true))
-            startMouseReset();
+        auto*      ic        = event.inputContext();
+        const bool surrvalid = ic->surroundingText().isValid();
+        const bool is_dbus   = getFrontendName(ic) == "dbus";
+        setupMouseWatcher();
 
         auto& statusArea = event.inputContext()->statusArea();
         if (ic->capabilityFlags().test(CapabilityFlag::Preedit))
@@ -513,7 +510,6 @@ namespace fcitx {
         if (!resumeReplacement) {
             is_deleting_.store(false);
         }
-        needEngineReset.store(false);
         if (targetMode == LotusMode::Emoji) {
             state->updateEmojiPreedit();
         } else {
@@ -784,6 +780,10 @@ namespace fcitx {
     }
 
     void LotusEngine::reset(const InputMethodEntry& /*entry*/, InputContextEvent& event) {
+        if (is_deleting_.load(std::memory_order_acquire)) {
+            LOTUS_INFO("Ignore reset while is_deleting");
+            return;
+        }
         LOTUS_INFO("Reset engine");
         auto* state = event.inputContext()->propertyFor(&factory_);
         if (!state->isEmptyHistory() && event.type() != EventType::InputContextFocusOut) {
@@ -796,8 +796,17 @@ namespace fcitx {
     }
 
     void LotusEngine::deactivate(const InputMethodEntry& /*entry*/, InputContextEvent& event) {
-        auto*      ic              = event.inputContext();
-        auto*      state           = ic->propertyFor(&factory_);
+        auto*      ic         = event.inputContext();
+        auto*      state      = ic->propertyFor(&factory_);
+        const bool uinputMode = isUinputMode(realMode);
+
+        if (uinputMode && is_deleting_.load(std::memory_order_acquire) && state->expected_backspaces_ > 0) {
+            state->lastDeactivateTime_    = now_ms();
+            state->deletionInterruptedAt_ = state->lastDeactivateTime_;
+            LOTUS_INFO("Replacement interrupted by focus out");
+            return;
+        }
+
         const bool surrvalid       = ic->surroundingText().isValid();
         const bool is_dbus         = getFrontendName(ic) == "dbus";
         state->lastDeactivateTime_ = now_ms();
@@ -811,14 +820,8 @@ namespace fcitx {
                 if (surrvalid && !state->oldPreBuffer_.empty())
                     state->clearAllBuffers();
             }
-            const bool uinputMode = isUinputMode(realMode);
-            if (uinputMode && is_deleting_.load() && state->expected_backspaces_ > 0) {
-                state->deletionInterruptedAt_ = now_ms();
-                LOTUS_INFO("Replacement interrupted by focus out");
-            } else {
-                is_deleting_.store(false);
-            }
-            needEngineReset.store(false);
+
+            is_deleting_.store(false, std::memory_order_release);
             ic->inputPanel().reset();
             ic->updateUserInterface(UserInterfaceComponent::InputPanel);
             if (realMode == LotusMode::Preedit || realMode == LotusMode::Emoji || realMode == LotusMode::SurroundingText)
@@ -1252,5 +1255,70 @@ namespace fcitx {
         if (!isStartsWith(appName, "ctx_")) {
             saveAppRules();
         }
+    }
+
+    void LotusEngine::setupMouseWatcher() {
+        if (mouseEventSource_) {
+            return;
+        }
+
+        const std::string mouse_socket_path = buildSocketPath("mouse_socket");
+        int               sock              = socket(AF_UNIX, SOCK_SEQPACKET | SOCK_NONBLOCK, 0);
+        if (sock < 0) {
+            LOTUS_ERROR("Failed to create mouse socket: " + std::string(strerror(errno)));
+            return;
+        }
+
+        struct sockaddr_un addr{};
+        addr.sun_family  = AF_UNIX;
+        addr.sun_path[0] = '\0';
+        memcpy(&addr.sun_path[1], mouse_socket_path.c_str(), mouse_socket_path.length());
+        socklen_t len = offsetof(struct sockaddr_un, sun_path) + mouse_socket_path.length() + 1;
+
+        if (connect(sock, (struct sockaddr*)&addr, len) < 0) {
+            LOTUS_ERROR("Failed to connect to mouse socket: " + std::string(strerror(errno)));
+            close(sock);
+            return;
+        }
+
+        std::string peer_exe_path;
+        if (!authenticateMouseSocketPeer(sock, peer_exe_path)) {
+            LOTUS_WARN("Unauthorized connection attempt from: " + peer_exe_path);
+            close(sock);
+            return;
+        }
+
+        mouse_socket_fd.store(sock, std::memory_order_release);
+        LOTUS_INFO("Mouse socket connected and registered to Fcitx EventLoop.");
+
+        mouseEventSource_ = instance_->eventLoop().addIOEvent(sock, IOEventFlag::In, [this, sock](EventSourceIO*, int, IOEventFlags) {
+            char    buf[16];
+            ssize_t n = recv(sock, buf, sizeof(buf), 0);
+            if (n <= 0) {
+                LOTUS_ERROR("Mouse socket recv error or disconnected: " + std::string(strerror(errno)));
+                mouseEventSource_.reset();
+                mouse_socket_fd.store(-1, std::memory_order_release);
+                close(sock);
+                return true;
+            }
+
+            if (n >= 1 && buf[0] == 'C') {
+                LOTUS_DEBUG("Mouse click detected from server. Resetting.....");
+                g_mouse_clicked.store(true, std::memory_order_release);
+                instance_->inputContextManager().foreachFocused([this](InputContext* ic) {
+                    if (ic) {
+                        auto* state = ic->propertyFor(&factory_);
+                        if (state) {
+                            if (realMode == LotusMode::Preedit) {
+                                state->commitBuffer();
+                            }
+                            state->clearAllBuffers();
+                        }
+                    }
+                    return true;
+                });
+            }
+            return true;
+        });
     }
 } // namespace fcitx

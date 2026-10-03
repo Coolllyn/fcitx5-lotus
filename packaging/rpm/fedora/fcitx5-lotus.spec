@@ -1,5 +1,5 @@
 Name:           fcitx5-lotus
-Version:        4.0.0
+Version:        4.0.1
 Release:        1
 Summary:        Vietnamese input method for fcitx5
 License:        GPL-3.0-or-later
@@ -115,10 +115,5 @@ fi
 %systemd_postun_with_restart fcitx5-lotus-server@.service
 
 %changelog
-* Wed Sep 30 2026 Nguyen Hoang Ky <nhktmdzhg@gmail.com> - 4.0.0-1
-- Add Uinput (Select) mode using Shift+Left replacement
-- Fix text deletion, modifier keys, and character casing issues in Select mode
-- Resolve key racing and timing issues by adding commit cooldowns and protocol pre/post delays
-- Fix address bar autofill compensation
-- Integrate bamboo-core directly via git-subtree and drop git submodule dependencies
-- Unify project licensing to GPL-3.0-or-later and update credits and documentation
+* Sat Oct 01 2026 Nguyen Hoang Ky <nhktmdzhg@gmail.com> - 4.0.1-1
+- Fix: don't reset on mouse click on electron app (Wayland only)

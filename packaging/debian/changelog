@@ -1,10 +1,5 @@
-fcitx5-lotus (4.0.0-1) unstable; urgency=medium
+fcitx5-lotus (4.0.1-1) unstable; urgency=medium
 
-  * Add Uinput (Select) mode using Shift+Left replacement
-  * Fix text deletion, modifier keys, and character casing issues in Select mode
-  * Resolve key racing and timing issues by adding commit cooldowns and protocol pre/post delays
-  * Fix address bar autofill compensation
-  * Integrate bamboo-core directly via git-subtree and drop git submodule dependencies
-  * Unify project licensing to GPL-3.0-or-later and update credits and documentation
+  * Fix: don't reset on mouse click on electron app (Wayland only)
 
- -- Nguyen Hoang Ky <nhktmdzhg@gmail.com>  Wed, 30 Sep 2026 18:39:00 +0700
+ -- Nguyen Hoang Ky <nhktmdzhg@gmail.com>  Sun, 04 Oct 2026 01:33:00 +0700

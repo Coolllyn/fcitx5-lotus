@@ -1,4 +1,24 @@
-add_library(lotus MODULE lotus.cpp ${fcitx_lotus_core_sources})
+# Core sources are compiled once here and consumed by both the module and
+# lotus_test_core; LOTUS_EXPORT keeps the test-facing API linkable.
+add_library(lotus_core_objects OBJECT ${fcitx_lotus_core_sources})
+set_target_properties(lotus_core_objects PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_include_directories(lotus_core_objects PRIVATE
+    ${PROJECT_BINARY_DIR}
+    ${PROJECT_SOURCE_DIR}/src
+)
+target_compile_definitions(lotus_core_objects PRIVATE
+    FCITX5_LOTUS_SETTINGS_PATH="${CMAKE_INSTALL_FULL_BINDIR}/fcitx5-lotus-settings"
+    FCITX_LOTUS_ICON_DIR="${CMAKE_INSTALL_FULL_DATADIR}/icons/hicolor/scalable/apps"
+)
+target_link_libraries(lotus_core_objects PRIVATE
+    Fcitx5::Core
+    Fcitx5::Config
+    Fcitx5::Module::Emoji
+    Bamboo::Core
+    Pthread::Pthread
+)
+
+add_library(lotus MODULE lotus.cpp $<TARGET_OBJECTS:lotus_core_objects>)
 set_target_properties(lotus PROPERTIES OUTPUT_NAME "lotus")
 set_target_properties(lotus PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_link_options(lotus PRIVATE "-Wl,-exclude-libs,ALL")

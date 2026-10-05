@@ -39,7 +39,7 @@ namespace fcitx {
      * Handles input processing, configuration management, and UI actions.
      * Implements fcitx InputMethodEngine interface.
      */
-    class LotusEngine final : public InputMethodEngineV2 {
+    class LOTUS_EXPORT LotusEngine final : public InputMethodEngineV2 {
       public:
         /**
          * @brief Gets the fcitx instance.

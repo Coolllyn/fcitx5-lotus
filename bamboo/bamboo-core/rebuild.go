@@ -116,7 +116,7 @@ func processWordToComposition(word string, stdStyle bool) []*Transformation {
 	}
 
 	// Apply tones
-	var lastTone Tone = ToneNone
+	var lastTone = ToneNone
 	for _, ch := range word {
 		lowerCh := unicode.ToLower(ch)
 		t := FindToneFromChar(lowerCh)

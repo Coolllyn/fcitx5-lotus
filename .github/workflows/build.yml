@@ -132,9 +132,9 @@ jobs:
         with:
           go-version: '1.18'
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v9
         with:
-          version: v1.60
+          version: v2.14
           working-directory: bamboo/bamboo-core
 
   python-lint:

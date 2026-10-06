@@ -57,7 +57,7 @@ func lookup(seq [][]string, input string, inputIsFull, inputIsComplete bool) []i
 			}
 			var isMatch = true
 			for k, ic := range inputRunes {
-				if ic != canvas[k] && !(!inputIsComplete && AddMarkToTonelessChar(canvas[k], 0) == ic) {
+				if ic != canvas[k] && (inputIsComplete || AddMarkToTonelessChar(canvas[k], 0) != ic) {
 					isMatch = false
 					break
 				}

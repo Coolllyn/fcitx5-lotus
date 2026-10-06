@@ -388,8 +388,10 @@ jobs:
               -DINSTALL_OPENRC=ON \
               -DINSTALL_RUNIT=ON \
               -DRUNIT_SV_DIR=/etc/runit/sv \
+              -DBUILD_TESTING=ON \
               -B build .
             cmake --build build
+            ctest --test-dir build --output-on-failure
             DESTDIR=/work/arch-dist cmake --install build
             find /work/arch-dist/usr/bin -type f \
               -exec strip --strip-all {} + 2>/dev/null || true

@@ -1,4 +1,5 @@
-cmake_minimum_required(VERSION 3.10)
+# $<TARGET_OBJECTS:> in non-OBJECT target sources requires CMake 3.12.
+cmake_minimum_required(VERSION 3.12)
 
 project(fcitx5-lotus VERSION 4.0.1)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)

@@ -1,20 +1,11 @@
-# Shared library compiling the 7 core Lotus sources once, so the heavy
-# bamboo-core.a (Go runtime) is linked once here instead of once per test.
-add_library(lotus_test_core SHARED ${fcitx_lotus_core_sources})
-# Test-only .so must export its symbols: fcitx5's Fcitx5CompilerSettings
-# hides visibility project-wide.
-set_target_properties(lotus_test_core PROPERTIES
-    POSITION_INDEPENDENT_CODE ON
-    CXX_VISIBILITY_PRESET default
-    VISIBILITY_INLINES_HIDDEN OFF
-)
+# Wraps the core objects compiled once in src/lotus_core_objects, so the Go
+# runtime is linked once here; exclude-libs keeps its symbols out of the
+# dynamic symbol table.
+add_library(lotus_test_core SHARED $<TARGET_OBJECTS:lotus_core_objects>)
+target_link_options(lotus_test_core PRIVATE "-Wl,-exclude-libs,ALL")
 target_include_directories(lotus_test_core PUBLIC
     ${PROJECT_BINARY_DIR}
     ${PROJECT_SOURCE_DIR}/src
-)
-target_compile_definitions(lotus_test_core PUBLIC
-    FCITX5_LOTUS_SETTINGS_PATH="${CMAKE_INSTALL_FULL_BINDIR}/fcitx5-lotus-settings"
-    FCITX_LOTUS_ICON_DIR="${CMAKE_INSTALL_FULL_DATADIR}/icons/hicolor/scalable/apps"
 )
 target_link_libraries(lotus_test_core PUBLIC
     Fcitx5::Core

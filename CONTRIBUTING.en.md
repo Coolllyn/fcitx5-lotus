@@ -92,7 +92,7 @@ All members contributing to this project must adhere to the [Contributor Code of
 ```bash
 #!/bin/bash
 # Format C/C++
-CPP_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(cpp\vert{}h)$')
+CPP_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(cpp|h)$')
 if [ -n "$CPP_FILES" ]; then
     for file in $CPP_FILES; do
         clang-format -i "$file"

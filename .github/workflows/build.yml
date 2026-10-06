@@ -88,7 +88,7 @@ jobs:
           ctest --test-dir fcitx5-lotus/build --output-on-failure --no-tests=error
       - name: CodeQL Analysis
         if: matrix.compiler == 'gcc'
-        uses: github/codeql-action/analyze@v4.38.2
+        uses: github/codeql-action/analyze@v4
         with:
           checkout_path: fcitx5-lotus
 
@@ -143,10 +143,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Run Ruff Lint check
-        uses: astral-sh/ruff-action@v4.1.0
+        uses: astral-sh/ruff-action@v4
         with:
           args: 'check settings-gui'
       - name: Run Ruff Format check
-        uses: astral-sh/ruff-action@v4.1.0
+        uses: astral-sh/ruff-action@v4
         with:
           args: 'format --check settings-gui'

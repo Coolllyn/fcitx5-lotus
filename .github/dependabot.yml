@@ -10,3 +10,5 @@ updates:
     schedule:
       interval: "weekly"
     target-branch: "dev"
+    ignore:
+      - dependency-name: "golangci/golangci-lint-action"

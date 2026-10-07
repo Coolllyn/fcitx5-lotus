@@ -5,6 +5,7 @@
 Mode Manager Page for per-application input mode configuration.
 """
 
+import copy
 import os
 import re
 
@@ -25,6 +26,7 @@ from qtpy.QtWidgets import (
     QMessageBox,
     QPushButton,
     QScrollArea,
+    QSpinBox,
     QTabWidget,
     QVBoxLayout,
     QWidget,
@@ -35,7 +37,6 @@ from ui.pages.dynamic_settings import CardWidget
 # Mode constants as defined in C++ LotusEngine
 MODE_OFF = 0
 MODE_SMOOTH = 1
-MODE_SLOW = 2
 MODE_SUPER_SMOOTH = 3
 MODE_SURROUNDING = 4
 MODE_PREEDIT = 5
@@ -48,7 +49,6 @@ MODE_INFO = {
     MODE_DEFAULT: {"title": "Default Typing", "icon": "preferences-system"},
     MODE_OFF: {"title": "OFF", "icon": "input-keyboard"},
     MODE_SMOOTH: {"title": "Uinput (Smooth)", "icon": "input-keyboard"},
-    MODE_SLOW: {"title": "Uinput (Slow)", "icon": "input-keyboard"},
     MODE_SUPER_SMOOTH: {"title": "Uinput (Super Smooth)", "icon": "input-keyboard"},
     MODE_SURROUNDING: {"title": "Surrounding Text", "icon": "text-field"},
     MODE_PREEDIT: {"title": "Preedit", "icon": "text-field"},
@@ -60,7 +60,6 @@ MODE_INFO = {
 # Modes offered as the global default and as per-app modes, in display order.
 SELECTABLE_MODES = [
     MODE_SMOOTH,
-    MODE_SLOW,
     MODE_SUPER_SMOOTH,
     MODE_MINECRAFT,
     MODE_SELECT,
@@ -69,6 +68,14 @@ SELECTABLE_MODES = [
     MODE_EMOJI,
     MODE_OFF,
 ]
+
+# Global default delays (config key -> factory default in ms); also the order
+# rendered in the "Default Delays" section. 0 in a per-app rule means "use this".
+DEFAULT_DELAY_KEYS = {
+    "DefaultCommitInterval": 20,
+    "DefaultBackspaceInterval": 5,
+    "DefaultPostDelay": 10,
+}
 
 
 class ModeCard(QFrame):
@@ -402,6 +409,9 @@ class ModeManagerPage(QWidget):
         self.app_rules = {}
         self.original_app_rules = {}
         self.original_global_mode = ""
+        self.default_delay_spins = {}
+        self.original_default_delays = {}
+        self.modified_default_delays = {}
         self.selected_app = None
         self.current_app_mode = MODE_DEFAULT
         self._icon_cache = {}
@@ -467,6 +477,21 @@ class ModeManagerPage(QWidget):
         self.combo_global_mode.currentIndexChanged.connect(self._on_global_mode_changed)
         global_layout.addWidget(self.combo_global_mode)
         self.global_card.content_layout.addLayout(global_layout)
+
+        delay_grid = QGridLayout()
+        delay_grid.addWidget(QLabel(_("Default Commit Interval:")), 0, 0)
+        delay_grid.addWidget(QLabel(_("Default Backspace Interval:")), 1, 0)
+        delay_grid.addWidget(QLabel(_("Default Post Delay:")), 2, 0)
+        for row, (key, value) in enumerate(DEFAULT_DELAY_KEYS.items()):
+            spin = QSpinBox()
+            spin.setRange(1, 1000)
+            spin.setSuffix(" ms")
+            spin.setValue(value)
+            spin.valueChanged.connect(lambda value, k=key: self._on_default_delay_changed(k, value))
+            self.default_delay_spins[key] = spin
+            delay_grid.addWidget(spin, row, 1)
+        self.global_card.content_layout.addLayout(delay_grid)
+
         self.main_layout.addWidget(self.global_card)
 
         # 2. Selected App Card (Empty Title)
@@ -498,6 +523,16 @@ class ModeManagerPage(QWidget):
             self.mode_grid.addWidget(card, i // 2, i % 2)
 
         self.app_settings_layout.addLayout(self.mode_grid)
+
+        app_delay_grid = QGridLayout()
+        app_delay_grid.addWidget(QLabel(_("Commit Interval:")), 0, 0)
+        app_delay_grid.addWidget(QLabel(_("Backspace Interval:")), 1, 0)
+        app_delay_grid.addWidget(QLabel(_("Post Delay:")), 2, 0)
+        self.spin_app_commit = self._make_app_delay_spin("commit", app_delay_grid, 0)
+        self.spin_app_backspace = self._make_app_delay_spin("backspace", app_delay_grid, 1)
+        self.spin_app_post = self._make_app_delay_spin("post", app_delay_grid, 2)
+        self.app_settings_layout.addLayout(app_delay_grid)
+
         self.app_settings_card.content_layout.addLayout(self.app_settings_layout)
         self.main_layout.addWidget(self.app_settings_card)
         self.main_layout.addStretch()
@@ -517,17 +552,26 @@ class ModeManagerPage(QWidget):
                 try:
                     app = item.get("App", "")
                     mode = int(item.get("Mode", 0))
+                    commit = int(item.get("CommitInterval", 0) or 0)
+                    backspace = int(item.get("BackspaceInterval", 0) or 0)
+                    post = int(item.get("PostDelay", 0) or 0)
                 except (ValueError, TypeError, AttributeError):
                     print(f"Skipping malformed app rule: {item!r}")
                     continue
                 if app:
-                    self.app_rules[app] = mode
+                    self.app_rules[app] = {
+                        "mode": mode,
+                        "commit": commit,
+                        "backspace": backspace,
+                        "post": post,
+                    }
         except Exception as e:
             print(f"Error loading app rules via DBus: {e}")
 
         # Sync Global Mode
         config = self.dbus.get_config()
-        mode_str = config.get("values", {}).get("Mode", "Uinput (Smooth)")
+        values = config.get("values", {}) if config else {}
+        mode_str = values.get("Mode", "Uinput (Smooth)")
         self.combo_global_mode.blockSignals(True)
         idx = self.combo_global_mode.findData(mode_str)
         if idx >= 0:
@@ -535,8 +579,21 @@ class ModeManagerPage(QWidget):
         self.combo_global_mode.blockSignals(False)
         self.original_global_mode = mode_str
 
+        # Sync Global Default Delays
+        for key, spin in self.default_delay_spins.items():
+            spin.blockSignals(True)
+            try:
+                spin.setValue(int(values.get(key, DEFAULT_DELAY_KEYS[key])))
+            except (ValueError, TypeError):
+                spin.setValue(DEFAULT_DELAY_KEYS[key])
+            spin.blockSignals(False)
+        self.original_default_delays = {
+            key: str(spin.value()) for key, spin in self.default_delay_spins.items()
+        }
+        self.modified_default_delays = {}
+
         self._populate_app_list()
-        self.original_app_rules = self.app_rules.copy()
+        self.original_app_rules = copy.deepcopy(self.app_rules)
 
     def _populate_app_list(self):
         self.app_list.clear()
@@ -546,7 +603,7 @@ class ModeManagerPage(QWidget):
             apps_to_show.add(self.selected_app)
 
         for app in sorted(apps_to_show):
-            mode = self.app_rules.get(app, MODE_DEFAULT)
+            mode = self.app_rules.get(app, {}).get("mode", MODE_DEFAULT)
             mode_text = _(MODE_INFO.get(mode, MODE_INFO[MODE_SMOOTH])["title"])
 
             item = QListWidgetItem()
@@ -666,6 +723,7 @@ class ModeManagerPage(QWidget):
         self.app_icon_label.setPixmap(self._resolve_icon(app_name).pixmap(48, 48))
         self.app_settings_card.setVisible(True)
         self.btn_remove_app.setEnabled(True)  # Enable Remove
+        self._sync_app_delay_spins()
         self._update_mode_cards()
 
     def _on_global_mode_changed(self, index):
@@ -677,11 +735,14 @@ class ModeManagerPage(QWidget):
     def _on_app_mode_changed(self, mode):
         self.current_app_mode = mode
         if mode == MODE_DEFAULT:
-            if self.selected_app in self.app_rules:
-                del self.app_rules[self.selected_app]
+            self.app_rules.pop(self.selected_app, None)
         else:
-            self.app_rules[self.selected_app] = mode
+            rule = self.app_rules.setdefault(
+                self.selected_app, {"mode": mode, "commit": 0, "backspace": 0, "post": 0}
+            )
+            rule["mode"] = mode
 
+        self._sync_app_delay_spins()
         self._update_mode_cards()
         self._populate_app_list()
         self._notify_changed()
@@ -691,12 +752,52 @@ class ModeManagerPage(QWidget):
             card.selected = m == self.current_app_mode
             card.update_style()
 
+    def _make_app_delay_spin(self, field: str, grid: QGridLayout, row: int) -> QSpinBox:
+        spin = QSpinBox()
+        spin.setRange(0, 1000)
+        spin.setSuffix(" ms")
+        spin.setSpecialValueText(_("Default"))
+        spin.setEnabled(False)
+        spin.valueChanged.connect(lambda value, f=field: self._on_app_delay_changed(f, value))
+        grid.addWidget(spin, row, 1)
+        return spin
+
+    def _sync_app_delay_spins(self):
+        rule = self.app_rules.get(self.selected_app) if self.selected_app else None
+        for field, spin in (
+            ("commit", self.spin_app_commit),
+            ("backspace", self.spin_app_backspace),
+            ("post", self.spin_app_post),
+        ):
+            spin.blockSignals(True)
+            spin.setValue(int(rule.get(field, 0)) if rule else 0)
+            spin.blockSignals(False)
+            spin.setEnabled(rule is not None)
+
+    def _on_default_delay_changed(self, key: str, value: int):
+        self.modified_default_delays[key] = str(value)
+        self._notify_changed()
+
+    def _on_app_delay_changed(self, field: str, value: int):
+        if self.selected_app is None:
+            return
+        rule = self.app_rules.get(self.selected_app)
+        if rule is None:
+            return
+        rule[field] = value
+        self._notify_changed()
+
     def _on_add_app(self):
         dialog = AddAppDialog(self._icon_cache, list(self.app_rules.keys()), self)
         if dialog.exec():
             new_app = dialog.selected_app
             if new_app not in self.app_rules:
-                self.app_rules[new_app] = MODE_SMOOTH
+                self.app_rules[new_app] = {
+                    "mode": MODE_SMOOTH,
+                    "commit": 0,
+                    "backspace": 0,
+                    "post": 0,
+                }
             self.selected_app = new_app
             self._populate_app_list()
             self._notify_changed()
@@ -714,8 +815,7 @@ class ModeManagerPage(QWidget):
         if reply == QMessageBox.No:
             return
 
-        if self.selected_app in self.app_rules:
-            del self.app_rules[self.selected_app]
+        self.app_rules.pop(self.selected_app, None)
 
         self.selected_app = None
         self.app_settings_card.setVisible(False)
@@ -733,33 +833,56 @@ class ModeManagerPage(QWidget):
         return (
             self.app_rules != self.original_app_rules
             or self.combo_global_mode.currentData() != self.original_global_mode
+            or bool(self.modified_default_delays)
         )
 
     def is_modified_from_default(self):
         """Returns True if the current state differs from the default state."""
-        return len(self.app_rules) > 0 or self.combo_global_mode.currentData() != "Uinput (Smooth)"
+        return (
+            len(self.app_rules) > 0
+            or self.combo_global_mode.currentData() != "Uinput (Smooth)"
+            or any(
+                spin.value() != DEFAULT_DELAY_KEYS[key]
+                for key, spin in self.default_delay_spins.items()
+            )
+        )
 
     def save_data(self) -> bool:
         try:
-            if self.combo_global_mode.currentData() != self.original_global_mode:
+            mode_changed = self.combo_global_mode.currentData() != self.original_global_mode
+            if mode_changed or self.modified_default_delays:
                 config_data = self.dbus.get_config()
                 if config_data:
                     latest_values = config_data.get("values", {})
-                    latest_values["Mode"] = self.combo_global_mode.currentData()
+                    if mode_changed:
+                        latest_values["Mode"] = self.combo_global_mode.currentData()
+                    latest_values.update(self.modified_default_delays)
                     if not self.dbus.set_config(latest_values):
                         return False
                 elif not self.dbus.iface:
                     return False
 
             data = []
-            for app, mode in sorted(self.app_rules.items()):
-                data.append({"App": app, "Mode": str(mode)})
+            for app, rule in sorted(self.app_rules.items()):
+                data.append(
+                    {
+                        "App": app,
+                        "Mode": str(rule["mode"]),
+                        "CommitInterval": str(rule.get("commit", 0)),
+                        "BackspaceInterval": str(rule.get("backspace", 0)),
+                        "PostDelay": str(rule.get("post", 0)),
+                    }
+                )
 
             if not self.dbus.set_sub_config_list("app_rules", "Rules", data):
                 return False
 
-            self.original_app_rules = self.app_rules.copy()
+            self.original_app_rules = copy.deepcopy(self.app_rules)
             self.original_global_mode = self.combo_global_mode.currentData()
+            self.original_default_delays = {
+                key: str(spin.value()) for key, spin in self.default_delay_spins.items()
+            }
+            self.modified_default_delays = {}
             return True
 
         except Exception as e:

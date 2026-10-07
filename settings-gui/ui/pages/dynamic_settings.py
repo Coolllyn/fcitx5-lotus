@@ -62,7 +62,6 @@ SETTINGS_MAP = {
         "MAIN SHORTCUTS": ["ModeMenuKey", "CycleModeKey"],
         "MODE SWITCHING": [
             "ShortcutSmooth",
-            "ShortcutUinput",
             "ShortcutSuperSmooth",
             "ShortcutMinecraft",
             "ShortcutSelect",
@@ -93,7 +92,6 @@ GROUP_DESCRIPTIONS = {
 
 MODE_SHORTCUT_TO_VISIBILITY = {
     "ShortcutSmooth": "ShowModeSmooth",
-    "ShortcutUinput": "ShowModeUinput",
     "ShortcutSuperSmooth": "ShowModeSuperSmooth",
     "ShortcutMinecraft": "ShowModeMinecraft",
     "ShortcutSelect": "ShowModeSelect",
@@ -106,7 +104,6 @@ MODE_SHORTCUT_TO_VISIBILITY = {
 
 MODE_KEY_TO_INTERNAL_NAME = {
     "ShortcutSmooth": "Smooth",
-    "ShortcutUinput": "Uinput",
     "ShortcutSuperSmooth": "SuperSmooth",
     "ShortcutMinecraft": "Minecraft",
     "ShortcutSelect": "Select",

@@ -98,6 +98,7 @@ namespace fcitx {
         size_t                                expected_backspaces_     = 0;
         size_t                                current_backspace_count_ = 0;
         std::string                           pending_commit_string_;
+        LotusAppRuleSetting                   appRuleSetting_; ///< Per-app rule (mode + delay overrides) pushed by the engine
         std::string                           emojiBuffer_;
         std::vector<EmojiEntry>               emojiCandidates_;
         bool                                  waitAck_ = false;
@@ -130,25 +131,28 @@ namespace fcitx {
          * @param op Operation to request.
          * @param count Number of backspaces or characters to select.
          * @param pre_delay Delay in milliseconds before executing the keyboard operation.
+         * @param interval Delay in milliseconds between consecutive injected keys.
          * @param post_delay Delay in milliseconds after completing the keyboard operation.
          */
-        void send_kb_msg(KbOp op, size_t count, uint32_t pre_delay, uint32_t post_delay) const;
+        void send_kb_msg(KbOp op, size_t count, uint32_t pre_delay, uint32_t interval, uint32_t post_delay) const;
 
         /**
          * @brief Sends backspace key events via uinput.
          * @param count Number of backspaces to send.
          * @param pre_delay Delay in milliseconds before executing the keyboard operation.
+         * @param interval Delay in milliseconds between consecutive injected keys.
          * @param post_delay Delay in milliseconds after completing the keyboard operation.
          */
-        void send_backspace_uinput(size_t count, uint32_t pre_delay, uint32_t post_delay) const;
+        void send_backspace_uinput(size_t count, uint32_t pre_delay, uint32_t interval, uint32_t post_delay) const;
 
         /**
          * @brief Asks the uinput server to select count characters with Shift+Left.
          * @param count Number of characters to select.
          * @param pre_delay Delay in milliseconds before executing the keyboard operation.
+         * @param interval Delay in milliseconds between consecutive injected keys.
          * @param post_delay Delay in milliseconds after completing the keyboard operation.
          */
-        void send_select_uinput(size_t count, uint32_t pre_delay, uint32_t post_delay) const;
+        void send_select_uinput(size_t count, uint32_t pre_delay, uint32_t interval, uint32_t post_delay) const;
 
         /**
          * @brief Checks if autofill is certain for surrounding text.

@@ -298,6 +298,7 @@ int main(int argc, char* argv[]) {
     size_t           pending_selects    = 0;     ///< remaining Shift+Left events to pace out
     bool             shift_held         = false; ///< Shift pressed for an in-flight selection
     uint32_t         current_post_delay = 0;     ///< stores post_delay from KbMsg
+    uint32_t         current_interval   = 5;     ///< ms between injected keys within one request
 
     struct sigaction sa{};
     sa.sa_handler = signal_handler;
@@ -308,11 +309,8 @@ int main(int argc, char* argv[]) {
 
     while (g_running.load(std::memory_order_acquire)) {
         int poll_timeout = -1;
-        if (pending_backspaces > 0) {
-            poll_timeout = 5;
-        }
-        if (pending_selects > 0) {
-            poll_timeout = 8;
+        if (pending_backspaces > 0 || pending_selects > 0) {
+            poll_timeout = static_cast<int>(current_interval);
         }
         int ret = poll(fds.data(), fds.size(), poll_timeout);
 
@@ -410,6 +408,7 @@ int main(int argc, char* argv[]) {
             } else if (n != (ssize_t)sizeof(KbMsg) && n != (ssize_t)sizeof(int32_t)) {
                 LotusLogger::instance().warn("Malformed keyboard message (" + std::to_string(n) + " bytes)");
             } else {
+                current_interval = msg.interval > 0 ? std::min<uint32_t>(msg.interval, 1000) : 5;
                 if (msg.count > 0 && msg.op == KB_OP_SELECT) {
                     if (msg.pre_delay > 0) {
                         std::this_thread::sleep_for(std::chrono::milliseconds(msg.pre_delay));
@@ -419,7 +418,7 @@ int main(int argc, char* argv[]) {
                         uinput.send_shift_down();
                         shift_held = true;
                     }
-                    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+                    std::this_thread::sleep_for(std::chrono::milliseconds(current_interval));
                     uinput.send_left();
                     pending_selects += msg.count - 1;
 

@@ -18,7 +18,8 @@
 struct KbMsg {
     int8_t   op;         ///< KB_OP_* operation
     size_t   count;      ///< number of backspaces / characters to select
-    uint32_t pre_delay;  ///< ms to wait BEFORE sending any key (to let recent commits render)
+    uint32_t pre_delay;  ///< ms to wait BEFORE sending any key (commit_interval: cooldown between commits)
+    uint32_t interval;   ///< ms between consecutive injected keys (backspace_interval)
     uint32_t post_delay; ///< ms to wait BEFORE sending the final trigger key (to let DOM expand selection)
 };
 

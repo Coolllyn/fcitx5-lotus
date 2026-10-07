@@ -5,6 +5,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
  */
+#include "lotus-executable-path.h"
 #include "lotus-monitor.h"
 #include "lotus-utils.h"
 
@@ -49,5 +50,5 @@ bool authenticateMouseSocketPeer(int sock, std::string& out_exe_path) {
 
     out_exe_path = exe_path.data();
 
-    return strcmp(exe_path.data(), "/usr/bin/fcitx5-lotus-server") == 0;
+    return isAllowedExecutablePath(exe_path.data(), LOTUS_SERVER_EXECUTABLE, LOTUS_ALT_EXECUTABLE_PREFIX);
 }

@@ -8,6 +8,7 @@
 
 #include "lotus-server.h"
 #include "lotus-logger.h"
+#include "../src/lotus-executable-path.h"
 #include "../src/lotus-protocol.h"
 
 #include <algorithm>
@@ -370,7 +371,7 @@ int main(int argc, char* argv[]) {
                             exe_path[static_cast<size_t>(ret)] = '\0'; // NOLINT
                         }
 
-                        if (strcmp(exe_path.data(), "/usr/bin/fcitx5") == 0) {
+                        if (isAllowedExecutablePath(exe_path.data(), LOTUS_FCITX5_EXECUTABLE, LOTUS_ALT_EXECUTABLE_PREFIX)) {
                             authorized = true;
                         } else {
                             LotusLogger::instance().warn("Unauthorized executable connection attempt to keyboard socket from: " + std::string(exe_path.data()));
@@ -461,7 +462,7 @@ int main(int argc, char* argv[]) {
                             exe_path[static_cast<size_t>(ret)] = '\0'; // NOLINT
                         }
 
-                        if (strcmp(exe_path.data(), "/usr/bin/fcitx5") == 0) {
+                        if (isAllowedExecutablePath(exe_path.data(), LOTUS_FCITX5_EXECUTABLE, LOTUS_ALT_EXECUTABLE_PREFIX)) {
                             authorized = true;
                         } else {
                             LotusLogger::instance().warn("Unauthorized executable connection attempt to mouse socket from: " + std::string(exe_path.data()));

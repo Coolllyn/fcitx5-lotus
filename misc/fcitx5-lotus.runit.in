@@ -20,4 +20,4 @@ exec setpriv \
     --bounding-set -all,+sys_nice,+sys_ptrace \
     --inh-caps +sys_nice,+sys_ptrace \
     --ambient-caps +sys_nice,+sys_ptrace \
-    /usr/bin/fcitx5-lotus-server -u "$user" 2>&1
+    @CMAKE_INSTALL_FULL_BINDIR@/fcitx5-lotus-server -u "$user" 2>&1

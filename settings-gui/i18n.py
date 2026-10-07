@@ -9,13 +9,18 @@ import gettext
 import locale
 import os
 
+try:
+    from paths import LOCALE_DIR
+except ImportError:
+    LOCALE_DIR = "/usr/share/locale"
+
 
 def setup_i18n():
     """Initialize gettext with system locale."""
     try:
         locale.setlocale(locale.LC_ALL, "")
         domain = "fcitx5-lotus"
-        localedir = "/usr/share/locale"
+        localedir = LOCALE_DIR
 
         if os.path.exists(localedir):
             gettext.bindtextdomain(domain, localedir)

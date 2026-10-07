@@ -11,11 +11,17 @@ configure_file(
     @ONLY
 )
 
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/paths.py.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/paths.py"
+    @ONLY
+)
+
 install(DIRECTORY core ui
         DESTINATION "${SETTINGS_GUI_INSTALL_DIR}"
         FILES_MATCHING PATTERN "*.py" PATTERN "*.qss" PATTERN "*.svg")
 
-install(FILES i18n.py "${CMAKE_CURRENT_BINARY_DIR}/version.py"
+install(FILES i18n.py "${CMAKE_CURRENT_BINARY_DIR}/version.py" "${CMAKE_CURRENT_BINARY_DIR}/paths.py"
         DESTINATION "${SETTINGS_GUI_INSTALL_DIR}")
 
 install(FILES main.py

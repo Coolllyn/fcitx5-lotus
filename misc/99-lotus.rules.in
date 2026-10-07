@@ -1,2 +1,2 @@
 KERNEL=="uinput", SUBSYSTEM=="misc", OPTIONS+="static_node=uinput"
-ACTION=="add|change", KERNEL=="uinput", SUBSYSTEM=="misc", RUN+="/usr/bin/setfacl -m u:@LOTUS_UINPUT_PROXY_USER@:rw /dev/uinput"
+ACTION=="add|change", KERNEL=="uinput", SUBSYSTEM=="misc", RUN+="@LOTUS_SETFACL_EXECUTABLE@ -m u:@LOTUS_UINPUT_PROXY_USER@:rw /dev/uinput"

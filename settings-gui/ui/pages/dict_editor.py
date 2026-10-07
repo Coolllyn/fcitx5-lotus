@@ -28,6 +28,11 @@ from qtpy.QtWidgets import (
 )
 
 from ui.pages.base_editor import BaseEditorPage
+
+try:
+    from paths import DICTIONARY_PATH
+except ImportError:
+    DICTIONARY_PATH = "/usr/share/fcitx5/lotus/vietnamese.cm.dict"
 from ui.pages.dynamic_settings import CardWidget
 
 
@@ -54,6 +59,7 @@ class DictEditorPage(BaseEditorPage):
     def _get_global_dict_path(self) -> str:
         # Common locations for fcitx5 pkgdata
         paths = [
+            DICTIONARY_PATH,
             "/usr/share/fcitx5/lotus/vietnamese.cm.dict",
             "/usr/local/share/fcitx5/lotus/vietnamese.cm.dict",
         ]

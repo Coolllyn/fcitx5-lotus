@@ -70,33 +70,14 @@ stdenv.mkDerivation (finalAttrs: {
 
   dontWrapQtApps = true;
 
+  cmakeFlags = [
+    "-DLOTUS_ALT_EXECUTABLE_PREFIX=/nix/store/"
+    "-DLOTUS_SETFACL_EXECUTABLE=${acl}/bin/setfacl"
+  ];
+
   preConfigure = ''
     export GOCACHE=$TMPDIR/go-cache
     export GOPATH=$TMPDIR/go
-  '';
-
-  postPatch = ''
-    substituteInPlace src/lotus-monitor.cpp \
-      --replace-fail 'strcmp(exe_path.data(), "/usr/bin/fcitx5-lotus-server") == 0' \
-                     '(strncmp(exe_path.data(), "/nix/store/", 11) == 0 && strlen(exe_path.data()) >= 24 && strcmp(exe_path.data() + strlen(exe_path.data()) - 24, "/bin/fcitx5-lotus-server") == 0)'
-
-    substituteInPlace server/lotus-server.cpp \
-      --replace-fail 'strcmp(exe_path.data(), "/usr/bin/fcitx5") == 0' \
-                     '(strncmp(exe_path.data(), "/nix/store/", 11) == 0 && strlen(exe_path.data()) >= 11 && strcmp(exe_path.data() + strlen(exe_path.data()) - 11, "/bin/fcitx5") == 0)'
-
-    substituteInPlace settings-gui/i18n.py \
-      --replace-fail 'localedir = "/usr/share/locale"' 'localedir = "'"$out"'/share/locale"'
-
-    substituteInPlace settings-gui/ui/pages/dict_editor.py \
-      --replace-fail '"/usr/share/fcitx5/lotus/vietnamese.cm.dict"' '"'"$out"'/share/fcitx5/lotus/vietnamese.cm.dict"'
-  '';
-
-  postInstall = ''
-    substituteInPlace $out/lib/udev/rules.d/99-lotus.rules \
-      --replace-fail "/usr/bin/setfacl" "${acl}/bin/setfacl"
-
-    substituteInPlace $out/lib/systemd/system/fcitx5-lotus-server@.service \
-      --replace-fail "/usr/bin/fcitx5-lotus-server" "$out/bin/fcitx5-lotus-server"
   '';
 
   postFixup = ''

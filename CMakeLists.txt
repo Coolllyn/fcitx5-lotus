@@ -9,6 +9,7 @@ option(BUILD_TESTING "Build Lotus tests" OFF)
 # production implementation through the lotus_test_core target, never the
 # module build itself.
 set(fcitx_lotus_core_sources
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/lotus-executable-path.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lotus-engine.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lotus-state.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lotus-candidates.cpp
@@ -40,6 +41,20 @@ else()
     message(STATUS "Fcitx5 version ${Fcitx5Utils_VERSION} detected: Using legacy API")
 endif()
 fcitx5_add_i18n_definition()
+
+# Absolute paths that every packaging has to override.
+set(LOTUS_FCITX5_EXECUTABLE "/usr/bin/fcitx5" CACHE STRING
+    "fcitx5 executable allowed to connect to the Lotus uinput/mouse sockets")
+set(LOTUS_SERVER_EXECUTABLE "/usr/bin/fcitx5-lotus-server" CACHE STRING
+    "fcitx5-lotus-server executable allowed to connect to the Lotus mouse socket")
+set(LOTUS_ALT_EXECUTABLE_PREFIX "" CACHE STRING
+    "Additional prefix whose <prefix>*bin/<name> executables are accepted too (NixOS: /nix/store/)")
+set(LOTUS_SETFACL_EXECUTABLE "/usr/bin/setfacl" CACHE FILEPATH
+    "setfacl used by the udev rule and the service units")
+
+add_definitions(-DLOTUS_FCITX5_EXECUTABLE=\"${LOTUS_FCITX5_EXECUTABLE}\")
+add_definitions(-DLOTUS_SERVER_EXECUTABLE=\"${LOTUS_SERVER_EXECUTABLE}\")
+add_definitions(-DLOTUS_ALT_EXECUTABLE_PREFIX=\"${LOTUS_ALT_EXECUTABLE_PREFIX}\")
 
 add_subdirectory(po)
 add_subdirectory(bamboo)

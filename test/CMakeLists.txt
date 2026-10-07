@@ -78,3 +78,16 @@ set_tests_properties(emoji_backspace_utf8 PROPERTIES
     LABELS "unit;emoji"
     TIMEOUT 20
 )
+
+add_executable(executable_path_match
+    executable-path-match.cpp
+    ${PROJECT_SOURCE_DIR}/src/lotus-executable-path.cpp
+)
+target_include_directories(executable_path_match PRIVATE
+    ${PROJECT_SOURCE_DIR}/src
+)
+add_test(NAME executable_path_match COMMAND executable_path_match)
+set_tests_properties(executable_path_match PROPERTIES
+    LABELS "unit;packaging"
+    TIMEOUT 20
+)

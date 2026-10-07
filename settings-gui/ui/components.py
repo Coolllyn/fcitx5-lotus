@@ -498,8 +498,7 @@ class SingleKeyCaptureWidget(HotkeyCaptureWidget):
 
 
 class ScrollContent(QWidget):
-    """Content widget for a page QScrollArea.
-    """
+    """Content widget for a page QScrollArea."""
 
     def __init__(self, parent=None):
         super().__init__(parent)

@@ -53,12 +53,12 @@ namespace fcitx {
          * @brief Constructs the Lotus engine.
          * @param instance Pointer to fcitx instance.
          */
-        LotusEngine(Instance* instance);
+        explicit LotusEngine(Instance* instance);
 
         /**
          * @brief Destroys the engine and releases resources.
          */
-        ~LotusEngine();
+        ~LotusEngine() override;
 
         // Rule of five
         LotusEngine(const LotusEngine&)            = delete;

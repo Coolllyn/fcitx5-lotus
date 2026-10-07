@@ -6,6 +6,7 @@
 #include <fcitx/candidatelist.h>
 #include <fcitx/inputpanel.h>
 
+#include <array>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -35,11 +36,11 @@ namespace {
 
 int main() {
     configureTestPaths("fcitx5-lotus-emoji-history-page-navigation");
-    const auto    historyPath = std::filesystem::path(getEnv("XDG_CONFIG_HOME")) / "fcitx5/conf/lotus-emoji-history.conf";
-    std::ofstream history(historyPath);
-    const char*   emoji[] = {"😀", "😁", "😂", "😃", "😄", "😅", "😆", "😉", "😊", "😋", "😎", "😍", "😘", "😗", "😙", "😚", "🙂", "🤗"};
-    for (int i = 0; i < 18; ++i)
-        history << "history" << i << '=' << emoji[i] << '\n';
+    const auto                        historyPath = std::filesystem::path(getEnv("XDG_CONFIG_HOME")) / "fcitx5/conf/lotus-emoji-history.conf";
+    std::ofstream                     history(historyPath);
+    const std::array<const char*, 18> emoji = {"😀", "😁", "😂", "😃", "😄", "😅", "😆", "😉", "😊", "😋", "😎", "😍", "😘", "😗", "😙", "😚", "🙂", "🤗"};
+    for (size_t i = 0; i < emoji.size(); ++i)
+        history << "history" << i << '=' << emoji.at(i) << '\n';
     history.close();
 
     TestInstance       testInstance;

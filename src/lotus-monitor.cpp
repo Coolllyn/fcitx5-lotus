@@ -8,6 +8,7 @@
 #include "lotus-monitor.h"
 #include "lotus-utils.h"
 
+#include <array>
 #include <cstdio>
 #include <cstring>
 #include <string>
@@ -17,7 +18,7 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
-#include <limits.h>
+#include <climits> // IWYU pragma: keep
 
 bool authenticateMouseSocketPeer(int sock, std::string& out_exe_path) {
     struct ucred cred{};
@@ -28,17 +29,17 @@ bool authenticateMouseSocketPeer(int sock, std::string& out_exe_path) {
         return false;
     }
 
-    char proc_path[64];
-    snprintf(proc_path, sizeof(proc_path), "/proc/%d/cmdline", cred.pid);
+    std::array<char, 64> proc_path{};
+    snprintf(proc_path.data(), proc_path.size(), "/proc/%d/cmdline", cred.pid);
 
-    int fd = open(proc_path, O_RDONLY);
+    int fd = open(proc_path.data(), O_RDONLY);
     if (fd < 0) {
         LOTUS_ERROR("Failed to open cmdline: " + std::string(strerror(errno)));
         return false;
     }
 
-    char    exe_path[PATH_MAX] = {0};
-    ssize_t bytes_read         = read(fd, exe_path, sizeof(exe_path) - 1);
+    std::array<char, PATH_MAX> exe_path{};
+    ssize_t                    bytes_read = read(fd, exe_path.data(), exe_path.size() - 1);
     close(fd);
 
     if (bytes_read <= 0) {
@@ -46,7 +47,7 @@ bool authenticateMouseSocketPeer(int sock, std::string& out_exe_path) {
         return false;
     }
 
-    out_exe_path = exe_path;
+    out_exe_path = exe_path.data();
 
-    return strcmp(exe_path, "/usr/bin/fcitx5-lotus-server") == 0;
+    return strcmp(exe_path.data(), "/usr/bin/fcitx5-lotus-server") == 0;
 }

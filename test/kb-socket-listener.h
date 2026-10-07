@@ -84,7 +84,7 @@ class KbSocketListener {
                     reportFailure("wait for replacement socket connection", "poll succeeds", "poll failed: " + std::string(std::strerror(errno)), meaning);
                     return false;
                 }
-                if ((pfd.revents & POLLIN) == 0) {
+                if ((static_cast<unsigned>(pfd.revents) & POLLIN) == 0) {
                     reportFailure("wait for replacement socket connection", "POLLIN revents", "revents=" + std::to_string(pfd.revents), meaning);
                     return false;
                 }
@@ -109,7 +109,8 @@ class KbSocketListener {
                 reportFailure("wait for replacement request", "poll succeeds", "poll failed: " + std::string(std::strerror(errno)), meaning);
                 return false;
             }
-            if (((pfd.revents & (POLLHUP | POLLRDHUP)) != 0) && ((pfd.revents & POLLIN) == 0)) {
+            if ((static_cast<unsigned>(pfd.revents) & (static_cast<unsigned>(POLLHUP) | static_cast<unsigned>(POLLRDHUP))) != 0 &&
+                (static_cast<unsigned>(pfd.revents) & static_cast<unsigned>(POLLIN)) == 0) {
                 closeClient();
                 continue;
             }
@@ -137,7 +138,7 @@ class KbSocketListener {
         return false;
     }
 
-    bool valid() const {
+    [[nodiscard]] bool valid() const {
         return fd_ >= 0;
     }
 

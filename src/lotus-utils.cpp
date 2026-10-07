@@ -28,7 +28,7 @@ std::atomic<int>              mouse_socket_fd{-1};
 
 FCITX_DEFINE_LOG_CATEGORY(lotus, "lotus", fcitx::LogLevel::NoLog);
 
-std::string buildSocketPath(const char* base_path_suffix) {
+std::string buildSocketPath(std::string_view base_path_suffix) {
     struct passwd  pwd{};
     struct passwd* result   = nullptr;
     long           buf_size = sysconf(_SC_GETPW_R_SIZE_MAX);
@@ -119,7 +119,7 @@ void eraseLastUtf8Codepoint(std::string& buffer) {
         return;
     }
     size_t pos = buffer.size() - 1;
-    while (pos > 0 && (static_cast<unsigned char>(buffer[pos]) & 0xC0) == 0x80) {
+    while (pos > 0 && (static_cast<unsigned char>(buffer[pos]) & 0xC0U) == 0x80) {
         --pos;
     }
     buffer.erase(pos);

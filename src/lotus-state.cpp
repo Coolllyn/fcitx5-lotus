@@ -107,7 +107,7 @@ namespace fcitx {
         memcpy(&addr.sun_path[1], current_path.c_str(), current_path.length());
         socklen_t len = offsetof(struct sockaddr_un, sun_path) + current_path.length() + 1;
 
-        if (connect(current_fd, (struct sockaddr*)&addr, len) == 0) {
+        if (connect(current_fd, reinterpret_cast<struct sockaddr*>(&addr), len) == 0) {
             uinput_client_fd_ = current_fd;
             return true;
         }
@@ -130,7 +130,7 @@ namespace fcitx {
             return;
         }
 
-        const KbMsg msg{.op = static_cast<int8_t>(op), .count = count, .pre_delay = pre_delay, .interval = interval, .post_delay = post_delay};
+        const KbMsg msg{.op = op, .count = count, .pre_delay = pre_delay, .interval = interval, .post_delay = post_delay};
         ssize_t     n = send(uinput_client_fd_, &msg, sizeof(msg), MSG_NOSIGNAL);
 
         if (n < 0) {
@@ -152,11 +152,11 @@ namespace fcitx {
     }
 
     void LotusState::send_backspace_uinput(size_t count, uint32_t pre_delay, uint32_t interval, uint32_t post_delay) const {
-        send_kb_msg(KB_OP_BACKSPACE, count, pre_delay, interval, post_delay);
+        send_kb_msg(KbOp::Backspace, count, pre_delay, interval, post_delay);
     }
 
     void LotusState::send_select_uinput(size_t count, uint32_t pre_delay, uint32_t interval, uint32_t post_delay) const {
-        send_kb_msg(KB_OP_SELECT, count, pre_delay, interval, post_delay);
+        send_kb_msg(KbOp::Select, count, pre_delay, interval, post_delay);
     }
 
     bool LotusState::isAutofillCertain(const SurroundingText& s) {
@@ -787,7 +787,7 @@ namespace fcitx {
                 auto prev = startIter;
                 if (prev != text.begin()) {
                     --prev;
-                    while (prev != text.begin() && ((*prev & 0xC0) == 0x80)) {
+                    while (prev != text.begin() && ((static_cast<unsigned char>(*prev) & 0xC0U) == 0x80)) {
                         --prev;
                     }
                 }
@@ -886,19 +886,13 @@ namespace fcitx {
     }
 
     void LotusState::handleDoubleSpaceReplacement() {
-        switch (realMode) {
-            case LotusMode::SurroundingText: {
-                ic_->deleteSurroundingText(-1, 1);
-                ic_->commitString(". ");
-                LOTUS_INFO("Commit: . ");
-
-                break;
-            }
-            default: { // Uinput, Smooth, Preedit, etc.
-                performReplacement(" ", ". ");
-                LOTUS_INFO("Commit: . ");
-                break;
-            }
+        if (realMode == LotusMode::SurroundingText) {
+            ic_->deleteSurroundingText(-1, 1);
+            ic_->commitString(". ");
+            LOTUS_INFO("Commit: . ");
+        } else { // Uinput, Smooth, Preedit, etc.
+            performReplacement(" ", ". ");
+            LOTUS_INFO("Commit: . ");
         }
         if (*engine_->config().autoCapitalizeAfterPunctuation) {
             isPrevPunctuation_ = true;
@@ -909,18 +903,13 @@ namespace fcitx {
     void LotusState::handleDoubleHyphenReplacement() {
         // Em-dash (U+2014)
         std::string emDash = "—";
-        switch (realMode) {
-            case LotusMode::SurroundingText: {
-                ic_->deleteSurroundingText(-1, 1);
-                ic_->commitString(emDash);
-                LOTUS_INFO("Commit: — (em-dash)");
-                break;
-            }
-            default: { // Uinput, Smooth, Preedit, etc.
-                performReplacement("-", emDash);
-                LOTUS_INFO("Commit: — (em-dash)");
-                break;
-            }
+        if (realMode == LotusMode::SurroundingText) {
+            ic_->deleteSurroundingText(-1, 1);
+            ic_->commitString(emDash);
+            LOTUS_INFO("Commit: — (em-dash)");
+        } else { // Uinput, Smooth, Preedit, etc.
+            performReplacement("-", emDash);
+            LOTUS_INFO("Commit: — (em-dash)");
         }
     }
 
@@ -1026,11 +1015,9 @@ namespace fcitx {
             if (keyEvent.rawKey().check(FcitxKey_Shift_L) || keyEvent.rawKey().check(FcitxKey_Shift_R))
                 return;
         } else {
-            if (keyEvent.rawKey().isModifier()) {
-                if (!is_deleting_.load(std::memory_order_acquire)) {
-                    handleModifierTap(keyEvent);
-                    return;
-                }
+            if (keyEvent.rawKey().isModifier() && !is_deleting_.load(std::memory_order_acquire)) {
+                handleModifierTap(keyEvent);
+                return;
             }
             cancelModifierTap();
         }

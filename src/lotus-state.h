@@ -83,7 +83,7 @@ namespace fcitx {
          * @brief Checks if history buffer is empty.
          * @return True if no history.
          */
-        bool isEmptyHistory() const;
+        [[nodiscard]] bool isEmptyHistory() const;
         friend class EmojiCandidateWord;
         friend class LotusEngine;
 
@@ -271,7 +271,7 @@ namespace fcitx {
          * @param sym Key symbol to check.
          * @return True if the key is the configured trigger modifier (left/right same).
          */
-        bool isMacroSkipModifier(KeySym sym) const;
+        [[nodiscard]] bool isMacroSkipModifier(KeySym sym) const;
 
         /**
          * @brief Tracks a modifier tap (keydown then consecutive keyup) to skip macro.

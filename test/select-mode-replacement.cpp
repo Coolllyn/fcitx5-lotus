@@ -21,8 +21,9 @@ namespace {
         KbMsg msg{};
         if (!listener.receive(msg, meaning, timeoutExpected))
             return false;
-        if (msg.op != KB_OP_SELECT || msg.count <= 0) {
-            reportFailure("receive replacement request", "op=select, count > 0", "op=" + std::to_string(msg.op) + ", count=" + std::to_string(msg.count), meaning);
+        if (msg.op != KbOp::Select || msg.count <= 0) {
+            reportFailure("receive replacement request", "op=select, count > 0", "op=" + std::to_string(static_cast<int>(msg.op)) + ", count=" + std::to_string(msg.count),
+                          meaning);
             return false;
         }
         count = msg.count;

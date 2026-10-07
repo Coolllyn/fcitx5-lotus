@@ -10,6 +10,8 @@
 #include "lotus-logger.h"
 #include "../src/lotus-protocol.h"
 
+#include <algorithm>
+#include <array>
 #include <chrono>
 #include <cstdint>
 #include <cstring>
@@ -80,7 +82,7 @@ bool UinputDevice::initialize() {
 void UinputDevice::send_tap(uint16_t code) {
     if (!guard_.is_valid())
         return;
-    struct input_event ev[4]{};
+    std::array<struct input_event, 4> ev{};
     ev[0].type  = EV_KEY;
     ev[0].code  = code;
     ev[0].value = 1; // Press
@@ -89,18 +91,18 @@ void UinputDevice::send_tap(uint16_t code) {
     ev[2].code  = code;
     ev[2].value = 0; // Release
     // Zero-initialize ev[3] via {} set this event to SYN_REPORT
-    write(guard_.get(), ev, sizeof(ev));
+    write(guard_.get(), ev.data(), sizeof(ev));
 }
 
 void UinputDevice::send_mod(uint16_t code, int value) {
     if (!guard_.is_valid())
         return;
-    struct input_event ev[2]{};
+    std::array<struct input_event, 2> ev{};
     ev[0].type  = EV_KEY;
     ev[0].code  = code;
     ev[0].value = value;
     // Zero-initialize ev[1] via {} set this event to SYN_REPORT
-    write(guard_.get(), ev, sizeof(ev));
+    write(guard_.get(), ev.data(), sizeof(ev));
 }
 
 void UinputDevice::send_backspace() {
@@ -126,11 +128,9 @@ void UinputDevice::send_left() {
 LibinputContext::LibinputContext(const struct libinput_interface* interface) : udev_(udev_new()) {
     if (udev_ != nullptr) {
         li_ = libinput_udev_create_context(interface, nullptr, udev_);
-        if (li_ != nullptr) {
-            if (libinput_udev_assign_seat(li_, "seat0") != 0) {
-                libinput_unref(li_);
-                li_ = nullptr;
-            }
+        if (li_ != nullptr && libinput_udev_assign_seat(li_, "seat0") != 0) {
+            libinput_unref(li_);
+            li_ = nullptr;
         }
     }
 }
@@ -167,14 +167,14 @@ std::string get_current_username() {
 }
 
 uid_t get_uid_for_user(const std::string& username) {
-    struct passwd  pw_buf{};
-    struct passwd* pw = nullptr;
-    char           buf[1024];
-    int            res = getpwnam_r(username.c_str(), &pw_buf, buf, sizeof(buf), &pw);
+    struct passwd          pw_buf{};
+    struct passwd*         pw = nullptr;
+    std::array<char, 1024> buf{};
+    int                    res = getpwnam_r(username.c_str(), &pw_buf, buf.data(), buf.size(), &pw);
     if (res == 0 && pw != nullptr) {
         return pw->pw_uid;
     }
-    return (uid_t)-1;
+    return static_cast<uid_t>(-1);
 }
 
 void boost_process_priority() {
@@ -217,7 +217,7 @@ int main(int argc, char* argv[]) {
     LotusLogger::instance().info("Target user: " + target_user);
 
     uid_t expected_uid = get_uid_for_user(target_user);
-    if (expected_uid == (uid_t)-1) {
+    if (expected_uid == static_cast<uid_t>(-1)) {
         LotusLogger::instance().error("Failed to find UID for target user: " + target_user);
         return 1;
     }
@@ -266,12 +266,12 @@ int main(int argc, char* argv[]) {
     socklen_t kb_len    = offsetof(sockaddr_un, sun_path) + backspace_socket.length() + 1;
     socklen_t mouse_len = offsetof(sockaddr_un, sun_path) + mouse_flag_socket.length() + 1;
 
-    if (bind(server_fd.get(), (struct sockaddr*)&addr_kb, kb_len) != 0) {
+    if (bind(server_fd.get(), reinterpret_cast<struct sockaddr*>(&addr_kb), kb_len) != 0) {
         LotusLogger::instance().error("Failed to bind socket");
         return 1;
     }
 
-    if (bind(mouse_server_fd.get(), (struct sockaddr*)&addr_mouse, mouse_len) != 0) {
+    if (bind(mouse_server_fd.get(), reinterpret_cast<struct sockaddr*>(&addr_mouse), mouse_len) != 0) {
         LotusLogger::instance().error("Failed to bind socket");
         return 1;
     }
@@ -352,28 +352,28 @@ int main(int argc, char* argv[]) {
         libinput_dispatch(li_ctx.get_li());
 
         // handle socket (backspace)
-        if ((fds[0].revents & POLLIN) != 0) {
+        if ((static_cast<unsigned>(fds[0].revents) & static_cast<unsigned>(POLLIN)) != 0) {
             int client_fd = accept4(server_fd.get(), nullptr, nullptr, SOCK_NONBLOCK);
             if (client_fd >= 0) {
-                struct ucred cred{};
-                socklen_t    len                = sizeof(struct ucred);
-                char         exe_path[PATH_MAX] = {0};
+                struct ucred               cred{};
+                socklen_t                  len = sizeof(struct ucred);
+                std::array<char, PATH_MAX> exe_path{};
 
-                bool         authorized = false;
+                bool                       authorized = false;
                 if (getsockopt(client_fd, SOL_SOCKET, SO_PEERCRED, &cred, &len) == 0) {
                     if (cred.uid == expected_uid) {
-                        char path[64];
-                        snprintf(path, sizeof(path), "/proc/%d/exe", cred.pid);
+                        std::array<char, 64> path{};
+                        snprintf(path.data(), path.size(), "/proc/%d/exe", cred.pid);
 
-                        ssize_t ret = readlink(path, exe_path, sizeof(exe_path) - 1);
+                        ssize_t ret = readlink(path.data(), exe_path.data(), exe_path.size() - 1);
                         if (ret != -1) {
-                            exe_path[ret] = '\0'; // NOLINT
+                            exe_path[static_cast<size_t>(ret)] = '\0'; // NOLINT
                         }
 
-                        if (strcmp(exe_path, "/usr/bin/fcitx5") == 0) {
+                        if (strcmp(exe_path.data(), "/usr/bin/fcitx5") == 0) {
                             authorized = true;
                         } else {
-                            LotusLogger::instance().warn("Unauthorized executable connection attempt to keyboard socket from: " + std::string(exe_path));
+                            LotusLogger::instance().warn("Unauthorized executable connection attempt to keyboard socket from: " + std::string(exe_path.data()));
                         }
                     } else {
                         LotusLogger::instance().warn("Unauthorized UID connection attempt to keyboard socket from UID: " + std::to_string(cred.uid));
@@ -393,7 +393,8 @@ int main(int argc, char* argv[]) {
         }
 
         // handle connect from addon
-        if (fds[KB_CLIENT_INDEX].fd >= 0 && (fds[KB_CLIENT_INDEX].revents & (POLLIN | POLLHUP | POLLERR)) != 0) {
+        if (fds[KB_CLIENT_INDEX].fd >= 0 &&
+            (static_cast<unsigned>(fds[KB_CLIENT_INDEX].revents) & (static_cast<unsigned>(POLLIN) | static_cast<unsigned>(POLLHUP) | static_cast<unsigned>(POLLERR))) != 0) {
             KbMsg   msg{};
             ssize_t n = recv(fds[KB_CLIENT_INDEX].fd, &msg, sizeof(msg), 0);
             if (n <= 0) {
@@ -405,11 +406,11 @@ int main(int argc, char* argv[]) {
                 pending_selects = 0;
                 kb_client_fd.reset(-1);
                 fds[KB_CLIENT_INDEX].fd = -1;
-            } else if (n != (ssize_t)sizeof(KbMsg) && n != (ssize_t)sizeof(int32_t)) {
+            } else if (n != static_cast<ssize_t>(sizeof(KbMsg)) && n != static_cast<ssize_t>(sizeof(int32_t))) {
                 LotusLogger::instance().warn("Malformed keyboard message (" + std::to_string(n) + " bytes)");
             } else {
                 current_interval = msg.interval > 0 ? std::min<uint32_t>(msg.interval, 1000) : 5;
-                if (msg.count > 0 && msg.op == KB_OP_SELECT) {
+                if (msg.count > 0 && msg.op == KbOp::Select) {
                     if (msg.pre_delay > 0) {
                         std::this_thread::sleep_for(std::chrono::milliseconds(msg.pre_delay));
                     }
@@ -422,7 +423,7 @@ int main(int argc, char* argv[]) {
                     uinput.send_left();
                     pending_selects += msg.count - 1;
 
-                } else if (msg.count > 0 && msg.op == KB_OP_BACKSPACE) {
+                } else if (msg.count > 0 && msg.op == KbOp::Backspace) {
                     if (msg.pre_delay > 0) {
                         std::this_thread::sleep_for(std::chrono::milliseconds(msg.pre_delay));
                     }
@@ -436,34 +437,34 @@ int main(int argc, char* argv[]) {
                     pending_backspaces += msg.count - 1;
                     uinput.send_backspace();
                 } else if (msg.count > 0) {
-                    LotusLogger::instance().warn("Unknown keyboard message op: " + std::to_string(msg.op));
+                    LotusLogger::instance().warn("Unknown keyboard message op: " + std::to_string(static_cast<int>(msg.op)));
                 }
             }
         }
 
         // connect to mouse socket
-        if ((fds[2].revents & POLLIN) != 0) {
+        if ((static_cast<unsigned>(fds[2].revents) & static_cast<unsigned>(POLLIN)) != 0) {
             int new_fd = accept4(mouse_server_fd.get(), nullptr, nullptr, SOCK_NONBLOCK);
             if (new_fd >= 0) {
-                struct ucred cred{};
-                socklen_t    len                = sizeof(struct ucred);
-                char         exe_path[PATH_MAX] = {0};
+                struct ucred               cred{};
+                socklen_t                  len = sizeof(struct ucred);
+                std::array<char, PATH_MAX> exe_path{};
 
-                bool         authorized = false;
+                bool                       authorized = false;
                 if (getsockopt(new_fd, SOL_SOCKET, SO_PEERCRED, &cred, &len) == 0) {
                     if (cred.uid == expected_uid) {
-                        char path[64];
-                        snprintf(path, sizeof(path), "/proc/%d/exe", cred.pid);
+                        std::array<char, 64> path{};
+                        snprintf(path.data(), path.size(), "/proc/%d/exe", cred.pid);
 
-                        ssize_t ret = readlink(path, exe_path, sizeof(exe_path) - 1);
+                        ssize_t ret = readlink(path.data(), exe_path.data(), exe_path.size() - 1);
                         if (ret != -1) {
-                            exe_path[ret] = '\0'; // NOLINT
+                            exe_path[static_cast<size_t>(ret)] = '\0'; // NOLINT
                         }
 
-                        if (strcmp(exe_path, "/usr/bin/fcitx5") == 0) {
+                        if (strcmp(exe_path.data(), "/usr/bin/fcitx5") == 0) {
                             authorized = true;
                         } else {
-                            LotusLogger::instance().warn("Unauthorized executable connection attempt to mouse socket from: " + std::string(exe_path));
+                            LotusLogger::instance().warn("Unauthorized executable connection attempt to mouse socket from: " + std::string(exe_path.data()));
                         }
                     } else {
                         LotusLogger::instance().warn("Unauthorized UID connection attempt to mouse socket from UID: " + std::to_string(cred.uid));
@@ -492,13 +493,10 @@ int main(int argc, char* argv[]) {
 
             if (type == LIBINPUT_EVENT_POINTER_BUTTON) {
                 struct libinput_event_pointer* p = libinput_event_get_pointer_event(event);
-                if (libinput_event_pointer_get_button_state(p) == LIBINPUT_BUTTON_STATE_PRESSED) {
-                    if (addon_fd.is_valid()) {
-                        if (send(addon_fd.get(), "C", 1, MSG_NOSIGNAL | MSG_DONTWAIT) <= 0) {
-                            LotusLogger::instance().warn("Failed to send to mouse flag client, closing connection");
-                            addon_fd.reset(-1);
-                        }
-                    }
+                if (libinput_event_pointer_get_button_state(p) == LIBINPUT_BUTTON_STATE_PRESSED && addon_fd.is_valid() &&
+                    send(addon_fd.get(), "C", 1, MSG_NOSIGNAL | MSG_DONTWAIT) <= 0) {
+                    LotusLogger::instance().warn("Failed to send to mouse flag client, closing connection");
+                    addon_fd.reset(-1);
                 }
             } else if (type == LIBINPUT_EVENT_DEVICE_ADDED) {
                 struct libinput_device* dev  = libinput_event_get_device(event);

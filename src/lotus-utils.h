@@ -16,6 +16,7 @@
 
 #include <atomic>
 #include <cstdint>
+#include <string_view>
 #include <sys/un.h>
 #include <fcitx-utils/log.h>
 #include <fcitx/inputcontext.h>
@@ -53,7 +54,7 @@ extern std::atomic<int>                           mouse_socket_fd;   ///< Mouse 
  * @param base_path_suffix Suffix to append to base path.
  * @return Full socket path.
  */
-std::string LOTUS_EXPORT buildSocketPath(const char* base_path_suffix);
+std::string LOTUS_EXPORT buildSocketPath(std::string_view base_path_suffix);
 
 /**
  * @brief Gets current time in milliseconds.

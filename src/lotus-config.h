@@ -171,14 +171,14 @@ namespace fcitx {
          * @brief Constructs with option pointer.
          * @param option Pointer to input method option.
          */
-        InputMethodConstrain(const InputMethodOption* option) : option_(option) {}
+        explicit InputMethodConstrain(const InputMethodOption* option) : option_(option) {}
 
         /**
          * @brief Validates if name is in the allowed list.
          * @param name Name to check.
          * @return True if valid.
          */
-        bool check(const std::string& name) const {
+        [[nodiscard]] bool check(const std::string& name) const {
             const auto& list = option_->annotation().list();
             if (list.empty()) {
                 return true;

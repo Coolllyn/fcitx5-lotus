@@ -43,8 +43,8 @@
 
 namespace fcitx {
     constexpr const char* CharsetActionPrefix = "lotus-charset-";
-    const std::string     CustomKeymapFile    = "conf/lotus-custom-keymap.conf";
-    const std::string     MacroTableFile      = "conf/lotus-macro-table.conf";
+    constexpr const char* CustomKeymapFile    = "conf/lotus-custom-keymap.conf";
+    constexpr const char* MacroTableFile      = "conf/lotus-macro-table.conf";
 
     int                   modeToInt(LotusMode mode) {
         switch (mode) {
@@ -137,10 +137,11 @@ namespace fcitx {
                            "string:'org.freedesktop.appearance' string:'color-scheme' 2>/dev/null",
                            "r");
         if (pipe != nullptr) {
-            char buffer[256];
-            while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+            std::array<char, 256> buffer{};
+            while (fgets(buffer.data(), buffer.size(), pipe) != nullptr) {
                 uint32_t value = 0;
-                if (sscanf(buffer, "%*[^v]variant uint32 %u", &value) == 1) {
+                // The sscanf return value is checked and the value is only compared against 1.
+                if (sscanf(buffer.data(), "%*[^v]variant uint32 %u", &value) == 1) { //NOLINT(bugprone-unchecked-string-to-number-conversion)
                     pclose(pipe);
                     cachedValue = value == 1;
                     return cachedValue;
@@ -151,10 +152,10 @@ namespace fcitx {
 
         pipe = popen("gsettings get org.gnome.desktop.interface color-scheme 2>/dev/null", "r");
         if (pipe != nullptr) {
-            char buffer[256];
-            if (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+            std::array<char, 256> buffer{};
+            if (fgets(buffer.data(), buffer.size(), pipe) != nullptr) {
                 pclose(pipe);
-                cachedValue = strstr(buffer, "prefer-dark") != nullptr;
+                cachedValue = strstr(buffer.data(), "prefer-dark") != nullptr;
                 return cachedValue;
             }
             pclose(pipe);
@@ -194,12 +195,15 @@ namespace fcitx {
 
     static inline std::vector<std::string> convertToStringList(char** list) {
         std::vector<std::string> result;
-        if (list != nullptr) {
-            for (size_t i = 0; list[i] != nullptr; ++i) { //NOLINT
-                result.emplace_back(list[i]);             //NOLINT
-                free(list[i]);                            //NOLINT
-            }
-            free(list); //NOLINT
+        if (list == nullptr) {
+            return result;
+        }
+        // Go allocates the array and every element with malloc (toCStringArray in bamboo-c.go);
+        // owned here so an allocation failure while building result does not leak them.
+        const std::unique_ptr<char*, decltype(&std::free)> owner(list, &std::free);      //NOLINT
+        for (size_t i = 0; list[i] != nullptr; ++i) {                                    //NOLINT
+            const std::unique_ptr<char, decltype(&std::free)> item(list[i], &std::free); //NOLINT
+            result.emplace_back(item.get());
         }
         return result;
     }
@@ -218,7 +222,7 @@ namespace fcitx {
         Init();
         {
             auto imNames = convertToStringList(GetInputMethodNames());
-            imNames.push_back("Custom");
+            imNames.emplace_back("Custom");
             imNames_ = std::move(imNames);
         }
         config_.inputMethod.annotation().setList(imNames_);
@@ -415,7 +419,7 @@ namespace fcitx {
         } else if (path == "app_rules") {
             appRulesTables_.load(config, true);
             {
-                std::lock_guard<std::mutex> lock(appRulesMutex_);
+                std::scoped_lock lock(appRulesMutex_);
                 for (auto it = appRules_.begin(); it != appRules_.end();) {
                     if (!isStartsWith(it->first, "ctx_")) {
                         it = appRules_.erase(it);
@@ -495,7 +499,7 @@ namespace fcitx {
                     if (appName.find(ackApp) != std::string::npos) {
                         if (is_dbus) {
                             state->waitAck_ = true;
-                            LOTUS_INFO(ackApp + " detected, waiting for ack");
+                            LOTUS_INFO(std::string(ackApp) + " detected, waiting for ack");
                         }
                         state->wa_chromium_flag = true;
                         break;
@@ -617,17 +621,15 @@ namespace fcitx {
                         const auto& kl = *config_.modeMenuKey;
                         if (kl.size() == 1 && !kl[0].hasModifier()) {
                             std::string charStr = Key::keySymToUTF8(kl[0].sym());
-                            if (!charStr.empty()) {
-                                if (keySym == typeKeyForModeMenuHotkey(kl[0].sym(), config_)) {
-                                    isSelectingAppMode_ = false;
-                                    ic->inputPanel().reset();
-                                    ic->updateUserInterface(UserInterfaceComponent::InputPanel);
-                                    auto* state = ic->propertyFor(&factory_);
-                                    state->commitBuffer();
-                                    state->reset();
-                                    ic->commitString(charStr);
-                                    return;
-                                }
+                            if (!charStr.empty() && keySym == typeKeyForModeMenuHotkey(kl[0].sym(), config_)) {
+                                isSelectingAppMode_ = false;
+                                ic->inputPanel().reset();
+                                ic->updateUserInterface(UserInterfaceComponent::InputPanel);
+                                auto* state = ic->propertyFor(&factory_);
+                                state->commitBuffer();
+                                state->reset();
+                                ic->commitString(charStr);
+                                return;
                             }
                         }
                     }
@@ -864,7 +866,7 @@ namespace fcitx {
 
     void LotusEngine::loadAppRules() {
         {
-            std::lock_guard<std::mutex>                          lock(appRulesMutex_);
+            std::scoped_lock                                     lock(appRulesMutex_);
             std::unordered_map<std::string, LotusAppRuleSetting> ctxRules;
             for (const auto& [app, setting] : appRules_) {
                 if (isStartsWith(app, "ctx_")) {
@@ -908,15 +910,15 @@ namespace fcitx {
             }
             file.close();
 
-            std::lock_guard<std::mutex> lock(appRulesMutex_);
+            std::scoped_lock lock(appRulesMutex_);
             for (const auto& [app, setting] : tempRules) {
                 appRules_[app] = setting;
             }
         };
         loadFromFile(appRulesPath_);
 
-        std::lock_guard<std::mutex> lock(appRulesMutex_);
-        std::vector<lotusAppRule>   rules;
+        std::scoped_lock          lock(appRulesMutex_);
+        std::vector<lotusAppRule> rules;
         for (const auto& pair : appRules_) {
             if (pair.first.find("ctx_") == 0)
                 continue;
@@ -941,7 +943,7 @@ namespace fcitx {
         file << "# 0 = Off, 1 = Uinput (Smooth), 2 = Uinput (Smooth, legacy), 3 = Uinput (Super Smooth), 4 = Surrounding Text, 5 = Preedit,\n";
         file << "# 6 = Emoji Picker, 7 = Uinput (Select), 8 = Minecraft\n";
         file << "# app=mode[,commit_interval_ms[,backspace_interval_ms[,post_delay_ms]]]   0/omitted = use defaults\n";
-        std::lock_guard<std::mutex> lock(appRulesMutex_);
+        std::scoped_lock lock(appRulesMutex_);
         for (const auto& pair : appRules_) {
             bool currentIsCtx = isStartsWith(pair.first, "ctx_");
             if (!currentIsCtx) {
@@ -962,8 +964,8 @@ namespace fcitx {
     }
 
     LotusAppRuleSetting LotusEngine::getAppRuleSetting(const std::string& appName) const {
-        std::lock_guard<std::mutex> lock(appRulesMutex_);
-        auto                        it = appRules_.find(appName);
+        std::scoped_lock lock(appRulesMutex_);
+        auto             it = appRules_.find(appName);
         if (it != appRules_.end()) {
             return it->second;
         }
@@ -994,7 +996,7 @@ namespace fcitx {
         }
 
         {
-            std::lock_guard<std::mutex> lock(appRulesMutex_);
+            std::scoped_lock lock(appRulesMutex_);
             appRules_[appName].mode = mode;
         }
         appRulesTables_.rules.setValue(std::move(rules));
@@ -1270,7 +1272,7 @@ namespace fcitx {
 
     void LotusEngine::clearAppRule(const std::string& appName) {
         {
-            std::lock_guard<std::mutex> lock(appRulesMutex_);
+            std::scoped_lock lock(appRulesMutex_);
             appRules_.erase(appName);
         }
         auto rules = *appRulesTables_.rules;
@@ -1299,7 +1301,7 @@ namespace fcitx {
         memcpy(&addr.sun_path[1], mouse_socket_path.c_str(), mouse_socket_path.length());
         socklen_t len = offsetof(struct sockaddr_un, sun_path) + mouse_socket_path.length() + 1;
 
-        if (connect(sock, (struct sockaddr*)&addr, len) < 0) {
+        if (connect(sock, reinterpret_cast<struct sockaddr*>(&addr), len) < 0) {
             LOTUS_ERROR("Failed to connect to mouse socket: " + std::string(strerror(errno)));
             close(sock);
             return;
@@ -1316,8 +1318,8 @@ namespace fcitx {
         LOTUS_INFO("Mouse socket connected and registered to Fcitx EventLoop.");
 
         mouseEventSource_ = instance_->eventLoop().addIOEvent(sock, IOEventFlag::In, [this, sock](EventSourceIO*, int, IOEventFlags) {
-            char    buf[16];
-            ssize_t n = recv(sock, buf, sizeof(buf), 0);
+            std::array<char, 16> buf{};
+            ssize_t              n = recv(sock, buf.data(), buf.size(), 0);
             if (n <= 0) {
                 LOTUS_ERROR("Mouse socket recv error or disconnected: " + std::string(strerror(errno)));
                 mouseEventSource_.reset();

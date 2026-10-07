@@ -32,7 +32,7 @@ class EmojiLoader {
      * @param addonManager Fcitx5 addon manager instance.
      * @param language Language code for emoji data.
      */
-    EmojiLoader(fcitx::AddonManager* addonManager);
+    explicit EmojiLoader(fcitx::AddonManager* addonManager);
 
     /**
      * @brief Searches emoji by prefix with fuzzy matching.
@@ -51,7 +51,7 @@ class EmojiLoader {
      * @brief Gets the emoji history.
      * @return List of recently used emojis.
      */
-    const std::vector<EmojiEntry>& history() const {
+    [[nodiscard]] const std::vector<EmojiEntry>& history() const {
         return historyList;
     }
 
@@ -59,7 +59,7 @@ class EmojiLoader {
      * @brief Gets total emoji count.
      * @return Number of emojis loaded.
      */
-    size_t size() const;
+    [[nodiscard]] size_t size() const;
 
   private:
     std::vector<EmojiEntry> historyList;   ///< Recently used emojis

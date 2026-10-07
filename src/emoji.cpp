@@ -111,7 +111,7 @@ std::vector<EmojiEntry> EmojiLoader::search(const std::string& prefix) {
                 if (queryIndex == 0)
                     firstMatchIndex = i; // NOLINT
 
-                if (lastMatchIndex != -1 && (int)i == lastMatchIndex + 1) {
+                if (lastMatchIndex != -1 && static_cast<int>(i) == lastMatchIndex + 1) {
                     ++consecutiveMatches;
                     score += (20 * consecutiveMatches);
                 } else {

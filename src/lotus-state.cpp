@@ -124,7 +124,7 @@ namespace fcitx {
         return connect_uinput_server() ? uinput_client_fd_.load(std::memory_order_acquire) : -1;
     }
 
-    void LotusState::send_kb_msg(KbOp op, size_t count, uint32_t pre_delay, uint32_t interval, uint32_t post_delay) const {
+    void LotusState::send_kb_msg(KbOp op, size_t count, uint32_t pre_delay, uint32_t interval, uint32_t post_delay) {
         if (uinput_client_fd_ < 0 && !connect_uinput_server()) {
             LOTUS_ERROR("Cannot send key request since cannot connect to uinput server");
             return;
@@ -144,18 +144,13 @@ namespace fcitx {
                 send(uinput_client_fd_, &msg, sizeof(msg), MSG_NOSIGNAL);
             }
         }
-
-        if (waitAck_) {
-            LOTUS_INFO("Waiting for ack");
-            std::this_thread::sleep_for(std::chrono::milliseconds(count * 5));
-        }
     }
 
-    void LotusState::send_backspace_uinput(size_t count, uint32_t pre_delay, uint32_t interval, uint32_t post_delay) const {
+    void LotusState::send_backspace_uinput(size_t count, uint32_t pre_delay, uint32_t interval, uint32_t post_delay) {
         send_kb_msg(KbOp::Backspace, count, pre_delay, interval, post_delay);
     }
 
-    void LotusState::send_select_uinput(size_t count, uint32_t pre_delay, uint32_t interval, uint32_t post_delay) const {
+    void LotusState::send_select_uinput(size_t count, uint32_t pre_delay, uint32_t interval, uint32_t post_delay) {
         send_kb_msg(KbOp::Select, count, pre_delay, interval, post_delay);
     }
 
@@ -700,25 +695,20 @@ namespace fcitx {
         std::string      deletedPart;
         std::string      addedPart;
 
-        if (wa_chromium_flag)
-            keyEvent.filterAndAccept();
-
         if (compareAndSplitStrings(oldPreBuffer_, preeditStr, deletedPart, addedPart) != 0) {
             if (deletedPart.empty()) {
                 bool isCommit           = false;
                 bool wasAutoCapitalized = (currentSym != keyEvent.rawKey().sym());
                 if (!addedPart.empty()) {
                     oldPreBuffer_ = preeditStr;
-                    if (wa_chromium_flag || wasAutoCapitalized || addedPart != keyUtf8) {
+                    if (wasAutoCapitalized || addedPart != keyUtf8) {
                         ic_->commitString(addedPart);
                         LOTUS_INFO("Commit: " + addedPart);
-                        if (!wa_chromium_flag) {
-                            keyEvent.filterAndAccept();
-                            isCommit = true;
-                        }
+                        keyEvent.filterAndAccept();
+                        isCommit = true;
                     }
                 }
-                if (!wa_chromium_flag && !isCommit) {
+                if (!isCommit) {
                     keyEvent.forward();
                 }
             } else {
@@ -735,8 +725,7 @@ namespace fcitx {
                     is_deleting_.store(false, std::memory_order_release);
                 }
 
-                if (!wa_chromium_flag)
-                    keyEvent.filterAndAccept();
+                keyEvent.filterAndAccept();
                 performReplacement(deletedPart, addedPart);
                 oldPreBuffer_ = preeditStr;
             }

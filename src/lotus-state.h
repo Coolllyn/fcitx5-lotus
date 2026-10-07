@@ -101,15 +101,13 @@ namespace fcitx {
         LotusAppRuleSetting                   appRuleSetting_; ///< Per-app rule (mode + delay overrides) pushed by the engine
         std::string                           emojiBuffer_;
         std::vector<EmojiEntry>               emojiCandidates_;
-        bool                                  waitAck_ = false;
         std::vector<KeyEntry>                 buffered_keys_; ///< Keystrokes buffered during replacement
         bool                                  isPrevSpace_           = false;
         bool                                  isPrevHyphen_          = false;
         bool                                  shouldCapitalize_      = false;
         bool                                  isPrevPunctuation_     = false;
         int64_t                               lastDeactivateTime_    = 0;
-        int64_t                               deletionInterruptedAt_ = 0; ///< when deactivate() cut an in-flight replacement (0 = none)
-        bool                                  wa_chromium_flag       = false;
+        int64_t                               deletionInterruptedAt_ = 0;     ///< when deactivate() cut an in-flight replacement (0 = none)
         bool                                  tracking_modifier_tap_ = false; ///< Selected modifier held, waiting for consecutive keyup
         bool                                  macro_skip_            = false; ///< Macro disabled for the current word
         std::chrono::steady_clock::time_point last_commit_time_;
@@ -134,7 +132,7 @@ namespace fcitx {
          * @param interval Delay in milliseconds between consecutive injected keys.
          * @param post_delay Delay in milliseconds after completing the keyboard operation.
          */
-        void send_kb_msg(KbOp op, size_t count, uint32_t pre_delay, uint32_t interval, uint32_t post_delay) const;
+        static void send_kb_msg(KbOp op, size_t count, uint32_t pre_delay, uint32_t interval, uint32_t post_delay);
 
         /**
          * @brief Sends backspace key events via uinput.
@@ -143,7 +141,7 @@ namespace fcitx {
          * @param interval Delay in milliseconds between consecutive injected keys.
          * @param post_delay Delay in milliseconds after completing the keyboard operation.
          */
-        void send_backspace_uinput(size_t count, uint32_t pre_delay, uint32_t interval, uint32_t post_delay) const;
+        static void send_backspace_uinput(size_t count, uint32_t pre_delay, uint32_t interval, uint32_t post_delay);
 
         /**
          * @brief Asks the uinput server to select count characters with Shift+Left.
@@ -152,7 +150,7 @@ namespace fcitx {
          * @param interval Delay in milliseconds between consecutive injected keys.
          * @param post_delay Delay in milliseconds after completing the keyboard operation.
          */
-        void send_select_uinput(size_t count, uint32_t pre_delay, uint32_t interval, uint32_t post_delay) const;
+        static void send_select_uinput(size_t count, uint32_t pre_delay, uint32_t interval, uint32_t post_delay);
 
         /**
          * @brief Checks if autofill is certain for surrounding text.

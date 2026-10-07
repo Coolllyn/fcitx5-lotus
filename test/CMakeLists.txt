@@ -1,7 +1,10 @@
 # Wraps the core objects compiled once in src/lotus_core_objects, so the Go
 # runtime is linked once here; exclude-libs keeps its symbols out of the
 # dynamic symbol table.
-add_library(lotus_test_core SHARED $<TARGET_OBJECTS:lotus_core_objects>)
+add_library(lotus_test_core SHARED
+    $<TARGET_OBJECTS:lotus_core_objects>
+    $<TARGET_OBJECTS:lotus_executable_path>
+)
 target_link_options(lotus_test_core PRIVATE "-Wl,-exclude-libs,ALL")
 target_include_directories(lotus_test_core PUBLIC
     ${PROJECT_BINARY_DIR}
@@ -81,11 +84,8 @@ set_tests_properties(emoji_backspace_utf8 PROPERTIES
 
 add_executable(executable_path_match
     executable-path-match.cpp
-    ${PROJECT_SOURCE_DIR}/src/lotus-executable-path.cpp
 )
-target_include_directories(executable_path_match PRIVATE
-    ${PROJECT_SOURCE_DIR}/src
-)
+target_link_libraries(executable_path_match PRIVATE lotus_executable_path)
 add_test(NAME executable_path_match COMMAND executable_path_match)
 set_tests_properties(executable_path_match PROPERTIES
     LABELS "unit;packaging"

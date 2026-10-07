@@ -18,14 +18,6 @@
 #include <cstdint>
 #include <optional>
 
-// Exported API marker: the project builds with hidden visibility, but the
-// headless tests link LotusEngine and a few shared symbols from lotus_test_core.
-#if defined(__GNUC__) || defined(__clang__)
-#define LOTUS_EXPORT __attribute__((visibility("default")))
-#else
-#define LOTUS_EXPORT
-#endif
-
 // Declaration only — including the generated bamboo-core.h here would put the
 // whole C++ build behind the Go c-archive step (see bamboo/CMakeLists.txt).
 extern "C" void DeleteObject(std::uintptr_t handle);

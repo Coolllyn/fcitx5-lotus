@@ -15,6 +15,8 @@
 
 #include <string_view>
 
+#include "lotus-export.h"
+
 #ifndef LOTUS_FCITX5_EXECUTABLE
 #define LOTUS_FCITX5_EXECUTABLE "/usr/bin/fcitx5"
 #endif
@@ -32,6 +34,7 @@
  * @param altPrefix Configured extra prefix (e.g. LOTUS_ALT_EXECUTABLE_PREFIX), may be empty.
  * @return True when the peer path is accepted.
  */
-bool isAllowedExecutablePath(std::string_view exePath, std::string_view expectedPath, std::string_view altPrefix);
+// LOTUS_EXPORT: also read by the headless tests through lotus_test_core.
+bool LOTUS_EXPORT isAllowedExecutablePath(std::string_view exePath, std::string_view expectedPath, std::string_view altPrefix);
 
 #endif // _LOTUS_EXECUTABLE_PATH_H_

@@ -32,6 +32,7 @@ from qtpy.QtWidgets import (
     QWidget,
 )
 
+from ui.components import ScrollContent
 from ui.pages.dynamic_settings import CardWidget
 
 # Mode constants as defined in C++ LotusEngine
@@ -436,6 +437,8 @@ class ModeManagerPage(QWidget):
         self.sidebar_layout.setSpacing(10)
 
         self.app_list = QListWidget()
+        self.app_list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.app_list.setTextElideMode(Qt.ElideRight)
         self.app_list.setIconSize(QSize(24, 24))
         self.app_list.itemClicked.connect(self._on_app_selected)
         self.sidebar_layout.addWidget(self.app_list)
@@ -457,7 +460,7 @@ class ModeManagerPage(QWidget):
         self.content_widget.setWidgetResizable(True)
         self.content_widget.setFrameShape(QFrame.NoFrame)
 
-        self.main_container = QWidget()
+        self.main_container = ScrollContent()
         self.main_layout = QVBoxLayout(self.main_container)
         self.main_layout.setContentsMargins(30, 20, 30, 30)
         self.main_layout.setSpacing(20)

@@ -27,6 +27,7 @@ from qtpy.QtWidgets import (
     QWidget,
 )
 
+from ui.components import ScrollContent
 from ui.pages.dynamic_settings import CardWidget
 
 
@@ -45,7 +46,7 @@ class BackupPage(QWidget):
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.NoFrame)
 
-        content_widget = QWidget()
+        content_widget = ScrollContent()
         layout = QVBoxLayout(content_widget)
         layout.setContentsMargins(30, 20, 30, 20)
         layout.setSpacing(20)

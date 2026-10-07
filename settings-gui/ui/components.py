@@ -495,3 +495,37 @@ class SingleKeyCaptureWidget(HotkeyCaptureWidget):
             self.current_key = base_key
             self.setChecked(False)
             self.textChanged.emit(self.current_key)
+
+
+class ScrollContent(QWidget):
+    """Content widget for a page QScrollArea.
+    """
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._syncing = False
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if self._syncing:
+            return
+        self._syncing = True
+        try:
+            self._sync_heights()
+        finally:
+            self._syncing = False
+
+    def _sync_heights(self):
+        for label in self.findChildren(QLabel):
+            if not label.wordWrap() or not label.text() or not label.isVisibleTo(self):
+                continue
+            needed = label.heightForWidth(label.width())
+            if needed > 0:
+                label.setMinimumHeight(needed)
+        layout = self.layout()
+        if layout is None:
+            return
+        layout.activate()
+        needed = layout.totalHeightForWidth(self.width())
+        if needed > 0:
+            self.setMinimumHeight(needed)

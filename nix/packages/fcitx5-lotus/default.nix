@@ -77,12 +77,12 @@ stdenv.mkDerivation (finalAttrs: {
 
   postPatch = ''
     substituteInPlace src/lotus-monitor.cpp \
-      --replace-fail 'strcmp(exe_path, "/usr/bin/fcitx5-lotus-server") == 0' \
-                     '(strncmp(exe_path, "/nix/store/", 11) == 0 && strlen(exe_path) >= 24 && strcmp(exe_path + strlen(exe_path) - 24, "/bin/fcitx5-lotus-server") == 0)'
+      --replace-fail 'strcmp(exe_path.data(), "/usr/bin/fcitx5-lotus-server") == 0' \
+                     '(strncmp(exe_path.data(), "/nix/store/", 11) == 0 && strlen(exe_path.data()) >= 24 && strcmp(exe_path.data() + strlen(exe_path.data()) - 24, "/bin/fcitx5-lotus-server") == 0)'
 
     substituteInPlace server/lotus-server.cpp \
-      --replace-fail 'strcmp(exe_path, "/usr/bin/fcitx5") == 0' \
-                     '(strncmp(exe_path, "/nix/store/", 11) == 0 && strlen(exe_path) >= 11 && strcmp(exe_path + strlen(exe_path) - 11, "/bin/fcitx5") == 0)'
+      --replace-fail 'strcmp(exe_path.data(), "/usr/bin/fcitx5") == 0' \
+                     '(strncmp(exe_path.data(), "/nix/store/", 11) == 0 && strlen(exe_path.data()) >= 11 && strcmp(exe_path.data() + strlen(exe_path.data()) - 11, "/bin/fcitx5") == 0)'
 
     substituteInPlace settings-gui/i18n.py \
       --replace-fail 'localedir = "/usr/share/locale"' 'localedir = "'"$out"'/share/locale"'

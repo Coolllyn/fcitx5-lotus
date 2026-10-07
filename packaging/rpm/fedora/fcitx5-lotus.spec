@@ -16,7 +16,6 @@ BuildRequires:  pkgconfig(libudev)
 
 BuildRequires:  golang
 BuildRequires:  python3-devel
-BuildRequires:  librsvg2-tools
 
 %{?systemd_ordering}
 Requires:       fcitx5
@@ -68,7 +67,6 @@ Vietnamese input method for fcitx5
 
 %{_datadir}/icons/hicolor/scalable/apps/*fcitx-lotus*.svg
 %{_datadir}/icons/hicolor/scalable/status/fcitx-lotus*.svg
-%{_datadir}/icons/hicolor/*/status/fcitx-lotus*.png
 
 %dir %{_datadir}/icons/breeze
 %dir %{_datadir}/icons/breeze/status

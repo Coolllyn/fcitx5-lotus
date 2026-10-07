@@ -10,7 +10,6 @@
   hicolor-icon-theme,
   kdePackages,
   libinput,
-  librsvg,
   nix-update-script,
   pkg-config,
   python3,
@@ -48,7 +47,6 @@ stdenv.mkDerivation (finalAttrs: {
     go
     hicolor-icon-theme
     kdePackages.extra-cmake-modules
-    librsvg
     pkg-config
     qt6.wrapQtAppsHook
   ];

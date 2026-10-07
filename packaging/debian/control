@@ -16,8 +16,7 @@ Build-Depends: debhelper-compat (= 13),
                libinput-dev,
                libudev-dev,
                pkg-config,
-               python3,
-               librsvg2-bin
+               python3
 Standards-Version: 4.6.0
 
 Package: fcitx5-lotus

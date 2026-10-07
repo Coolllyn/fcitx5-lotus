@@ -8,7 +8,6 @@ target_include_directories(lotus_core_objects PRIVATE
 )
 target_compile_definitions(lotus_core_objects PRIVATE
     FCITX5_LOTUS_SETTINGS_PATH="${CMAKE_INSTALL_FULL_BINDIR}/fcitx5-lotus-settings"
-    FCITX_LOTUS_ICON_DIR="${CMAKE_INSTALL_FULL_DATADIR}/icons/hicolor/scalable/apps"
 )
 target_link_libraries(lotus_core_objects PRIVATE
     Fcitx5::Core
@@ -23,11 +22,11 @@ set_target_properties(lotus PROPERTIES OUTPUT_NAME "lotus")
 set_target_properties(lotus PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_link_options(lotus PRIVATE "-Wl,-exclude-libs,ALL")
 target_link_libraries(lotus
-	Fcitx5::Core
-	Fcitx5::Config
+        Fcitx5::Core
+        Fcitx5::Config
   Fcitx5::Module::Emoji
-	Bamboo::Core
-	Pthread::Pthread
+        Bamboo::Core
+        Pthread::Pthread
 )
 
 target_include_directories(lotus PRIVATE
@@ -35,7 +34,6 @@ target_include_directories(lotus PRIVATE
 )
 target_compile_definitions(lotus PRIVATE
     FCITX5_LOTUS_SETTINGS_PATH=\"${CMAKE_INSTALL_FULL_BINDIR}/fcitx5-lotus-settings\"
-    FCITX_LOTUS_ICON_DIR=\"${CMAKE_INSTALL_FULL_DATADIR}/icons/hicolor/scalable/apps\"
 )
 install(TARGETS lotus DESTINATION "${CMAKE_INSTALL_LIBDIR}/fcitx5")
 

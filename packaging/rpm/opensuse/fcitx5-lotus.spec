@@ -17,7 +17,6 @@ BuildRequires:  systemd-devel
 BuildRequires:  go
 BuildRequires:  sysuser-tools
 Requires(pre):  sysuser-shadow >= 3.1
-BuildRequires:  rsvg-convert
 
 %{?systemd_ordering}
 Requires:       fcitx5
@@ -70,7 +69,6 @@ cd %{_builddir}/%{name}-%{version}
 
 %{_datadir}/icons/hicolor/scalable/apps/*fcitx-lotus*.svg
 %{_datadir}/icons/hicolor/scalable/status/fcitx-lotus*.svg
-%{_datadir}/icons/hicolor/*/status/fcitx-lotus*.png
 
 %dir %{_datadir}/icons/breeze
 %dir %{_datadir}/icons/breeze/status

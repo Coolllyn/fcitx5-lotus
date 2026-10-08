@@ -1,11 +1,3 @@
-# lotus-executable-path is a dependency-free helper compiled once and
-# consumed by the addon, lotus_test_core, the server and its unit test.
-add_library(lotus_executable_path OBJECT lotus-executable-path.cpp)
-set_target_properties(lotus_executable_path PROPERTIES POSITION_INDEPENDENT_CODE ON)
-target_include_directories(lotus_executable_path PUBLIC
-    ${PROJECT_SOURCE_DIR}/src
-)
-
 # Core sources are compiled once here and consumed by both the module and
 # lotus_test_core; LOTUS_EXPORT keeps the test-facing API linkable.
 add_library(lotus_core_objects OBJECT ${fcitx_lotus_core_sources})

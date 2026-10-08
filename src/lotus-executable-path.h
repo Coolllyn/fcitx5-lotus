@@ -17,16 +17,6 @@
 
 #include "lotus-export.h"
 
-#ifndef LOTUS_FCITX5_EXECUTABLE
-#define LOTUS_FCITX5_EXECUTABLE "/usr/bin/fcitx5"
-#endif
-#ifndef LOTUS_SERVER_EXECUTABLE
-#define LOTUS_SERVER_EXECUTABLE "/usr/bin/fcitx5-lotus-server"
-#endif
-#ifndef LOTUS_ALT_EXECUTABLE_PREFIX
-#define LOTUS_ALT_EXECUTABLE_PREFIX ""
-#endif
-
 /**
  * @brief Checks whether a peer executable may act as the expected program.
  * @param exePath Peer executable path as reported by readlink(/proc/<pid>/exe).

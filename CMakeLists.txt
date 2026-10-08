@@ -51,6 +51,10 @@ set(LOTUS_ALT_EXECUTABLE_PREFIX "" CACHE STRING
 set(LOTUS_SETFACL_EXECUTABLE "/usr/bin/setfacl" CACHE FILEPATH
     "setfacl used by the udev rule and the service units")
 
+add_library(lotus_executable_path OBJECT src/lotus-executable-path.cpp)
+set_target_properties(lotus_executable_path PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_include_directories(lotus_executable_path PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+
 add_subdirectory(po)
 add_subdirectory(bamboo)
 add_subdirectory(src)

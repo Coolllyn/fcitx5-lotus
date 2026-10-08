@@ -8,6 +8,8 @@ target_include_directories(lotus_core_objects PRIVATE
 )
 target_compile_definitions(lotus_core_objects PRIVATE
     FCITX5_LOTUS_SETTINGS_PATH="${CMAKE_INSTALL_FULL_BINDIR}/fcitx5-lotus-settings"
+    LOTUS_SERVER_EXECUTABLE="${LOTUS_SERVER_EXECUTABLE}"
+    LOTUS_ALT_EXECUTABLE_PREFIX="${LOTUS_ALT_EXECUTABLE_PREFIX}"
 )
 target_link_libraries(lotus_core_objects PRIVATE
     Fcitx5::Core
@@ -17,7 +19,10 @@ target_link_libraries(lotus_core_objects PRIVATE
     Pthread::Pthread
 )
 
-add_library(lotus MODULE lotus.cpp $<TARGET_OBJECTS:lotus_core_objects>)
+add_library(lotus MODULE lotus.cpp
+    $<TARGET_OBJECTS:lotus_core_objects>
+    $<TARGET_OBJECTS:lotus_executable_path>
+)
 set_target_properties(lotus PROPERTIES OUTPUT_NAME "lotus")
 set_target_properties(lotus PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_link_options(lotus PRIVATE "-Wl,-exclude-libs,ALL")

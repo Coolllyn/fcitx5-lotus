@@ -207,9 +207,9 @@ namespace fcitx {
                             this, "CustomKeymap", _("Custom Keymap"), {}, {}, {}, ListDisplayOptionAnnotation("Key")};);
 
     FCITX_CONFIGURATION(lotusAppRule, Option<std::string> app{this, "App", _("App"), ""}; Option<int> mode{this, "Mode", _("Mode"), 0};
-                        Option<int> commitInterval{this, "CommitInterval", _("Commit Interval (ms, 0 = default)"), 0};
-                        Option<int> backspaceInterval{this, "BackspaceInterval", _("Backspace Interval (ms, 0 = default)"), 0};
-                        Option<int> postDelay{this, "PostDelay", _("Post Delay (ms, 0 = default)"), 0};);
+                        Option<int> commitInterval{this, "CommitInterval", std::string(_("Commit Interval")) + " " + _("(ms, 0 = default)"), 0};
+                        Option<int> backspaceInterval{this, "BackspaceInterval", std::string(_("Backspace Interval")) + " " + _("(ms, 0 = default)"), 0};
+                        Option<int> postDelay{this, "PostDelay", std::string(_("Post Delay")) + " " + _("(ms, 0 = default)"), 0};);
     FCITX_CONFIGURATION(lotusAppRules,
                         OptionWithAnnotation<std::vector<lotusAppRule>, ListDisplayOptionAnnotation> rules{
                             this, "Rules", _("Rules"), {}, {}, {}, ListDisplayOptionAnnotation("App")};);
@@ -275,9 +275,9 @@ namespace fcitx {
         Option<std::string> shortcutOff{this, "ShortcutOff", _("Shortcut for OFF"), "e"}; Option<bool> showModeDefault{this, "ShowModeDefault", _("Show Default Typing"), true};
         Option<std::string> shortcutDefault{this, "ShortcutDefault", _("Shortcut for Default Typing"), "r"};
         Option<bool>        enableMacroInOffMode{this, "EnableMacroInOffMode", _("Allow Macro in Off Mode"), false};
-        Option<int>         defaultCommitInterval{this, "DefaultCommitInterval", _("Default Commit Interval (ms)"), 20};
-        Option<int>         defaultBackspaceInterval{this, "DefaultBackspaceInterval", _("Default Backspace Interval (ms)"), 5};
-        Option<int>         defaultPostDelay{this, "DefaultPostDelay", _("Default Post Delay (ms)"), 10};
+        Option<int>         defaultCommitInterval{this, "DefaultCommitInterval", std::string(_("Default Commit Interval")) + " (ms)", 20};
+        Option<int>         defaultBackspaceInterval{this, "DefaultBackspaceInterval", std::string(_("Default Backspace Interval")) + " (ms)", 5};
+        Option<int>         defaultPostDelay{this, "DefaultPostDelay", std::string(_("Default Post Delay")) + " (ms)", 10};
         Option<std::string> modeOrder{this, "ModeOrder", _("Mode Order"), "Smooth,Minecraft,Select,SurroundingText,Preedit,Emoji,Off,SuperSmooth,Default"};
         OptionWithAnnotation<std::string, TimeFormatAnnotation>  timeFormat{this, "TimeFormat", _("Time Format ($TIME in macro)"), "%H:%M", {}, {}, TimeFormatAnnotation()};
         OptionWithAnnotation<std::string, DateFormatAnnotation>  dateFormat{this, "DateFormat", _("Date Format ($DATE in macro)"), "%d/%m/%Y", {}, {}, DateFormatAnnotation()};

@@ -211,9 +211,9 @@ class ModeManagerPage(QWidget):
         self.global_card.content_layout.addLayout(global_layout)
 
         delay_grid = QGridLayout()
-        delay_grid.addWidget(QLabel(_("Default Commit Interval:")), 0, 0)
-        delay_grid.addWidget(QLabel(_("Default Backspace Interval:")), 1, 0)
-        delay_grid.addWidget(QLabel(_("Default Post Delay:")), 2, 0)
+        delay_grid.addWidget(QLabel(_("Default Commit Interval") + ":"), 0, 0)
+        delay_grid.addWidget(QLabel(_("Default Backspace Interval") + ":"), 1, 0)
+        delay_grid.addWidget(QLabel(_("Default Post Delay") + ":"), 2, 0)
         for row, (key, value) in enumerate(DEFAULT_DELAY_KEYS.items()):
             spin = QSpinBox()
             spin.setRange(1, 1000)
@@ -257,9 +257,9 @@ class ModeManagerPage(QWidget):
         self.app_settings_layout.addLayout(self.mode_grid)
 
         app_delay_grid = QGridLayout()
-        app_delay_grid.addWidget(QLabel(_("Commit Interval:")), 0, 0)
-        app_delay_grid.addWidget(QLabel(_("Backspace Interval:")), 1, 0)
-        app_delay_grid.addWidget(QLabel(_("Post Delay:")), 2, 0)
+        app_delay_grid.addWidget(QLabel(_("Commit Interval") + ":"), 0, 0)
+        app_delay_grid.addWidget(QLabel(_("Backspace Interval") + ":"), 1, 0)
+        app_delay_grid.addWidget(QLabel(_("Post Delay") + ":"), 2, 0)
         self.spin_app_commit = self._make_app_delay_spin("commit", app_delay_grid, 0)
         self.spin_app_backspace = self._make_app_delay_spin("backspace", app_delay_grid, 1)
         self.spin_app_post = self._make_app_delay_spin("post", app_delay_grid, 2)

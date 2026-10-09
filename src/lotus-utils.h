@@ -19,10 +19,7 @@
 #include <string_view>
 #include <sys/un.h>
 #include <fcitx-utils/log.h>
-
-namespace fcitx {
-    class InputContext; // forward declaration: only used as a pointer below
-} // namespace fcitx
+#include <fcitx/inputcontext.h>
 
 #include "lotus-config.h"
 #include "lotus-export.h"

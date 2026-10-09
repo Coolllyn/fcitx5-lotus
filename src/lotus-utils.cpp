@@ -10,7 +10,6 @@
 
 #include <cstddef>
 #include <fcitx-utils/utf8.h>
-#include <fcitx/inputcontext.h>
 #include <pwd.h>
 #include <unistd.h>
 

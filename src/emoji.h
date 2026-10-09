@@ -18,10 +18,7 @@
 #include <string>
 #include <vector>
 
-namespace fcitx {
-    class AddonManager;  // forward declaration: only used as a pointer below
-    class AddonInstance; // forward declaration: only used as a pointer below
-} // namespace fcitx
+#include <fcitx/addonmanager.h>
 
 /**
  * @brief Emoji loader with fuzzy search capability.

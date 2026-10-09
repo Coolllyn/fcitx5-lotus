@@ -26,8 +26,6 @@
 #include <fcitx/userinterfacemanager.h>
 #include <fcitx-utils/event.h>
 #include <fcitx-utils/utf8.h>
-#include <fcitx-utils/eventdispatcher.h>
-#include <fcitx-utils/misc.h>
 
 #include <algorithm>
 #include <array>

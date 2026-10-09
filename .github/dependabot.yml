@@ -10,5 +10,13 @@ updates:
     schedule:
       interval: "weekly"
     target-branch: "dev"
+    # Group github/codeql-action action updates into one PR so every github/codeql-action step
+    # (init/analyze) is always bumped to the same version at the same time.
+    # Mixed versions make CodeQL fail with:
+    #   "Loaded a configuration file for version 'X', but running version 'Y'"
+    groups:
+      github-actions:
+        patterns:
+          - "github/codeql-action"
     ignore:
       - dependency-name: "golangci/golangci-lint-action"

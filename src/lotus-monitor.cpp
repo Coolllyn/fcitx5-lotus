@@ -15,9 +15,7 @@
 #include <string>
 
 #include <fcntl.h>
-#include <poll.h>
 #include <sys/socket.h>
-#include <sys/un.h>
 #include <unistd.h>
 #include <climits> // IWYU pragma: keep
 

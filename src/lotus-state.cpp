@@ -10,16 +10,13 @@
 #include "lotus-engine.h"
 #include "lotus-candidates.h"
 #include "lotus-utils.h"
-#include "lotus.h"
 
 #include "bamboo-core.h" // generated cgo header; only included where the bridge is called
 
 #include <cstddef>
-#include <fcitx-utils/log.h>
 #include <fcitx-utils/utf8.h>
 #include <fcitx/candidatelist.h>
 #include <fcitx/inputpanel.h>
-#include <fcitx/menu.h>
 #include <fcitx/userinterface.h>
 
 #include <algorithm>

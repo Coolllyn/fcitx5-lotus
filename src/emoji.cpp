@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <emoji_public.h>
 #include <fcitx-utils/standardpath.h>
+#include <fcitx/addonmanager.h>
 #include <fstream>
 
 EmojiLoader::EmojiLoader(fcitx::AddonManager* addonManager) {

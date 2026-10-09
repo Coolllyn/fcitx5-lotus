@@ -12,7 +12,6 @@
 #include <fcitx/inputcontextmanager.h>
 #include <fcitx/inputpanel.h>
 #include <fcitx/instance.h>
-#include <fcitx/text.h>
 
 /**
  * @brief Headless Mock InputContext for Fcitx5-Lotus Integration Testing.

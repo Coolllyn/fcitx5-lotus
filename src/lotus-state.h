@@ -22,11 +22,7 @@
 
 #include <chrono>
 #include <cstddef>
-#include <fcitx-utils/event.h>
-#include <fcitx-utils/misc.h>
 #include <fcitx/inputcontext.h>
-
-struct EmojiEntry;
 
 namespace fcitx {
     class LotusEngine;

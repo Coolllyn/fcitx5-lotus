@@ -1,5 +1,9 @@
-fcitx5-lotus (4.0.1-1) unstable; urgency=medium
+fcitx5-lotus (5.0.0-1) unstable; urgency=medium
 
-  * Fix: don't reset on mouse click on electron app (Wayland only)
+  * Add configurable delay
+  * Remove Uinput (Slow) mode
+  * Fix settings-gui cannot scroll to end
+  * Remove legacy uinput ack option for chromium
+  * Remove Add application of settings-gui
 
- -- Nguyen Hoang Ky <nhktmdzhg@gmail.com>  Sun, 04 Oct 2026 01:33:00 +0700
+ -- Nguyen Hoang Ky <nhktmdzhg@gmail.com>  Fri, 09 Oct 2026 23:16:00 +0700

@@ -15,7 +15,6 @@ from qtpy.QtCore import QSize, Qt, Signal
 from qtpy.QtGui import QIcon
 from qtpy.QtWidgets import (
     QComboBox,
-    QDialog,
     QFrame,
     QGridLayout,
     QHBoxLayout,
@@ -27,7 +26,6 @@ from qtpy.QtWidgets import (
     QPushButton,
     QScrollArea,
     QSpinBox,
-    QTabWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -135,272 +133,6 @@ class ModeCard(QFrame):
             self.clicked.emit(self.mode)
 
 
-class AddAppDialog(QDialog):
-    """Dialog to add a new application to the rules list."""
-
-    def __init__(self, icon_cache=None, existing_apps=None, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle(_("Add Application"))
-        self.setMinimumSize(500, 450)
-        self.selected_app = None
-        self._icon_cache = icon_cache or {}
-        self.existing_apps = set(existing_apps or [])
-        self._setup_ui()
-        self._load_running_apps()
-
-    def _setup_ui(self):
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(15)
-
-        header_title = QLabel(_("Add Application"))
-        header_title.setStyleSheet("font-size: 18px; font-weight: bold;")
-        header_subtitle = QLabel(_("Assign an input mode to a specific application."))
-        header_subtitle.setStyleSheet("opacity: 0.7;")
-
-        layout.addWidget(header_title)
-        layout.addWidget(header_subtitle)
-
-        self.tabs = QTabWidget()
-        layout.addWidget(self.tabs)
-
-        # Tab 1: Running Apps
-        self.running_tab = QWidget()
-        running_layout = QVBoxLayout(self.running_tab)
-
-        search_layout = QHBoxLayout()
-        self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText(_("Search process name..."))
-        self.search_input.textChanged.connect(self._filter_running_apps)
-
-        self.btn_refresh = QPushButton(QIcon.fromTheme("view-refresh"), "")
-        self.btn_refresh.setToolTip(_("Refresh Process List"))
-        self.btn_refresh.setFlat(True)
-        self.btn_refresh.clicked.connect(self._load_running_apps)
-
-        search_layout.addWidget(self.search_input, 1)
-        search_layout.addWidget(self.btn_refresh)
-        running_layout.addLayout(search_layout)
-
-        self.running_list = QListWidget()
-        self.running_list.setIconSize(QSize(32, 32))
-        self.running_list.itemClicked.connect(self._on_app_selected)
-        self.running_list.itemDoubleClicked.connect(self._on_item_double_clicked)
-        running_layout.addWidget(self.running_list)
-
-        self.tabs.addTab(self.running_tab, _("Running"))
-
-        # Tab 2: Manual Input
-        self.manual_tab = QWidget()
-        manual_layout = QVBoxLayout(self.manual_tab)
-        self.manual_input = QLineEdit()
-        self.manual_input.setPlaceholderText(_("Enter application name or path..."))
-        self.manual_input.returnPressed.connect(self._on_add_clicked)
-        manual_layout.addWidget(self.manual_input)
-        manual_layout.addStretch()
-        self.tabs.addTab(self.manual_tab, _("Manual input"))
-
-        # Bottom Buttons
-        bottom_layout = QHBoxLayout()
-        self.selection_label = QLabel(_("No application selected"))
-        self.selection_label.setStyleSheet("opacity: 0.7;")
-
-        self.btn_cancel = QPushButton(QIcon.fromTheme("dialog-cancel"), _("&Cancel"))
-        self.btn_cancel.clicked.connect(self.reject)
-
-        self.btn_add = QPushButton(QIcon.fromTheme("dialog-ok"), _("&Add"))
-        self.btn_add.setObjectName("Primary")
-        self.btn_add.setEnabled(False)
-        self.btn_add.clicked.connect(self._on_add_clicked)
-
-        bottom_layout.addWidget(self.selection_label)
-        bottom_layout.addStretch()
-        bottom_layout.addWidget(self.btn_cancel)
-        bottom_layout.addWidget(self.btn_add)
-        layout.addLayout(bottom_layout)
-
-    def _load_running_apps(self):
-        """Loads running processes from /proc, filtered for user applications."""
-        apps = []
-        try:
-            current_uid = os.getuid()
-            for pid_dir in os.listdir("/proc"):
-                if not pid_dir.isdigit():
-                    continue
-                pid = int(pid_dir)
-                try:
-                    # Filter by UID (only show current user's processes)
-                    try:
-                        stat_info = os.stat(f"/proc/{pid}")
-                        if stat_info.st_uid != current_uid:
-                            continue
-                    except (PermissionError, FileNotFoundError):
-                        continue
-
-                    with open(f"/proc/{pid}/comm", "r") as f:
-                        name = f.read().strip()
-                    with open(f"/proc/{pid}/cmdline", "r") as f:
-                        cmdline = f.read().replace("\x00", " ").strip()
-
-                    if not cmdline:
-                        continue
-
-                    exe = ""
-                    try:
-                        exe = os.readlink(f"/proc/{pid}/exe")
-                    except (PermissionError, FileNotFoundError):
-                        continue  # Probably a kernel thread
-
-                    # Clean process names for NixOS
-                    if name.startswith("."):
-                        exe_base = os.path.basename(exe)
-                        if exe_base.startswith(".") and exe_base.endswith("-wrapped"):
-                            name = exe_base[1:-8]
-                        elif name.startswith("." + exe_base) or name == ("." + exe_base)[:15]:
-                            name = exe_base
-                        else:
-                            clean = name[1:]
-                            # On NixOS, wrapped application names from /proc/<pid>/comm can be truncated.
-                            # We check for partial suffixes of "-wrapped", from longest to shortest.
-                            base_suffix = "-wrapped"
-                            for i in range(len(base_suffix), 1, -1):
-                                if clean.endswith(base_suffix[:i]):
-                                    clean = clean[:-i]
-                                    break
-                            if clean:
-                                name = clean
-
-                    # Exclude common system/background paths
-                    exclude_paths = ["/usr/lib", "/usr/libexec", "/lib", "/systemd", "/usr/sbin"]
-                    if any(exe.startswith(p) for p in exclude_paths):
-                        continue
-
-                    # Heuristic: Exclude common background process patterns
-                    # These processes run as user but are typically not "apps" for rules
-                    bg_patterns = [
-                        "_agent",
-                        "_helper",
-                        "_daemon",
-                        "_resource",
-                        "_server",
-                        "-agent",
-                        "-helper",
-                        "-daemon",
-                        "-sandbox",
-                        "-proxy",
-                        "akonadi",
-                        "kactivitymanagerd",
-                        "kaccess",
-                        "krunner",
-                        "ksmserver",
-                        "kwin_",
-                        "kglobalaccel",
-                        "org.kde.",
-                        "gnome-shell",
-                        "dbus-",
-                        "at-spi",
-                        "pipewire",
-                        "pulseaudio",
-                        "xdg-",
-                        "gvfs",
-                        "tracker-",
-                        "evolution-",
-                        "mission-control",
-                        "telepathy",
-                        "dconf",
-                        "applet",
-                        "notify-osd",
-                        "indicator-",
-                        "plasmashell",
-                        "xwayland",
-                        "wireplumber",
-                        "xsettingsd",
-                        "xembedsniproxy",
-                        "gmenudbusmenuproxy",
-                        "kalendarac",
-                        "ksystemstats",
-                        "ksecretd",
-                        "kwalletd",
-                        "kded",
-                        "startplasma",
-                        "bwrap",
-                    ]
-                    basename = os.path.basename(exe).lower()
-                    if any(p in name.lower() or p in basename for p in bg_patterns):
-                        continue
-
-                    # Exclude the settings-gui itself and python interpreters with no script
-                    if ("main.py" in cmdline or "settings-gui" in cmdline) and "python" in exe:
-                        continue
-
-                    if name in self.existing_apps:
-                        continue
-
-                    # If it's a python command but unknown script, ignore it
-                    if basename.startswith("python") and len(cmdline.split()) < 2:
-                        continue
-
-                    if name and exe:
-                        apps.append({"name": name, "exe": exe, "pid": pid})
-                except (PermissionError, FileNotFoundError, ProcessLookupError):
-                    continue
-                except Exception:
-                    continue
-        except Exception as e:
-            print(f"Error listing /proc: {e}")
-
-        unique_apps = {}
-        for app in apps:
-            key = app["exe"]
-            if key not in unique_apps:
-                unique_apps[key] = app
-
-        sorted_apps = sorted(unique_apps.values(), key=lambda x: x["name"].lower())
-        self.full_app_list = sorted_apps
-        self._populate_list(sorted_apps)
-
-    def _populate_list(self, apps):
-        self.running_list.clear()
-        for app in apps:
-            item = QListWidgetItem()
-            item.setText(f"{app['name']}\n{app['exe']}")
-            item.setData(Qt.UserRole, app)
-
-            icon_name = self._icon_cache.get(app["name"].lower())
-            if not icon_name:
-                icon_name = self._icon_cache.get(
-                    os.path.basename(app["exe"]).lower(), app["name"].lower()
-                )
-
-            item.setIcon(QIcon.fromTheme(icon_name, QIcon.fromTheme("application-x-executable")))
-            self.running_list.addItem(item)
-
-    def _filter_running_apps(self, text):
-        filtered = [
-            a
-            for a in self.full_app_list
-            if text.lower() in a["name"].lower() or text.lower() in a["exe"].lower()
-        ]
-        self._populate_list(filtered)
-
-    def _on_app_selected(self, item):
-        app = item.data(Qt.UserRole)
-        self.selected_app = app["name"]
-        self.selection_label.setText(f"{_('Selected:')} {self.selected_app}")
-        self.btn_add.setEnabled(True)
-
-    def _on_item_double_clicked(self, item):
-        self._on_app_selected(item)
-        self._on_add_clicked()
-
-    def _on_add_clicked(self):
-        if self.tabs.currentIndex() == 1:  # Manual
-            self.selected_app = self.manual_input.text().strip()
-            if not self.selected_app:
-                return
-        self.accept()
-
-
 class ModeManagerPage(QWidget):
     """Main Mode Manager page."""
 
@@ -443,14 +175,11 @@ class ModeManagerPage(QWidget):
         self.app_list.itemClicked.connect(self._on_app_selected)
         self.sidebar_layout.addWidget(self.app_list)
 
-        self.btn_add_app = QPushButton(QIcon.fromTheme("list-add"), _("Add Application"))
         self.btn_remove_app = QPushButton(QIcon.fromTheme("list-remove"), _("Remove"))
         self.btn_remove_app.setEnabled(False)
 
-        self.btn_add_app.clicked.connect(self._on_add_app)
         self.btn_remove_app.clicked.connect(self._on_remove_app)
 
-        self.sidebar_layout.addWidget(self.btn_add_app)
         self.sidebar_layout.addWidget(self.btn_remove_app)
 
         self.layout.addWidget(self.sidebar_widget)
@@ -789,21 +518,6 @@ class ModeManagerPage(QWidget):
             return
         rule[field] = value
         self._notify_changed()
-
-    def _on_add_app(self):
-        dialog = AddAppDialog(self._icon_cache, list(self.app_rules.keys()), self)
-        if dialog.exec():
-            new_app = dialog.selected_app
-            if new_app not in self.app_rules:
-                self.app_rules[new_app] = {
-                    "mode": MODE_SMOOTH,
-                    "commit": 0,
-                    "backspace": 0,
-                    "post": 0,
-                }
-            self.selected_app = new_app
-            self._populate_app_list()
-            self._notify_changed()
 
     def _on_remove_app(self):
         if not self.selected_app:

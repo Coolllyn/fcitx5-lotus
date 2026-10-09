@@ -1,20 +1,14 @@
-# Shared library compiling the 7 core Lotus sources once, so the heavy
-# bamboo-core.a (Go runtime) is linked once here instead of once per test.
-add_library(lotus_test_core SHARED ${fcitx_lotus_core_sources})
-# Test-only .so must export its symbols: fcitx5's Fcitx5CompilerSettings
-# hides visibility project-wide.
-set_target_properties(lotus_test_core PROPERTIES
-    POSITION_INDEPENDENT_CODE ON
-    CXX_VISIBILITY_PRESET default
-    VISIBILITY_INLINES_HIDDEN OFF
+# Wraps the core objects compiled once in src/lotus_core_objects, so the Go
+# runtime is linked once here; exclude-libs keeps its symbols out of the
+# dynamic symbol table.
+add_library(lotus_test_core SHARED
+    $<TARGET_OBJECTS:lotus_core_objects>
+    $<TARGET_OBJECTS:lotus_executable_path>
 )
+target_link_options(lotus_test_core PRIVATE "-Wl,-exclude-libs,ALL")
 target_include_directories(lotus_test_core PUBLIC
     ${PROJECT_BINARY_DIR}
     ${PROJECT_SOURCE_DIR}/src
-)
-target_compile_definitions(lotus_test_core PUBLIC
-    FCITX5_LOTUS_SETTINGS_PATH="${CMAKE_INSTALL_FULL_BINDIR}/fcitx5-lotus-settings"
-    FCITX_LOTUS_ICON_DIR="${CMAKE_INSTALL_FULL_DATADIR}/icons/hicolor/scalable/apps"
 )
 target_link_libraries(lotus_test_core PUBLIC
     Fcitx5::Core
@@ -60,7 +54,10 @@ add_lotus_headless_test(smooth_buffered_key_replay
     smooth-buffered-key-replay.cpp "integration;smooth")
 add_lotus_headless_test(select_mode_replacement
     select-mode-replacement.cpp "integration;select")
-set_tests_properties(smooth_buffered_key_replay select_mode_replacement
+add_lotus_headless_test(app_rule_delays app-rule-delays.cpp "integration;apprule")
+add_lotus_headless_test(replacement_delays replacement-delays.cpp "integration;smooth")
+add_lotus_headless_test(app_rule_delay_wire app-rule-delay-wire.cpp "integration;apprule")
+set_tests_properties(smooth_buffered_key_replay select_mode_replacement replacement_delays app_rule_delay_wire
     PROPERTIES RESOURCE_LOCK lotus_kb_socket)
 add_lotus_headless_test(modifier_key_bypasses_surrounding_text
     modifier-key-bypasses-surrounding-text.cpp "integration;surrounding")
@@ -82,5 +79,15 @@ target_link_libraries(emoji_backspace_utf8 PRIVATE
 add_test(NAME emoji_backspace_utf8 COMMAND emoji_backspace_utf8)
 set_tests_properties(emoji_backspace_utf8 PROPERTIES
     LABELS "unit;emoji"
+    TIMEOUT 20
+)
+
+add_executable(executable_path_match
+    executable-path-match.cpp
+)
+target_link_libraries(executable_path_match PRIVATE lotus_executable_path)
+add_test(NAME executable_path_match COMMAND executable_path_match)
+set_tests_properties(executable_path_match PROPERTIES
+    LABELS "unit;packaging"
     TIMEOUT 20
 )

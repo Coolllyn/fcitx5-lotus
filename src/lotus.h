@@ -39,7 +39,7 @@ namespace fcitx {
          * @brief Constructs with optional handle.
          * @param handle Optional CGo handle.
          */
-        CGoObject(std::optional<uintptr_t> handle = std::nullopt) : handle_(handle) {}
+        explicit CGoObject(std::optional<uintptr_t> handle = std::nullopt) : handle_(handle) {}
 
         /**
          * @brief Releases the handle on destruction.
@@ -79,7 +79,7 @@ namespace fcitx {
          * @brief Gets the stored handle.
          * @return The handle value or 0 if empty.
          */
-        uintptr_t handle() const {
+        [[nodiscard]] uintptr_t handle() const {
             return handle_.value_or(0);
         }
 

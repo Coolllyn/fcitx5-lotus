@@ -8,7 +8,6 @@
 
 #include <algorithm>
 #include <array>
-#include <cstdlib>
 #include <fstream>
 #include <sstream>
 #include <sys/stat.h>

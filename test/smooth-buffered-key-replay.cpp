@@ -14,8 +14,9 @@ namespace {
         KbMsg msg{};
         if (!listener.receive(msg, meaning, timeoutExpected))
             return false;
-        if (msg.op != KB_OP_BACKSPACE || msg.count <= 0) {
-            reportFailure("receive replacement request", "op=backspace, count > 0", "op=" + std::to_string(msg.op) + ", count=" + std::to_string(msg.count), meaning);
+        if (msg.op != KbOp::Backspace || msg.count <= 0) {
+            reportFailure("receive replacement request", "op=backspace, count > 0", "op=" + std::to_string(static_cast<int>(msg.op)) + ", count=" + std::to_string(msg.count),
+                          meaning);
             return false;
         }
         count = msg.count;

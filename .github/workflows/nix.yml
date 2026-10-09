@@ -2,13 +2,7 @@ name: Build on Nix
 
 on:
   push:
-    paths:
-      - '**.nix'
-      - 'flake.lock'
   pull_request:
-    paths:
-      - '**.nix'
-      - 'flake.lock'
   workflow_dispatch:
 
 concurrency:
@@ -33,13 +27,11 @@ jobs:
       - name: Run Checks
         run: nix flake check --show-trace
 
-  build-package:
-    name: Build Package ❄️
+  build-head:
+    name: Build HEAD ❄️
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
 
       - name: Install Nix
         uses: cachix/install-nix-action@v31
@@ -49,42 +41,5 @@ jobs:
             experimental-features = nix-command flakes
             accept-flake-config = true
 
-      - name: Build fcitx5-lotus
-        id: build
-        run: |
-          nix build -L .#packages.x86_64-linux.fcitx5-lotus 2>&1 | tee build.log || true
-          echo "exit_code=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
-
-      - name: Extract hashes from log
-        run: |
-          FOUND=0
-          HASH_TYPE=""
-
-          while IFS= read -r line; do
-            if echo "$line" | grep -q "hash mismatch"; then
-              FOUND=1
-              HASH_TYPE="hash (src fetchFromGitHub)"
-              echo "📦 Hash mismatch: $HASH_TYPE"
-            fi
-            if [ "$FOUND" = "1" ]; then
-              echo "$line"
-            fi
-          done < build.log
-
-          if [ "${{ steps.build.outputs.exit_code }}" != "0" ]; then
-            if [ "$FOUND" = "0" ]; then
-              echo "❌ Build failed"
-            else
-              echo "❌ Build failed due to hash mismatch"
-            fi
-            exit 1
-          else
-            echo "✅ Build succeeded"
-          fi
-
-      - name: Upload build log
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: build-log
-          path: build.log
+      - name: Build source at HEAD
+        run: nix build -L .#packages.x86_64-linux.fcitx5-lotus-head

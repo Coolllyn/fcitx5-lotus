@@ -23,10 +23,7 @@ from qtpy.QtWidgets import (
     QWidget,
 )
 
-from ui.components import (
-    HotkeyEditorWidget,
-    SingleKeyCaptureWidget,
-)
+from ui.components import HotkeyEditorWidget, ScrollContent, SingleKeyCaptureWidget
 from ui.helpers import add_help_icon
 
 
@@ -52,7 +49,6 @@ SETTINGS_MAP = {
         "TYPING OPTIONS": [
             "ModernStyle",
             "FreeMarking",
-            "FixUinputWithAck",
             "DoubleSpaceToPeriod",
             "DoubleHyphenToEmDash",
             "AutoCapitalizeAfterPunctuation",
@@ -62,7 +58,6 @@ SETTINGS_MAP = {
         "MAIN SHORTCUTS": ["ModeMenuKey", "CycleModeKey"],
         "MODE SWITCHING": [
             "ShortcutSmooth",
-            "ShortcutUinput",
             "ShortcutSuperSmooth",
             "ShortcutMinecraft",
             "ShortcutSelect",
@@ -93,7 +88,6 @@ GROUP_DESCRIPTIONS = {
 
 MODE_SHORTCUT_TO_VISIBILITY = {
     "ShortcutSmooth": "ShowModeSmooth",
-    "ShortcutUinput": "ShowModeUinput",
     "ShortcutSuperSmooth": "ShowModeSuperSmooth",
     "ShortcutMinecraft": "ShowModeMinecraft",
     "ShortcutSelect": "ShowModeSelect",
@@ -106,7 +100,6 @@ MODE_SHORTCUT_TO_VISIBILITY = {
 
 MODE_KEY_TO_INTERNAL_NAME = {
     "ShortcutSmooth": "Smooth",
-    "ShortcutUinput": "Uinput",
     "ShortcutSuperSmooth": "SuperSmooth",
     "ShortcutMinecraft": "Minecraft",
     "ShortcutSelect": "Select",
@@ -190,7 +183,7 @@ class DynamicSettingsPage(QWidget):
         self.scroll.setWidgetResizable(True)
         self.scroll.setFrameShape(QFrame.NoFrame)
 
-        self.container = QWidget()
+        self.container = ScrollContent()
         self.container_layout = QVBoxLayout(self.container)
         self.container_layout.setContentsMargins(30, 20, 30, 20)
         self.container_layout.setSpacing(20)

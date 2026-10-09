@@ -22,11 +22,7 @@
 
 #include <chrono>
 #include <cstddef>
-#include <fcitx-utils/event.h>
-#include <fcitx-utils/misc.h>
 #include <fcitx/inputcontext.h>
-
-struct EmojiEntry;
 
 namespace fcitx {
     class LotusEngine;
@@ -83,7 +79,7 @@ namespace fcitx {
          * @brief Checks if history buffer is empty.
          * @return True if no history.
          */
-        bool isEmptyHistory() const;
+        [[nodiscard]] bool isEmptyHistory() const;
         friend class EmojiCandidateWord;
         friend class LotusEngine;
 
@@ -98,17 +94,16 @@ namespace fcitx {
         size_t                                expected_backspaces_     = 0;
         size_t                                current_backspace_count_ = 0;
         std::string                           pending_commit_string_;
+        LotusAppRuleSetting                   appRuleSetting_; ///< Per-app rule (mode + delay overrides) pushed by the engine
         std::string                           emojiBuffer_;
         std::vector<EmojiEntry>               emojiCandidates_;
-        bool                                  waitAck_ = false;
         std::vector<KeyEntry>                 buffered_keys_; ///< Keystrokes buffered during replacement
         bool                                  isPrevSpace_           = false;
         bool                                  isPrevHyphen_          = false;
         bool                                  shouldCapitalize_      = false;
         bool                                  isPrevPunctuation_     = false;
         int64_t                               lastDeactivateTime_    = 0;
-        int64_t                               deletionInterruptedAt_ = 0; ///< when deactivate() cut an in-flight replacement (0 = none)
-        bool                                  wa_chromium_flag       = false;
+        int64_t                               deletionInterruptedAt_ = 0;     ///< when deactivate() cut an in-flight replacement (0 = none)
         bool                                  tracking_modifier_tap_ = false; ///< Selected modifier held, waiting for consecutive keyup
         bool                                  macro_skip_            = false; ///< Macro disabled for the current word
         std::chrono::steady_clock::time_point last_commit_time_;
@@ -130,25 +125,28 @@ namespace fcitx {
          * @param op Operation to request.
          * @param count Number of backspaces or characters to select.
          * @param pre_delay Delay in milliseconds before executing the keyboard operation.
+         * @param interval Delay in milliseconds between consecutive injected keys.
          * @param post_delay Delay in milliseconds after completing the keyboard operation.
          */
-        void send_kb_msg(KbOp op, size_t count, uint32_t pre_delay, uint32_t post_delay) const;
+        static void send_kb_msg(KbOp op, size_t count, uint32_t pre_delay, uint32_t interval, uint32_t post_delay);
 
         /**
          * @brief Sends backspace key events via uinput.
          * @param count Number of backspaces to send.
          * @param pre_delay Delay in milliseconds before executing the keyboard operation.
+         * @param interval Delay in milliseconds between consecutive injected keys.
          * @param post_delay Delay in milliseconds after completing the keyboard operation.
          */
-        void send_backspace_uinput(size_t count, uint32_t pre_delay, uint32_t post_delay) const;
+        static void send_backspace_uinput(size_t count, uint32_t pre_delay, uint32_t interval, uint32_t post_delay);
 
         /**
          * @brief Asks the uinput server to select count characters with Shift+Left.
          * @param count Number of characters to select.
          * @param pre_delay Delay in milliseconds before executing the keyboard operation.
+         * @param interval Delay in milliseconds between consecutive injected keys.
          * @param post_delay Delay in milliseconds after completing the keyboard operation.
          */
-        void send_select_uinput(size_t count, uint32_t pre_delay, uint32_t post_delay) const;
+        static void send_select_uinput(size_t count, uint32_t pre_delay, uint32_t interval, uint32_t post_delay);
 
         /**
          * @brief Checks if autofill is certain for surrounding text.
@@ -267,7 +265,7 @@ namespace fcitx {
          * @param sym Key symbol to check.
          * @return True if the key is the configured trigger modifier (left/right same).
          */
-        bool isMacroSkipModifier(KeySym sym) const;
+        [[nodiscard]] bool isMacroSkipModifier(KeySym sym) const;
 
         /**
          * @brief Tracks a modifier tap (keydown then consecutive keyup) to skip macro.

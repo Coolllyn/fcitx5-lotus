@@ -34,12 +34,11 @@ namespace {
         std::cerr << "Meaning: " << meaning << '\n';
     }
 
-    std::string modeName(fcitx::LotusMode mode) {
+    std::string_view modeName(fcitx::LotusMode mode) {
         switch (mode) {
             case fcitx::LotusMode::Off: return "Off";
             case fcitx::LotusMode::Preedit: return "Preedit";
             case fcitx::LotusMode::Smooth: return "Smooth";
-            case fcitx::LotusMode::Uinput: return "Uinput";
             case fcitx::LotusMode::SuperSmooth: return "SuperSmooth";
             case fcitx::LotusMode::SurroundingText: return "SurroundingText";
             case fcitx::LotusMode::Emoji: return "Emoji";
@@ -87,7 +86,8 @@ int main() {
     engine.activate(entry, focus);
 
     if (::realMode.load() != fcitx::LotusMode::Off) {
-        reportFailure("activate with rule Off", "realMode=Off", "realMode=" + modeName(::realMode.load()), "activate() must resolve the per-app rule for the focused window");
+        reportFailure("activate with rule Off", "realMode=Off", "realMode=" + std::string(modeName(::realMode.load())),
+                      "activate() must resolve the per-app rule for the focused window");
         return 1;
     }
 
@@ -100,7 +100,7 @@ int main() {
     engine.setConfig(reloaded);
 
     if (::realMode.load() != fcitx::LotusMode::Off) {
-        reportFailure("config reload keeps focused app rule", "realMode=Off", "realMode=" + modeName(::realMode.load()),
+        reportFailure("config reload keeps focused app rule", "realMode=Off", "realMode=" + std::string(modeName(::realMode.load())),
                       "a config reload must not reset the focused window from its per-app rule back to the global mode");
         return 1;
     }

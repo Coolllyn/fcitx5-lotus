@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "bamboo-core.h"
 
+#include <array>
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
@@ -27,10 +28,12 @@ namespace {
                 DeleteObject(value_);
         }
 
-        Handle(const Handle&)              = delete;
-        Handle&   operator=(const Handle&) = delete;
+        Handle(const Handle&)                       = delete;
+        Handle& operator=(const Handle&)            = delete;
+        Handle(Handle&&)                            = delete;
+        Handle&                 operator=(Handle&&) = delete;
 
-        uintptr_t get() const {
+        [[nodiscard]] uintptr_t get() const {
             return value_;
         }
 
@@ -53,24 +56,24 @@ namespace {
 } // namespace
 
 int main() {
-    char      dictionaryPath[] = "/tmp/fcitx5-lotus-numeric-macro-XXXXXX";
-    const int dictionaryFd     = mkstemp(dictionaryPath);
+    std::string dictionaryPath = "/tmp/fcitx5-lotus-numeric-macro-XXXXXX";
+    const int   dictionaryFd   = mkstemp(dictionaryPath.data());
     if (dictionaryFd < 0) {
         reportFailure("create empty temporary dictionary", "mkstemp succeeds", std::strerror(errno), "the test cannot construct a production dictionary handle");
         return 1;
     }
 
     Handle dictionary(NewDictionary(static_cast<uintptr_t>(dictionaryFd)));
-    unlink(dictionaryPath);
+    unlink(dictionaryPath.c_str());
     if (!dictionary) {
         reportFailure("create dictionary handle", "non-zero handle", "zero handle", "NewDictionary rejected the empty temporary dictionary");
         return 1;
     }
 
-    char   key[]             = "123";
-    char   value[]           = "Mixed Case";
-    char*  macroDefinition[] = {key, value, nullptr};
-    Handle macroTable(NewMacroTable(macroDefinition));
+    std::string          key   = "123";
+    std::string          value = "Mixed Case";
+    std::array<char*, 3> macroDefinition{key.data(), value.data(), nullptr};
+    Handle               macroTable(NewMacroTable(macroDefinition.data()));
     if (!macroTable) {
         reportFailure("create macro table handle", "non-zero handle", "zero handle", "NewMacroTable rejected the numeric macro definition");
         return 1;

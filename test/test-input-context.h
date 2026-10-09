@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 
+#include <array>
 #include <filesystem>
 #include <string>
 #include <utility>
@@ -11,7 +12,6 @@
 #include <fcitx/inputcontextmanager.h>
 #include <fcitx/inputpanel.h>
 #include <fcitx/instance.h>
-#include <fcitx/text.h>
 
 /**
  * @brief Headless Mock InputContext for Fcitx5-Lotus Integration Testing.
@@ -86,7 +86,12 @@ class TestInputContext final : public fcitx::InputContext {
         destroy();
     }
 
-    const char* frontend() const override {
+    TestInputContext(const TestInputContext&)               = delete;
+    TestInputContext& operator=(const TestInputContext&)    = delete;
+    TestInputContext(TestInputContext&&)                    = delete;
+    TestInputContext&         operator=(TestInputContext&&) = delete;
+
+    [[nodiscard]] const char* frontend() const override {
         return "test";
     }
 
@@ -116,16 +121,16 @@ class TestInputContext final : public fcitx::InputContext {
     void resetPreeditUpdateCount() {
         preeditUpdates_ = 0;
     }
-    unsigned int preeditUpdates() const {
+    [[nodiscard]] unsigned int preeditUpdates() const {
         return preeditUpdates_;
     }
-    const std::vector<std::string>& commits() const {
+    [[nodiscard]] const std::vector<std::string>& commits() const {
         return commits_;
     }
-    const auto& deletes() const {
+    [[nodiscard]] const auto& deletes() const {
         return deletes_;
     }
-    const auto& forwarded() const {
+    [[nodiscard]] const auto& forwarded() const {
         return forwarded_;
     }
 
@@ -164,8 +169,8 @@ inline void configureTestPaths(const char* name) {
 
     static std::filesystem::path s_cleanupPath;
     s_cleanupPath                = root;
-    static const bool registered = []() {
-        std::atexit([]() {
+    static const bool registered = [] {
+        std::atexit([] {
             std::error_code err;
             std::filesystem::remove_all(s_cleanupPath, err);
         });
@@ -184,12 +189,12 @@ inline void configureTestPaths(const char* name) {
  *   system directories (`/usr/lib/fcitx5`) for host-installed addons.
  */
 struct TestInstance {
-    TestInstance() : instance(2, argv) {
+    TestInstance() : instance(2, argv.data()) {
         instance.addonManager().registerDefaultLoader(nullptr);
         instance.initialize();
     }
-    char            program[64]    = "lotus-headless-test";
-    char            disableAll[16] = "--disable=all";
-    char*           argv[3]        = {program, disableAll, nullptr};
-    fcitx::Instance instance;
+    std::array<char, 64> program{"lotus-headless-test"};
+    std::array<char, 16> disableAll{"--disable=all"};
+    std::array<char*, 3> argv{program.data(), disableAll.data(), nullptr};
+    fcitx::Instance      instance;
 };

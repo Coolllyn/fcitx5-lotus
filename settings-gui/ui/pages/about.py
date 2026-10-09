@@ -15,6 +15,8 @@ from qtpy.QtWidgets import (
     QWidget,
 )
 
+from ui.components import ScrollContent
+
 try:
     from version import __version__
 except ImportError:
@@ -38,7 +40,7 @@ class AboutPage(QWidget):
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         scroll.setAttribute(Qt.WA_TranslucentBackground)
 
-        content_widget = QWidget()
+        content_widget = ScrollContent()
         content_widget.setObjectName("AboutContent")
 
         layout = QVBoxLayout(content_widget)

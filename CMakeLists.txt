@@ -1,6 +1,7 @@
-cmake_minimum_required(VERSION 3.10)
+# $<TARGET_OBJECTS:> in non-OBJECT target sources requires CMake 3.12.
+cmake_minimum_required(VERSION 3.12)
 
-project(fcitx5-lotus VERSION 4.0.1)
+project(fcitx5-lotus VERSION 5.0.0)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(BUILD_TESTING "Build Lotus tests" OFF)
 
@@ -39,6 +40,20 @@ else()
     message(STATUS "Fcitx5 version ${Fcitx5Utils_VERSION} detected: Using legacy API")
 endif()
 fcitx5_add_i18n_definition()
+
+# Absolute paths that every packaging has to override.
+set(LOTUS_FCITX5_EXECUTABLE "/usr/bin/fcitx5" CACHE STRING
+    "fcitx5 executable allowed to connect to the Lotus uinput/mouse sockets")
+set(LOTUS_SERVER_EXECUTABLE "/usr/bin/fcitx5-lotus-server" CACHE STRING
+    "fcitx5-lotus-server executable allowed to connect to the Lotus mouse socket")
+set(LOTUS_ALT_EXECUTABLE_PREFIX "" CACHE STRING
+    "Additional prefix whose <prefix>*bin/<name> executables are accepted too (NixOS: /nix/store/)")
+set(LOTUS_SETFACL_EXECUTABLE "/usr/bin/setfacl" CACHE FILEPATH
+    "setfacl used by the udev rule and the service units")
+
+add_library(lotus_executable_path OBJECT src/lotus-executable-path.cpp)
+set_target_properties(lotus_executable_path PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_include_directories(lotus_executable_path PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 add_subdirectory(po)
 add_subdirectory(bamboo)

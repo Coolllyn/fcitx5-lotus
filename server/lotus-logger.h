@@ -26,7 +26,7 @@ enum class LogLevel : std::uint8_t {
     INFO,
     WARN,
     ERROR,
-    NONE
+    NONE,
 };
 
 class LotusLogger {
@@ -50,7 +50,7 @@ class LotusLogger {
     /**
      * @brief Check if logging is enabled for given level
      */
-    bool isEnabled(LogLevel level) const;
+    [[nodiscard]] bool isEnabled(LogLevel level) const;
 
     // Convenience methods
     void debug(const std::string& msg) const {
@@ -75,7 +75,7 @@ class LotusLogger {
      * @brief Constructor
      * @param level Minimum log level to output
      */
-    LotusLogger(LogLevel level = LogLevel::INFO);
+    explicit LotusLogger(LogLevel level = LogLevel::INFO);
 
     /**
      * @brief Destructor

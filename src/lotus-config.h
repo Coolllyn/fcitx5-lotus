@@ -30,7 +30,6 @@ namespace fcitx {
         Off,
         Smooth,
         SuperSmooth,
-        Uinput,
         SurroundingText,
         Preedit,
         Emoji,
@@ -38,8 +37,8 @@ namespace fcitx {
         Select,
     };
 
-    FCITX_CONFIG_ENUM_NAME_WITH_I18N(LotusMode, N_("OFF"), N_("Uinput (Smooth)"), N_("Uinput (Super Smooth)"), N_("Uinput (Slow)"), N_("Surrounding Text"), N_("Preedit"),
-                                     N_("Emoji Picker"), N_("Minecraft"), N_("Uinput (Select)"));
+    FCITX_CONFIG_ENUM_NAME_WITH_I18N(LotusMode, N_("OFF"), N_("Uinput (Smooth)"), N_("Uinput (Super Smooth)"), N_("Surrounding Text"), N_("Preedit"), N_("Emoji Picker"),
+                                     N_("Minecraft"), N_("Uinput (Select)"));
 
     /**
      * @brief Converts LotusMode to int and vice versa.
@@ -172,14 +171,14 @@ namespace fcitx {
          * @brief Constructs with option pointer.
          * @param option Pointer to input method option.
          */
-        InputMethodConstrain(const InputMethodOption* option) : option_(option) {}
+        explicit InputMethodConstrain(const InputMethodOption* option) : option_(option) {}
 
         /**
          * @brief Validates if name is in the allowed list.
          * @param name Name to check.
          * @return True if valid.
          */
-        bool check(const std::string& name) const {
+        [[nodiscard]] bool check(const std::string& name) const {
             const auto& list = option_->annotation().list();
             if (list.empty()) {
                 return true;
@@ -207,10 +206,23 @@ namespace fcitx {
                         OptionWithAnnotation<std::vector<lotusKeymap>, ListDisplayOptionAnnotation> customKeymap{
                             this, "CustomKeymap", _("Custom Keymap"), {}, {}, {}, ListDisplayOptionAnnotation("Key")};);
 
-    FCITX_CONFIGURATION(lotusAppRule, Option<std::string> app{this, "App", _("App"), ""}; Option<int> mode{this, "Mode", _("Mode"), 0};);
+    FCITX_CONFIGURATION(lotusAppRule, Option<std::string> app{this, "App", _("App"), ""}; Option<int> mode{this, "Mode", _("Mode"), 0};
+                        Option<int> commitInterval{this, "CommitInterval", std::string(_("Commit Interval")) + " " + _("(ms, 0 = default)"), 0};
+                        Option<int> backspaceInterval{this, "BackspaceInterval", std::string(_("Backspace Interval")) + " " + _("(ms, 0 = default)"), 0};
+                        Option<int> postDelay{this, "PostDelay", std::string(_("Post Delay")) + " " + _("(ms, 0 = default)"), 0};);
     FCITX_CONFIGURATION(lotusAppRules,
                         OptionWithAnnotation<std::vector<lotusAppRule>, ListDisplayOptionAnnotation> rules{
                             this, "Rules", _("Rules"), {}, {}, {}, ListDisplayOptionAnnotation("App")};);
+
+    /**
+     * @brief Resolved per-app rule: typing mode plus optional delay overrides (0 = use global default).
+     */
+    struct LotusAppRuleSetting {
+        LotusMode mode              = LotusMode::Smooth; ///< Typing mode for the app
+        int       commitInterval    = 0;                 ///< ms cooldown between commits (KbMsg.pre_delay); 0 = default
+        int       backspaceInterval = 0;                 ///< ms between injected keys (KbMsg.interval); 0 = default
+        int       postDelay         = 0;                 ///< ms before the final trigger key (KbMsg.post_delay); 0 = default
+    };
 
     /**
      * @brief Main configuration structure for Lotus input method.
@@ -241,7 +253,6 @@ namespace fcitx {
         Option<bool>        modernStyle{this, "ModernStyle", _("Use oà, uý (Instead Of òa, úy)"), true};
         Option<bool>        freeMarking{this, "FreeMarking", _("Allow Type With More Freedom"), true};
         Option<bool>        ddFreeStyle{this, "DdFreeStyle", _("Allow dd To Produce đ When Auto Restore Invalid Words Is On"), true};
-        Option<bool>        fixUinputWithAck{this, "FixUinputWithAck", _("Fix Uinput Mode With Ack"), false};
         Option<bool>        useLotusIcons{this, "UseLotusIcons", _("Use Lotus Status Icons"), false};
 
         Option<bool>        enableDictionary{this, "EnableDictionary", _("Custom Dictionary"), false};
@@ -249,14 +260,12 @@ namespace fcitx {
 
         Option<bool>        showModeSmooth{this, "ShowModeSmooth", _("Show Uinput (Smooth)"), true};
         Option<std::string> shortcutSmooth{this, "ShortcutSmooth", _("Shortcut for Uinput (Smooth)"), "1"};
-        Option<bool>        showModeUinput{this, "ShowModeUinput", _("Show Uinput (Slow)"), true};
-        Option<std::string> shortcutUinput{this, "ShortcutUinput", _("Shortcut for Uinput (Slow)"), "2"};
         Option<bool>        showModeSuperSmooth{this, "ShowModeSuperSmooth", _("Show Uinput (Super Smooth)"), true};
         Option<std::string> shortcutSuperSmooth{this, "ShortcutSuperSmooth", _("Shortcut for Uinput (Super Smooth)"), "a"};
         Option<bool>        showModeMinecraft{this, "ShowModeMinecraft", _("Show Minecraft"), true};
         Option<std::string> shortcutMinecraft{this, "ShortcutMinecraft", _("Shortcut for Minecraft"), "3"};
         Option<bool>        showModeSelect{this, "ShowModeSelect", _("Show Uinput (Select)"), true};
-        Option<std::string> shortcutSelect{this, "ShortcutSelect", _("Shortcut for Uinput (Select)"), "5"};
+        Option<std::string> shortcutSelect{this, "ShortcutSelect", _("Shortcut for Uinput (Select)"), "2"};
         Option<bool>        showModeSurroundingText{this, "ShowModeSurroundingText", _("Show Surrounding Text"), true};
         Option<std::string> shortcutSurroundingText{this, "ShortcutSurroundingText", _("Shortcut for Surrounding Text"), "4"};
         Option<bool>        showModePreedit{this, "ShowModePreedit", _("Show Preedit"), true};
@@ -266,7 +275,10 @@ namespace fcitx {
         Option<std::string> shortcutOff{this, "ShortcutOff", _("Shortcut for OFF"), "e"}; Option<bool> showModeDefault{this, "ShowModeDefault", _("Show Default Typing"), true};
         Option<std::string> shortcutDefault{this, "ShortcutDefault", _("Shortcut for Default Typing"), "r"};
         Option<bool>        enableMacroInOffMode{this, "EnableMacroInOffMode", _("Allow Macro in Off Mode"), false};
-        Option<std::string> modeOrder{this, "ModeOrder", _("Mode Order"), "Smooth,Uinput,Minecraft,Select,SurroundingText,Preedit,Emoji,Off,SuperSmooth,Default"};
+        Option<int>         defaultCommitInterval{this, "DefaultCommitInterval", std::string(_("Default Commit Interval")) + " (ms)", 20};
+        Option<int>         defaultBackspaceInterval{this, "DefaultBackspaceInterval", std::string(_("Default Backspace Interval")) + " (ms)", 5};
+        Option<int>         defaultPostDelay{this, "DefaultPostDelay", std::string(_("Default Post Delay")) + " (ms)", 10};
+        Option<std::string> modeOrder{this, "ModeOrder", _("Mode Order"), "Smooth,Minecraft,Select,SurroundingText,Preedit,Emoji,Off,SuperSmooth,Default"};
         OptionWithAnnotation<std::string, TimeFormatAnnotation>  timeFormat{this, "TimeFormat", _("Time Format ($TIME in macro)"), "%H:%M", {}, {}, TimeFormatAnnotation()};
         OptionWithAnnotation<std::string, DateFormatAnnotation>  dateFormat{this, "DateFormat", _("Date Format ($DATE in macro)"), "%d/%m/%Y", {}, {}, DateFormatAnnotation()};
 

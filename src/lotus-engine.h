@@ -27,6 +27,7 @@
 #include <fcitx/inputmethodengine.h>
 #include <fcitx/instance.h>
 #include <fcitx-utils/event.h>
+#include "lotus-export.h"
 
 namespace fcitx {
 
@@ -39,7 +40,7 @@ namespace fcitx {
      * Handles input processing, configuration management, and UI actions.
      * Implements fcitx InputMethodEngine interface.
      */
-    class LotusEngine final : public InputMethodEngineV2 {
+    class LOTUS_EXPORT LotusEngine final : public InputMethodEngineV2 {
       public:
         /**
          * @brief Gets the fcitx instance.
@@ -53,18 +54,25 @@ namespace fcitx {
          * @brief Constructs the Lotus engine.
          * @param instance Pointer to fcitx instance.
          */
-        LotusEngine(Instance* instance);
+        explicit LotusEngine(Instance* instance);
 
         /**
          * @brief Destroys the engine and releases resources.
          */
-        ~LotusEngine();
+        ~LotusEngine() override;
 
         // Rule of five
         LotusEngine(const LotusEngine&)            = delete;
         LotusEngine& operator=(const LotusEngine&) = delete;
         LotusEngine(LotusEngine&&)                 = delete;
         LotusEngine& operator=(LotusEngine&&)      = delete;
+
+        /**
+         * @brief Get the resolved rule (mode + delay overrides) for an application.
+         * @param appName Application/program name.
+         * @return The stored rule, or the global mode with zeroed delay overrides.
+         */
+        LotusAppRuleSetting getAppRuleSetting(const std::string& appName) const;
 
         /**
          * @brief Activates the input method for an input context.
@@ -191,37 +199,37 @@ namespace fcitx {
         }
 
       private:
-        Instance*                                  instance_;
-        lotusConfig                                config_;
-        lotusCustomKeymap                          customKeymap_;
-        lotusCustomKeymap                          emptyCustomKeymap_;
+        Instance*                                            instance_;
+        lotusConfig                                          config_;
+        lotusCustomKeymap                                    customKeymap_;
+        lotusCustomKeymap                                    emptyCustomKeymap_;
 
-        lotusMacroTable                            macroTables_;
-        CGoObject                                  macroTableObject_;
-        lotusAppRules                              appRulesTables_;
+        lotusMacroTable                                      macroTables_;
+        CGoObject                                            macroTableObject_;
+        lotusAppRules                                        appRulesTables_;
 
-        FactoryFor<LotusState>                     factory_;
-        std::vector<std::string>                   imNames_;
+        FactoryFor<LotusState>                               factory_;
+        std::vector<std::string>                             imNames_;
 
-        std::unique_ptr<SimpleAction>              charsetAction_;
-        std::vector<std::unique_ptr<SimpleAction>> charsetSubAction_;
-        std::unique_ptr<Menu>                      charsetMenu_;
+        std::unique_ptr<SimpleAction>                        charsetAction_;
+        std::vector<std::unique_ptr<SimpleAction>>           charsetSubAction_;
+        std::unique_ptr<Menu>                                charsetMenu_;
 
-        std::unique_ptr<SimpleAction>              spellCheckAction_;
-        std::unique_ptr<SimpleAction>              macroAction_;
-        std::unique_ptr<SimpleAction>              capitalizeMacroAction_;
-        std::unique_ptr<SimpleAction>              autoNonVnRestoreAction_;
-        std::unique_ptr<SimpleAction>              enableDictionaryAction_;
-        std::unique_ptr<SimpleAction>              settingsAction_;
-        std::vector<SimpleAction*>                 toggleActions_;
-        std::vector<ScopedConnection>              connections_;
-        CGoObject                                  dictionary_;
-        std::unordered_map<std::string, LotusMode> appRules_;
-        std::string                                appRulesPath_;
-        bool                                       isSelectingAppMode_ = false;
-        std::string                                currentConfigureApp_;
-        std::unique_ptr<EventSourceTime>           cycleModeNotificationTimer_;
-        static constexpr uint64_t                  CYCLE_MODE_NOTIFICATION_TIMEOUT_USEC = 800000; // 800ms in microseconds
+        std::unique_ptr<SimpleAction>                        spellCheckAction_;
+        std::unique_ptr<SimpleAction>                        macroAction_;
+        std::unique_ptr<SimpleAction>                        capitalizeMacroAction_;
+        std::unique_ptr<SimpleAction>                        autoNonVnRestoreAction_;
+        std::unique_ptr<SimpleAction>                        enableDictionaryAction_;
+        std::unique_ptr<SimpleAction>                        settingsAction_;
+        std::vector<SimpleAction*>                           toggleActions_;
+        std::vector<ScopedConnection>                        connections_;
+        CGoObject                                            dictionary_;
+        std::unordered_map<std::string, LotusAppRuleSetting> appRules_;
+        std::string                                          appRulesPath_;
+        bool                                                 isSelectingAppMode_ = false;
+        std::string                                          currentConfigureApp_;
+        std::unique_ptr<EventSourceTime>                     cycleModeNotificationTimer_;
+        static constexpr uint64_t                            CYCLE_MODE_NOTIFICATION_TIMEOUT_USEC = 800000; // 800ms in microseconds
         FCITX_ADDON_DEPENDENCY_LOADER(emoji, instance_->addonManager());
         std::unique_ptr<EmojiLoader>          emojiLoader_;
         bool                                  isGnome_ = false;

@@ -16,11 +16,13 @@
 
 #include <atomic>
 #include <cstdint>
+#include <string_view>
 #include <sys/un.h>
 #include <fcitx-utils/log.h>
 #include <fcitx/inputcontext.h>
 
 #include "lotus-config.h"
+#include "lotus-export.h"
 
 /**
  * @brief Maximum length of Unix socket paths.
@@ -38,20 +40,21 @@ FCITX_DECLARE_LOG_CATEGORY(lotus);
 using KeySym = uint32_t;
 
 // Global state variables for input processing
-extern std::atomic<fcitx::LotusMode> realMode;          ///< Current active input mode
-extern std::atomic<bool>             g_mouse_clicked;   ///< Mouse click detection flag
-extern std::atomic<bool>             is_deleting_;      ///< Deletion in progress flag
-extern std::atomic<bool>             stop_flag_monitor; ///< Signal to stop monitor threads
-extern std::atomic<int>              uinput_client_fd_; ///< Uinput client file descriptor
-extern std::atomic<unsigned int>     realtextLen;       ///< Current text length
-extern std::atomic<int>              mouse_socket_fd;   ///< Mouse socket file descriptor
+// LOTUS_EXPORT: read by the headless tests through lotus_test_core.
+extern LOTUS_EXPORT std::atomic<fcitx::LotusMode> realMode;          ///< Current active input mode
+extern std::atomic<bool>                          g_mouse_clicked;   ///< Mouse click detection flag
+extern std::atomic<bool>                          is_deleting_;      ///< Deletion in progress flag
+extern std::atomic<bool>                          stop_flag_monitor; ///< Signal to stop monitor threads
+extern std::atomic<int>                           uinput_client_fd_; ///< Uinput client file descriptor
+extern std::atomic<unsigned int>                  realtextLen;       ///< Current text length
+extern std::atomic<int>                           mouse_socket_fd;   ///< Mouse socket file descriptor
 
 /**
  * @brief Builds socket path from base suffix.
  * @param base_path_suffix Suffix to append to base path.
  * @return Full socket path.
  */
-std::string buildSocketPath(const char* base_path_suffix);
+std::string LOTUS_EXPORT buildSocketPath(std::string_view base_path_suffix);
 
 /**
  * @brief Gets current time in milliseconds.
@@ -121,6 +124,6 @@ struct KeyEntry {
  * @param name Name of the variable.
  * @return Value of the variable.
  */
-std::string getEnv(const std::string& name);
+std::string LOTUS_EXPORT getEnv(const std::string& name);
 
 #endif // _FCITX5_LOTUS_UTILS_H_

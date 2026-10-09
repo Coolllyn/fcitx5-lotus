@@ -5,6 +5,7 @@
 Mode Manager Page for per-application input mode configuration.
 """
 
+import copy
 import os
 import re
 
@@ -14,7 +15,6 @@ from qtpy.QtCore import QSize, Qt, Signal
 from qtpy.QtGui import QIcon
 from qtpy.QtWidgets import (
     QComboBox,
-    QDialog,
     QFrame,
     QGridLayout,
     QHBoxLayout,
@@ -25,17 +25,17 @@ from qtpy.QtWidgets import (
     QMessageBox,
     QPushButton,
     QScrollArea,
-    QTabWidget,
+    QSpinBox,
     QVBoxLayout,
     QWidget,
 )
 
+from ui.components import ScrollContent
 from ui.pages.dynamic_settings import CardWidget
 
 # Mode constants as defined in C++ LotusEngine
 MODE_OFF = 0
 MODE_SMOOTH = 1
-MODE_SLOW = 2
 MODE_SUPER_SMOOTH = 3
 MODE_SURROUNDING = 4
 MODE_PREEDIT = 5
@@ -48,7 +48,6 @@ MODE_INFO = {
     MODE_DEFAULT: {"title": "Default Typing", "icon": "preferences-system"},
     MODE_OFF: {"title": "OFF", "icon": "input-keyboard"},
     MODE_SMOOTH: {"title": "Uinput (Smooth)", "icon": "input-keyboard"},
-    MODE_SLOW: {"title": "Uinput (Slow)", "icon": "input-keyboard"},
     MODE_SUPER_SMOOTH: {"title": "Uinput (Super Smooth)", "icon": "input-keyboard"},
     MODE_SURROUNDING: {"title": "Surrounding Text", "icon": "text-field"},
     MODE_PREEDIT: {"title": "Preedit", "icon": "text-field"},
@@ -60,7 +59,6 @@ MODE_INFO = {
 # Modes offered as the global default and as per-app modes, in display order.
 SELECTABLE_MODES = [
     MODE_SMOOTH,
-    MODE_SLOW,
     MODE_SUPER_SMOOTH,
     MODE_MINECRAFT,
     MODE_SELECT,
@@ -69,6 +67,14 @@ SELECTABLE_MODES = [
     MODE_EMOJI,
     MODE_OFF,
 ]
+
+# Global default delays (config key -> factory default in ms); also the order
+# rendered in the "Default Delays" section. 0 in a per-app rule means "use this".
+DEFAULT_DELAY_KEYS = {
+    "DefaultCommitInterval": 20,
+    "DefaultBackspaceInterval": 5,
+    "DefaultPostDelay": 10,
+}
 
 
 class ModeCard(QFrame):
@@ -127,272 +133,6 @@ class ModeCard(QFrame):
             self.clicked.emit(self.mode)
 
 
-class AddAppDialog(QDialog):
-    """Dialog to add a new application to the rules list."""
-
-    def __init__(self, icon_cache=None, existing_apps=None, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle(_("Add Application"))
-        self.setMinimumSize(500, 450)
-        self.selected_app = None
-        self._icon_cache = icon_cache or {}
-        self.existing_apps = set(existing_apps or [])
-        self._setup_ui()
-        self._load_running_apps()
-
-    def _setup_ui(self):
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(15)
-
-        header_title = QLabel(_("Add Application"))
-        header_title.setStyleSheet("font-size: 18px; font-weight: bold;")
-        header_subtitle = QLabel(_("Assign an input mode to a specific application."))
-        header_subtitle.setStyleSheet("opacity: 0.7;")
-
-        layout.addWidget(header_title)
-        layout.addWidget(header_subtitle)
-
-        self.tabs = QTabWidget()
-        layout.addWidget(self.tabs)
-
-        # Tab 1: Running Apps
-        self.running_tab = QWidget()
-        running_layout = QVBoxLayout(self.running_tab)
-
-        search_layout = QHBoxLayout()
-        self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText(_("Search process name..."))
-        self.search_input.textChanged.connect(self._filter_running_apps)
-
-        self.btn_refresh = QPushButton(QIcon.fromTheme("view-refresh"), "")
-        self.btn_refresh.setToolTip(_("Refresh Process List"))
-        self.btn_refresh.setFlat(True)
-        self.btn_refresh.clicked.connect(self._load_running_apps)
-
-        search_layout.addWidget(self.search_input, 1)
-        search_layout.addWidget(self.btn_refresh)
-        running_layout.addLayout(search_layout)
-
-        self.running_list = QListWidget()
-        self.running_list.setIconSize(QSize(32, 32))
-        self.running_list.itemClicked.connect(self._on_app_selected)
-        self.running_list.itemDoubleClicked.connect(self._on_item_double_clicked)
-        running_layout.addWidget(self.running_list)
-
-        self.tabs.addTab(self.running_tab, _("Running"))
-
-        # Tab 2: Manual Input
-        self.manual_tab = QWidget()
-        manual_layout = QVBoxLayout(self.manual_tab)
-        self.manual_input = QLineEdit()
-        self.manual_input.setPlaceholderText(_("Enter application name or path..."))
-        self.manual_input.returnPressed.connect(self._on_add_clicked)
-        manual_layout.addWidget(self.manual_input)
-        manual_layout.addStretch()
-        self.tabs.addTab(self.manual_tab, _("Manual input"))
-
-        # Bottom Buttons
-        bottom_layout = QHBoxLayout()
-        self.selection_label = QLabel(_("No application selected"))
-        self.selection_label.setStyleSheet("opacity: 0.7;")
-
-        self.btn_cancel = QPushButton(QIcon.fromTheme("dialog-cancel"), _("&Cancel"))
-        self.btn_cancel.clicked.connect(self.reject)
-
-        self.btn_add = QPushButton(QIcon.fromTheme("dialog-ok"), _("&Add"))
-        self.btn_add.setObjectName("Primary")
-        self.btn_add.setEnabled(False)
-        self.btn_add.clicked.connect(self._on_add_clicked)
-
-        bottom_layout.addWidget(self.selection_label)
-        bottom_layout.addStretch()
-        bottom_layout.addWidget(self.btn_cancel)
-        bottom_layout.addWidget(self.btn_add)
-        layout.addLayout(bottom_layout)
-
-    def _load_running_apps(self):
-        """Loads running processes from /proc, filtered for user applications."""
-        apps = []
-        try:
-            current_uid = os.getuid()
-            for pid_dir in os.listdir("/proc"):
-                if not pid_dir.isdigit():
-                    continue
-                pid = int(pid_dir)
-                try:
-                    # Filter by UID (only show current user's processes)
-                    try:
-                        stat_info = os.stat(f"/proc/{pid}")
-                        if stat_info.st_uid != current_uid:
-                            continue
-                    except (PermissionError, FileNotFoundError):
-                        continue
-
-                    with open(f"/proc/{pid}/comm", "r") as f:
-                        name = f.read().strip()
-                    with open(f"/proc/{pid}/cmdline", "r") as f:
-                        cmdline = f.read().replace("\x00", " ").strip()
-
-                    if not cmdline:
-                        continue
-
-                    exe = ""
-                    try:
-                        exe = os.readlink(f"/proc/{pid}/exe")
-                    except (PermissionError, FileNotFoundError):
-                        continue  # Probably a kernel thread
-
-                    # Clean process names for NixOS
-                    if name.startswith("."):
-                        exe_base = os.path.basename(exe)
-                        if exe_base.startswith(".") and exe_base.endswith("-wrapped"):
-                            name = exe_base[1:-8]
-                        elif name.startswith("." + exe_base) or name == ("." + exe_base)[:15]:
-                            name = exe_base
-                        else:
-                            clean = name[1:]
-                            # On NixOS, wrapped application names from /proc/<pid>/comm can be truncated.
-                            # We check for partial suffixes of "-wrapped", from longest to shortest.
-                            base_suffix = "-wrapped"
-                            for i in range(len(base_suffix), 1, -1):
-                                if clean.endswith(base_suffix[:i]):
-                                    clean = clean[:-i]
-                                    break
-                            if clean:
-                                name = clean
-
-                    # Exclude common system/background paths
-                    exclude_paths = ["/usr/lib", "/usr/libexec", "/lib", "/systemd", "/usr/sbin"]
-                    if any(exe.startswith(p) for p in exclude_paths):
-                        continue
-
-                    # Heuristic: Exclude common background process patterns
-                    # These processes run as user but are typically not "apps" for rules
-                    bg_patterns = [
-                        "_agent",
-                        "_helper",
-                        "_daemon",
-                        "_resource",
-                        "_server",
-                        "-agent",
-                        "-helper",
-                        "-daemon",
-                        "-sandbox",
-                        "-proxy",
-                        "akonadi",
-                        "kactivitymanagerd",
-                        "kaccess",
-                        "krunner",
-                        "ksmserver",
-                        "kwin_",
-                        "kglobalaccel",
-                        "org.kde.",
-                        "gnome-shell",
-                        "dbus-",
-                        "at-spi",
-                        "pipewire",
-                        "pulseaudio",
-                        "xdg-",
-                        "gvfs",
-                        "tracker-",
-                        "evolution-",
-                        "mission-control",
-                        "telepathy",
-                        "dconf",
-                        "applet",
-                        "notify-osd",
-                        "indicator-",
-                        "plasmashell",
-                        "xwayland",
-                        "wireplumber",
-                        "xsettingsd",
-                        "xembedsniproxy",
-                        "gmenudbusmenuproxy",
-                        "kalendarac",
-                        "ksystemstats",
-                        "ksecretd",
-                        "kwalletd",
-                        "kded",
-                        "startplasma",
-                        "bwrap",
-                    ]
-                    basename = os.path.basename(exe).lower()
-                    if any(p in name.lower() or p in basename for p in bg_patterns):
-                        continue
-
-                    # Exclude the settings-gui itself and python interpreters with no script
-                    if ("main.py" in cmdline or "settings-gui" in cmdline) and "python" in exe:
-                        continue
-
-                    if name in self.existing_apps:
-                        continue
-
-                    # If it's a python command but unknown script, ignore it
-                    if basename.startswith("python") and len(cmdline.split()) < 2:
-                        continue
-
-                    if name and exe:
-                        apps.append({"name": name, "exe": exe, "pid": pid})
-                except (PermissionError, FileNotFoundError, ProcessLookupError):
-                    continue
-                except Exception:
-                    continue
-        except Exception as e:
-            print(f"Error listing /proc: {e}")
-
-        unique_apps = {}
-        for app in apps:
-            key = app["exe"]
-            if key not in unique_apps:
-                unique_apps[key] = app
-
-        sorted_apps = sorted(unique_apps.values(), key=lambda x: x["name"].lower())
-        self.full_app_list = sorted_apps
-        self._populate_list(sorted_apps)
-
-    def _populate_list(self, apps):
-        self.running_list.clear()
-        for app in apps:
-            item = QListWidgetItem()
-            item.setText(f"{app['name']}\n{app['exe']}")
-            item.setData(Qt.UserRole, app)
-
-            icon_name = self._icon_cache.get(app["name"].lower())
-            if not icon_name:
-                icon_name = self._icon_cache.get(
-                    os.path.basename(app["exe"]).lower(), app["name"].lower()
-                )
-
-            item.setIcon(QIcon.fromTheme(icon_name, QIcon.fromTheme("application-x-executable")))
-            self.running_list.addItem(item)
-
-    def _filter_running_apps(self, text):
-        filtered = [
-            a
-            for a in self.full_app_list
-            if text.lower() in a["name"].lower() or text.lower() in a["exe"].lower()
-        ]
-        self._populate_list(filtered)
-
-    def _on_app_selected(self, item):
-        app = item.data(Qt.UserRole)
-        self.selected_app = app["name"]
-        self.selection_label.setText(f"{_('Selected:')} {self.selected_app}")
-        self.btn_add.setEnabled(True)
-
-    def _on_item_double_clicked(self, item):
-        self._on_app_selected(item)
-        self._on_add_clicked()
-
-    def _on_add_clicked(self):
-        if self.tabs.currentIndex() == 1:  # Manual
-            self.selected_app = self.manual_input.text().strip()
-            if not self.selected_app:
-                return
-        self.accept()
-
-
 class ModeManagerPage(QWidget):
     """Main Mode Manager page."""
 
@@ -402,6 +142,9 @@ class ModeManagerPage(QWidget):
         self.app_rules = {}
         self.original_app_rules = {}
         self.original_global_mode = ""
+        self.default_delay_spins = {}
+        self.original_default_delays = {}
+        self.modified_default_delays = {}
         self.selected_app = None
         self.current_app_mode = MODE_DEFAULT
         self._icon_cache = {}
@@ -426,18 +169,17 @@ class ModeManagerPage(QWidget):
         self.sidebar_layout.setSpacing(10)
 
         self.app_list = QListWidget()
+        self.app_list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.app_list.setTextElideMode(Qt.ElideRight)
         self.app_list.setIconSize(QSize(24, 24))
         self.app_list.itemClicked.connect(self._on_app_selected)
         self.sidebar_layout.addWidget(self.app_list)
 
-        self.btn_add_app = QPushButton(QIcon.fromTheme("list-add"), _("Add Application"))
         self.btn_remove_app = QPushButton(QIcon.fromTheme("list-remove"), _("Remove"))
         self.btn_remove_app.setEnabled(False)
 
-        self.btn_add_app.clicked.connect(self._on_add_app)
         self.btn_remove_app.clicked.connect(self._on_remove_app)
 
-        self.sidebar_layout.addWidget(self.btn_add_app)
         self.sidebar_layout.addWidget(self.btn_remove_app)
 
         self.layout.addWidget(self.sidebar_widget)
@@ -447,7 +189,7 @@ class ModeManagerPage(QWidget):
         self.content_widget.setWidgetResizable(True)
         self.content_widget.setFrameShape(QFrame.NoFrame)
 
-        self.main_container = QWidget()
+        self.main_container = ScrollContent()
         self.main_layout = QVBoxLayout(self.main_container)
         self.main_layout.setContentsMargins(30, 20, 30, 30)
         self.main_layout.setSpacing(20)
@@ -467,6 +209,21 @@ class ModeManagerPage(QWidget):
         self.combo_global_mode.currentIndexChanged.connect(self._on_global_mode_changed)
         global_layout.addWidget(self.combo_global_mode)
         self.global_card.content_layout.addLayout(global_layout)
+
+        delay_grid = QGridLayout()
+        delay_grid.addWidget(QLabel(_("Default Commit Interval") + ":"), 0, 0)
+        delay_grid.addWidget(QLabel(_("Default Backspace Interval") + ":"), 1, 0)
+        delay_grid.addWidget(QLabel(_("Default Post Delay") + ":"), 2, 0)
+        for row, (key, value) in enumerate(DEFAULT_DELAY_KEYS.items()):
+            spin = QSpinBox()
+            spin.setRange(1, 1000)
+            spin.setSuffix(" ms")
+            spin.setValue(value)
+            spin.valueChanged.connect(lambda value, k=key: self._on_default_delay_changed(k, value))
+            self.default_delay_spins[key] = spin
+            delay_grid.addWidget(spin, row, 1)
+        self.global_card.content_layout.addLayout(delay_grid)
+
         self.main_layout.addWidget(self.global_card)
 
         # 2. Selected App Card (Empty Title)
@@ -498,6 +255,16 @@ class ModeManagerPage(QWidget):
             self.mode_grid.addWidget(card, i // 2, i % 2)
 
         self.app_settings_layout.addLayout(self.mode_grid)
+
+        app_delay_grid = QGridLayout()
+        app_delay_grid.addWidget(QLabel(_("Commit Interval") + ":"), 0, 0)
+        app_delay_grid.addWidget(QLabel(_("Backspace Interval") + ":"), 1, 0)
+        app_delay_grid.addWidget(QLabel(_("Post Delay") + ":"), 2, 0)
+        self.spin_app_commit = self._make_app_delay_spin("commit", app_delay_grid, 0)
+        self.spin_app_backspace = self._make_app_delay_spin("backspace", app_delay_grid, 1)
+        self.spin_app_post = self._make_app_delay_spin("post", app_delay_grid, 2)
+        self.app_settings_layout.addLayout(app_delay_grid)
+
         self.app_settings_card.content_layout.addLayout(self.app_settings_layout)
         self.main_layout.addWidget(self.app_settings_card)
         self.main_layout.addStretch()
@@ -517,17 +284,26 @@ class ModeManagerPage(QWidget):
                 try:
                     app = item.get("App", "")
                     mode = int(item.get("Mode", 0))
+                    commit = int(item.get("CommitInterval", 0) or 0)
+                    backspace = int(item.get("BackspaceInterval", 0) or 0)
+                    post = int(item.get("PostDelay", 0) or 0)
                 except (ValueError, TypeError, AttributeError):
                     print(f"Skipping malformed app rule: {item!r}")
                     continue
                 if app:
-                    self.app_rules[app] = mode
+                    self.app_rules[app] = {
+                        "mode": mode,
+                        "commit": commit,
+                        "backspace": backspace,
+                        "post": post,
+                    }
         except Exception as e:
             print(f"Error loading app rules via DBus: {e}")
 
         # Sync Global Mode
         config = self.dbus.get_config()
-        mode_str = config.get("values", {}).get("Mode", "Uinput (Smooth)")
+        values = config.get("values", {}) if config else {}
+        mode_str = values.get("Mode", "Uinput (Smooth)")
         self.combo_global_mode.blockSignals(True)
         idx = self.combo_global_mode.findData(mode_str)
         if idx >= 0:
@@ -535,8 +311,21 @@ class ModeManagerPage(QWidget):
         self.combo_global_mode.blockSignals(False)
         self.original_global_mode = mode_str
 
+        # Sync Global Default Delays
+        for key, spin in self.default_delay_spins.items():
+            spin.blockSignals(True)
+            try:
+                spin.setValue(int(values.get(key, DEFAULT_DELAY_KEYS[key])))
+            except (ValueError, TypeError):
+                spin.setValue(DEFAULT_DELAY_KEYS[key])
+            spin.blockSignals(False)
+        self.original_default_delays = {
+            key: str(spin.value()) for key, spin in self.default_delay_spins.items()
+        }
+        self.modified_default_delays = {}
+
         self._populate_app_list()
-        self.original_app_rules = self.app_rules.copy()
+        self.original_app_rules = copy.deepcopy(self.app_rules)
 
     def _populate_app_list(self):
         self.app_list.clear()
@@ -546,7 +335,7 @@ class ModeManagerPage(QWidget):
             apps_to_show.add(self.selected_app)
 
         for app in sorted(apps_to_show):
-            mode = self.app_rules.get(app, MODE_DEFAULT)
+            mode = self.app_rules.get(app, {}).get("mode", MODE_DEFAULT)
             mode_text = _(MODE_INFO.get(mode, MODE_INFO[MODE_SMOOTH])["title"])
 
             item = QListWidgetItem()
@@ -666,6 +455,7 @@ class ModeManagerPage(QWidget):
         self.app_icon_label.setPixmap(self._resolve_icon(app_name).pixmap(48, 48))
         self.app_settings_card.setVisible(True)
         self.btn_remove_app.setEnabled(True)  # Enable Remove
+        self._sync_app_delay_spins()
         self._update_mode_cards()
 
     def _on_global_mode_changed(self, index):
@@ -677,11 +467,14 @@ class ModeManagerPage(QWidget):
     def _on_app_mode_changed(self, mode):
         self.current_app_mode = mode
         if mode == MODE_DEFAULT:
-            if self.selected_app in self.app_rules:
-                del self.app_rules[self.selected_app]
+            self.app_rules.pop(self.selected_app, None)
         else:
-            self.app_rules[self.selected_app] = mode
+            rule = self.app_rules.setdefault(
+                self.selected_app, {"mode": mode, "commit": 0, "backspace": 0, "post": 0}
+            )
+            rule["mode"] = mode
 
+        self._sync_app_delay_spins()
         self._update_mode_cards()
         self._populate_app_list()
         self._notify_changed()
@@ -691,15 +484,40 @@ class ModeManagerPage(QWidget):
             card.selected = m == self.current_app_mode
             card.update_style()
 
-    def _on_add_app(self):
-        dialog = AddAppDialog(self._icon_cache, list(self.app_rules.keys()), self)
-        if dialog.exec():
-            new_app = dialog.selected_app
-            if new_app not in self.app_rules:
-                self.app_rules[new_app] = MODE_SMOOTH
-            self.selected_app = new_app
-            self._populate_app_list()
-            self._notify_changed()
+    def _make_app_delay_spin(self, field: str, grid: QGridLayout, row: int) -> QSpinBox:
+        spin = QSpinBox()
+        spin.setRange(0, 1000)
+        spin.setSuffix(" ms")
+        spin.setSpecialValueText(_("Default"))
+        spin.setEnabled(False)
+        spin.valueChanged.connect(lambda value, f=field: self._on_app_delay_changed(f, value))
+        grid.addWidget(spin, row, 1)
+        return spin
+
+    def _sync_app_delay_spins(self):
+        rule = self.app_rules.get(self.selected_app) if self.selected_app else None
+        for field, spin in (
+            ("commit", self.spin_app_commit),
+            ("backspace", self.spin_app_backspace),
+            ("post", self.spin_app_post),
+        ):
+            spin.blockSignals(True)
+            spin.setValue(int(rule.get(field, 0)) if rule else 0)
+            spin.blockSignals(False)
+            spin.setEnabled(rule is not None)
+
+    def _on_default_delay_changed(self, key: str, value: int):
+        self.modified_default_delays[key] = str(value)
+        self._notify_changed()
+
+    def _on_app_delay_changed(self, field: str, value: int):
+        if self.selected_app is None:
+            return
+        rule = self.app_rules.get(self.selected_app)
+        if rule is None:
+            return
+        rule[field] = value
+        self._notify_changed()
 
     def _on_remove_app(self):
         if not self.selected_app:
@@ -714,8 +532,7 @@ class ModeManagerPage(QWidget):
         if reply == QMessageBox.No:
             return
 
-        if self.selected_app in self.app_rules:
-            del self.app_rules[self.selected_app]
+        self.app_rules.pop(self.selected_app, None)
 
         self.selected_app = None
         self.app_settings_card.setVisible(False)
@@ -733,33 +550,56 @@ class ModeManagerPage(QWidget):
         return (
             self.app_rules != self.original_app_rules
             or self.combo_global_mode.currentData() != self.original_global_mode
+            or bool(self.modified_default_delays)
         )
 
     def is_modified_from_default(self):
         """Returns True if the current state differs from the default state."""
-        return len(self.app_rules) > 0 or self.combo_global_mode.currentData() != "Uinput (Smooth)"
+        return (
+            len(self.app_rules) > 0
+            or self.combo_global_mode.currentData() != "Uinput (Smooth)"
+            or any(
+                spin.value() != DEFAULT_DELAY_KEYS[key]
+                for key, spin in self.default_delay_spins.items()
+            )
+        )
 
     def save_data(self) -> bool:
         try:
-            if self.combo_global_mode.currentData() != self.original_global_mode:
+            mode_changed = self.combo_global_mode.currentData() != self.original_global_mode
+            if mode_changed or self.modified_default_delays:
                 config_data = self.dbus.get_config()
                 if config_data:
                     latest_values = config_data.get("values", {})
-                    latest_values["Mode"] = self.combo_global_mode.currentData()
+                    if mode_changed:
+                        latest_values["Mode"] = self.combo_global_mode.currentData()
+                    latest_values.update(self.modified_default_delays)
                     if not self.dbus.set_config(latest_values):
                         return False
                 elif not self.dbus.iface:
                     return False
 
             data = []
-            for app, mode in sorted(self.app_rules.items()):
-                data.append({"App": app, "Mode": str(mode)})
+            for app, rule in sorted(self.app_rules.items()):
+                data.append(
+                    {
+                        "App": app,
+                        "Mode": str(rule["mode"]),
+                        "CommitInterval": str(rule.get("commit", 0)),
+                        "BackspaceInterval": str(rule.get("backspace", 0)),
+                        "PostDelay": str(rule.get("post", 0)),
+                    }
+                )
 
             if not self.dbus.set_sub_config_list("app_rules", "Rules", data):
                 return False
 
-            self.original_app_rules = self.app_rules.copy()
+            self.original_app_rules = copy.deepcopy(self.app_rules)
             self.original_global_mode = self.combo_global_mode.currentData()
+            self.original_default_delays = {
+                key: str(spin.value()) for key, spin in self.default_delay_spins.items()
+            }
+            self.modified_default_delays = {}
             return True
 
         except Exception as e:

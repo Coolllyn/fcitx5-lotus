@@ -45,12 +45,12 @@ class FdGuard {
     FdGuard(const FdGuard&)            = delete;
     FdGuard& operator=(const FdGuard&) = delete;
     FdGuard(FdGuard&& other) noexcept;
-    FdGuard& operator=(FdGuard&& other) noexcept;
+    FdGuard&          operator=(FdGuard&& other) noexcept;
 
-    int      get() const {
+    [[nodiscard]] int get() const {
         return fd_;
     }
-    bool is_valid() const {
+    [[nodiscard]] bool is_valid() const {
         return fd_ >= 0;
     }
     void reset(int new_fd = -1);
@@ -72,15 +72,15 @@ class UinputDevice {
     UinputDevice(const UinputDevice&)            = delete;
     UinputDevice& operator=(const UinputDevice&) = delete;
     UinputDevice(UinputDevice&&)                 = default;
-    UinputDevice& operator=(UinputDevice&&)      = default;
+    UinputDevice&     operator=(UinputDevice&&)  = default;
 
-    bool          initialize();
-    void          send_backspace();
-    void          send_delete();
-    void          send_shift_down();
-    void          send_shift_up();
-    void          send_left();
-    int           get_fd() const {
+    bool              initialize();
+    void              send_backspace();
+    void              send_delete();
+    void              send_shift_down();
+    void              send_shift_up();
+    void              send_left();
+    [[nodiscard]] int get_fd() const {
         return guard_.get();
     }
 
@@ -106,7 +106,7 @@ class UinputDevice {
  */
 class LibinputContext {
   public:
-    LibinputContext(const struct libinput_interface* interface);
+    explicit LibinputContext(const struct libinput_interface* interface);
     ~LibinputContext();
 
     // Disable copy, allow move
@@ -128,13 +128,13 @@ class LibinputContext {
         return *this;
     }
 
-    bool is_valid() const {
+    [[nodiscard]] bool is_valid() const {
         return li_ != nullptr;
     }
-    struct libinput* get_li() const {
+    [[nodiscard]] struct libinput* get_li() const {
         return li_;
     }
-    int get_fd() const {
+    [[nodiscard]] int get_fd() const {
         return libinput_get_fd(li_);
     }
 

@@ -1,5 +1,5 @@
 Name:           fcitx5-lotus
-Version:        4.0.1
+Version:        5.0.0
 Release:        1
 Summary:        Vietnamese input method for fcitx5
 License:        GPL-3.0-or-later
@@ -17,7 +17,6 @@ BuildRequires:  systemd-devel
 BuildRequires:  go
 BuildRequires:  sysuser-tools
 Requires(pre):  sysuser-shadow >= 3.1
-BuildRequires:  rsvg-convert
 
 %{?systemd_ordering}
 Requires:       fcitx5
@@ -70,7 +69,6 @@ cd %{_builddir}/%{name}-%{version}
 
 %{_datadir}/icons/hicolor/scalable/apps/*fcitx-lotus*.svg
 %{_datadir}/icons/hicolor/scalable/status/fcitx-lotus*.svg
-%{_datadir}/icons/hicolor/*/status/fcitx-lotus*.png
 
 %dir %{_datadir}/icons/breeze
 %dir %{_datadir}/icons/breeze/status
@@ -118,8 +116,12 @@ fi
 %service_del_postun fcitx5-lotus-server@.service
 
 %changelog
-* Sat Oct 01 2026 Nguyen Hoang Ky <nhktmdzhg@gmail.com> - 4.0.1-1
-- Fix: don't reset on mouse click on electron app (Wayland only)
+* Fri Oct 09 2026 Nguyen Hoang Ky <nhktmdzhg@gmail.com> - 5.0.0-1
+- Add configurable delay
+- Remove Uinput (Slow) mode
+- Fix settings-gui cannot scroll to end
+- Remove legacy uinput ack option for chromium
+- Remove Add application of settings-gui
 
 %check
 %ctest

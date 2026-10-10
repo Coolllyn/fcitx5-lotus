@@ -496,13 +496,14 @@ namespace fcitx {
 
     void LotusEngine::keyEvent(const InputMethodEntry& /*entry*/, KeyEvent& keyEvent) {
         auto* ic = keyEvent.inputContext();
-        if (!ic) {
+        if (ic == nullptr) {
             return;
         }
 
+        auto* state = ic->propertyFor(&factory_);
+
         if (ic->capabilityFlags().testAny(CapabilityFlag::PasswordOrSensitive)) {
-            auto* state = ic->propertyFor(&factory_);
-            if (state) {
+            if (state != nullptr) {
                 state->reset();
             }
             ic->inputPanel().reset();
@@ -514,7 +515,6 @@ namespace fcitx {
             closeAppModeMenu();
             ic->inputPanel().reset();
             ic->updateUserInterface(UserInterfaceComponent::InputPanel);
-            auto* state = ic->propertyFor(&factory_);
             state->commitBuffer();
             state->reset();
         }
@@ -604,7 +604,6 @@ namespace fcitx {
                                 isSelectingAppMode_ = false;
                                 ic->inputPanel().reset();
                                 ic->updateUserInterface(UserInterfaceComponent::InputPanel);
-                                auto* state = ic->propertyFor(&factory_);
                                 state->commitBuffer();
                                 state->reset();
                                 ic->commitString(charStr);
@@ -635,7 +634,6 @@ namespace fcitx {
                 isSelectingAppMode_ = false;
                 ic->inputPanel().reset();
                 ic->updateUserInterface(UserInterfaceComponent::InputPanel);
-                auto* state = ic->propertyFor(&factory_);
 
                 if (selectedMode != std::nullopt) {
                     state->commitBuffer();
@@ -733,7 +731,6 @@ namespace fcitx {
 
         if (!keyEvent.isRelease() && !config_.modeMenuKey->empty() && keyEvent.key().checkKeyList(*config_.modeMenuKey)) {
             LOTUS_INFO("Mode menu key pressed");
-            auto* state = ic->propertyFor(&factory_);
             if (state != nullptr) {
                 state->commitBuffer();
                 state->reset();
@@ -746,7 +743,6 @@ namespace fcitx {
             keyEvent.filterAndAccept();
             return;
         }
-        auto* state = keyEvent.inputContext()->propertyFor(&factory_);
         state->keyEvent(keyEvent);
         const auto&  s       = ic->surroundingText();
         const auto&  text    = s.text();

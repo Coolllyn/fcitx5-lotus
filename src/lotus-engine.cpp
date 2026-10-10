@@ -496,6 +496,19 @@ namespace fcitx {
 
     void LotusEngine::keyEvent(const InputMethodEntry& /*entry*/, KeyEvent& keyEvent) {
         auto* ic = keyEvent.inputContext();
+        if (!ic) {
+            return;
+        }
+
+        if (ic->capabilityFlags().testAny(CapabilityFlag::PasswordOrSensitive)) {
+            auto* state = ic->propertyFor(&factory_);
+            if (state) {
+                state->reset();
+            }
+            ic->inputPanel().reset();
+            ic->updateUserInterface(UserInterfaceComponent::InputPanel);
+            return;
+        }
 
         if (isSelectingAppMode_ && g_mouse_clicked.load(std::memory_order_acquire)) {
             closeAppModeMenu();

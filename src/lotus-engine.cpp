@@ -444,16 +444,6 @@ namespace fcitx {
         setupMouseWatcher();
 
         auto& statusArea = event.inputContext()->statusArea();
-        if (ic->capabilityFlags().testAny(CapabilityFlag::PasswordOrSensitive)) {
-            ic->inputPanel().reset();
-            ic->updateUserInterface(UserInterfaceComponent::InputPanel);
-            auto* state = ic->propertyFor(&factory_);
-            if (state) {
-                state->reset();
-            }
-            return;
-        }
-
         if (ic->capabilityFlags().test(CapabilityFlag::Preedit))
             instance_->inputContextManager().setPreeditEnabledByDefault(true);
 

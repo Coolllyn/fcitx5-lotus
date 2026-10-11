@@ -72,17 +72,76 @@ namespace fcitx {
         }
     }
 
-    // Returns the KeySym that triggers the "Type hotkey char" action in the mode
-    // menu.  If the hotkey itself conflicts with a reserved menu key, falls back
-    // to FcitxKey_f.
-    static bool isAppModeMenuReservedKey(KeySym sym, const lotusConfig& config) {
-        // Not a static local on purpose: these shortcuts can be reassigned at
-        // runtime, and a static table would keep the values from the first call.
-        const std::array<KeySym, 10> modeShortcuts = {
-            Key(*config.shortcutSmooth).sym(),          Key(*config.shortcutSuperSmooth).sym(), Key(*config.shortcutMinecraft).sym(), Key(*config.shortcutSelect).sym(),
-            Key(*config.shortcutSurroundingText).sym(), Key(*config.shortcutPreedit).sym(),     Key(*config.shortcutEmoji).sym(),     Key(*config.shortcutOff).sym(),
-            Key(*config.shortcutDefault).sym(),
+    KeySym shortcutKey(const std::string& shortcut) {
+        return Key(shortcut).sym();
+    }
+
+    bool modeVisible(const lotusConfig& config, LotusMode mode) {
+        switch (mode) {
+            case LotusMode::Smooth: return *config.showModeSmooth;
+            case LotusMode::SuperSmooth: return *config.showModeSuperSmooth;
+            case LotusMode::Minecraft: return *config.showModeMinecraft;
+            case LotusMode::Select: return *config.showModeSelect;
+            case LotusMode::SurroundingText: return *config.showModeSurroundingText;
+            case LotusMode::Preedit: return *config.showModePreedit;
+            case LotusMode::Emoji: return *config.showModeEmoji;
+            case LotusMode::Off: return *config.showModeOff;
+        }
+        return false;
+    }
+
+    KeySym modeShortcut(const lotusConfig& config, LotusMode mode) {
+        switch (mode) {
+            case LotusMode::Smooth: return shortcutKey(*config.shortcutSmooth);
+            case LotusMode::SuperSmooth: return shortcutKey(*config.shortcutSuperSmooth);
+            case LotusMode::Minecraft: return shortcutKey(*config.shortcutMinecraft);
+            case LotusMode::Select: return shortcutKey(*config.shortcutSelect);
+            case LotusMode::SurroundingText: return shortcutKey(*config.shortcutSurroundingText);
+            case LotusMode::Preedit: return shortcutKey(*config.shortcutPreedit);
+            case LotusMode::Emoji: return shortcutKey(*config.shortcutEmoji);
+            case LotusMode::Off: return shortcutKey(*config.shortcutOff);
+        }
+        return FcitxKey_None;
+    }
+
+    std::string modeLabel(const ModeOrderEntry& entry) {
+        return entry.isDefault ? _("Default Typing") : LotusModeI18NAnnotation::toString(entry.mode);
+    }
+
+    std::vector<ModeOrderEntry> modeOrderEntries(const lotusConfig& config) {
+        const auto order = stringutils::split(*config.modeOrder, ",");
+
+        auto       resolve = [&config](const ModeNameEntry& nameEntry) {
+            if (nameEntry.mode.has_value()) {
+                return ModeOrderEntry{*nameEntry.mode, modeShortcut(config, *nameEntry.mode), modeVisible(config, *nameEntry.mode), false};
+            }
+            return ModeOrderEntry{config.mode.value(), shortcutKey(*config.shortcutDefault), *config.showModeDefault, true};
         };
+
+        std::vector<ModeOrderEntry> entries;
+        for (const auto& name : order) {
+            const auto* const it = std::find_if(kModeNames.begin(), kModeNames.end(), [&name](const ModeNameEntry& entry) { return entry.name == name; });
+            if (it != kModeNames.end()) {
+                entries.push_back(resolve(*it));
+            }
+        }
+        for (const auto& nameEntry : kModeNames) {
+            const bool listed = std::any_of(order.begin(), order.end(), [&nameEntry](const std::string& name) { return nameEntry.name == name; });
+            if (!listed) {
+                entries.push_back(resolve(nameEntry));
+            }
+        }
+        return entries;
+    }
+
+    bool isAppModeMenuReservedKey(KeySym sym, const lotusConfig& config) {
+        std::array<KeySym, 10> modeShortcuts{};
+        std::transform(kModeNames.begin(), kModeNames.end(), modeShortcuts.begin(), [&config](const ModeNameEntry& nameEntry) {
+            if (nameEntry.mode.has_value()) {
+                return modeShortcut(config, *nameEntry.mode);
+            }
+            return shortcutKey(*config.shortcutDefault);
+        });
         if (std::find(modeShortcuts.begin(), modeShortcuts.end(), sym) != modeShortcuts.end()) {
             return true;
         }
@@ -93,11 +152,7 @@ namespace fcitx {
         return std::find(reservedMenuKeys.begin(), reservedMenuKeys.end(), sym) != reservedMenuKeys.end();
     }
 
-    static KeySym shortcutKey(const std::string& shortcut) {
-        return Key(shortcut).sym();
-    }
-
-    static KeySym typeKeyForModeMenuHotkey(KeySym hotkeySym, const lotusConfig& config) {
+    KeySym typeKeyForModeMenuHotkey(KeySym hotkeySym, const lotusConfig& config) {
         return isAppModeMenuReservedKey(hotkeySym, config) ? FcitxKey_f : hotkeySym;
     }
 
@@ -732,24 +787,21 @@ namespace fcitx {
     }
 
     std::vector<LotusMode> LotusEngine::enabledModesInOrder() const {
-        const auto                                      order = stringutils::split(*config_.modeOrder, ",");
-        const std::unordered_map<std::string, ModeInfo> modes = modeMap();
-        std::vector<LotusMode>                          enabledModes;
-        for (const auto& name : order) {
-            const auto it = modes.find(name);
-            if (it == modes.end() || !it->second.visible) {
+        std::vector<LotusMode> enabledModes;
+        for (const auto& entry : modeOrderEntries(config_)) {
+            if (!entry.visible) {
                 continue;
             }
 
             bool duplicate = false;
             for (auto m : enabledModes) {
-                if (m == it->second.mode) {
+                if (m == entry.mode) {
                     duplicate = true;
                     break;
                 }
             }
             if (!duplicate) {
-                enabledModes.push_back(it->second.mode);
+                enabledModes.push_back(entry.mode);
             }
         }
         return enabledModes;
@@ -985,20 +1037,6 @@ namespace fcitx {
         g_mouse_clicked.store(false, std::memory_order_release);
     }
 
-    std::unordered_map<std::string, ModeInfo> LotusEngine::modeMap() const {
-        return {
-            {"Smooth", {LotusMode::Smooth, _("Uinput (Smooth)"), shortcutKey(*config_.shortcutSmooth), *config_.showModeSmooth}},
-            {"Minecraft", {LotusMode::Minecraft, _("Minecraft"), shortcutKey(*config_.shortcutMinecraft), *config_.showModeMinecraft}},
-            {"Select", {LotusMode::Select, _("Uinput (Select)"), shortcutKey(*config_.shortcutSelect), *config_.showModeSelect}},
-            {"SurroundingText", {LotusMode::SurroundingText, _("Surrounding Text"), shortcutKey(*config_.shortcutSurroundingText), *config_.showModeSurroundingText}},
-            {"Preedit", {LotusMode::Preedit, _("Preedit"), shortcutKey(*config_.shortcutPreedit), *config_.showModePreedit}},
-            {"Emoji", {LotusMode::Emoji, _("Emoji Picker"), shortcutKey(*config_.shortcutEmoji), *config_.showModeEmoji}},
-            {"Off", {LotusMode::Off, _("OFF"), shortcutKey(*config_.shortcutOff), *config_.showModeOff}},
-            {"SuperSmooth", {LotusMode::SuperSmooth, _("Uinput (Super Smooth)"), shortcutKey(*config_.shortcutSuperSmooth), *config_.showModeSuperSmooth}},
-            {"Default", {config_.mode.value(), _("Default Typing"), shortcutKey(*config_.shortcutDefault), *config_.showModeDefault}},
-        };
-    }
-
     void LotusEngine::showAppModeMenu(InputContext* ic) {
         isSelectingAppMode_ = true;
 
@@ -1047,51 +1085,28 @@ namespace fcitx {
             };
         };
 
-        const std::unordered_map<std::string, ModeInfo> modes = this->modeMap();
+        const std::vector<ModeOrderEntry> allModes = modeOrderEntries(config_);
 
-        std::vector<ModeInfo>                           allModes;
-        auto                                            order = stringutils::split(*config_.modeOrder, ",");
-        for (const auto& name : order) {
-            auto it = modes.find(name);
-            if (it != modes.end()) {
-                allModes.push_back(it->second);
-            }
-        }
-
-        // Fallback for missing modes
-        for (const auto& [name, info] : modes) {
-            bool found = false;
-            for (const auto& orderedName : order) {
-                if (orderedName == name) {
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                allModes.push_back(info);
-            }
-        }
-
-        int                        activeSelectionIdx  = -1;
-        int                        currentCandidateIdx = 0;
-        std::unordered_set<KeySym> usedModeKeys;
+        int                               activeSelectionIdx  = -1;
+        int                               currentCandidateIdx = 0;
+        std::unordered_set<KeySym>        usedModeKeys;
 
         modeMenuMapping_.clear();
         const LotusMode defaultMode = config_.mode.value();
 
-        for (const auto& info : allModes) {
-            if (info.visible) {
-                const bool hasShortcut = info.key != FcitxKey_None && info.key != FcitxKey_VoidSymbol;
-                if (hasShortcut && usedModeKeys.insert(info.key).second) {
-                    modeMenuMapping_[info.key] = info.mode;
+        for (const auto& entry : allModes) {
+            if (entry.visible) {
+                const bool hasShortcut = entry.key != FcitxKey_None && entry.key != FcitxKey_VoidSymbol;
+                if (hasShortcut && usedModeKeys.insert(entry.key).second) {
+                    modeMenuMapping_[entry.key] = entry.mode;
                 }
 
-                const bool        isDefaultItem = (info.label == _("Default Typing"));
-                const std::string keyUtf8       = Key::keySymToUTF8(info.key);
+                const bool        isDefaultItem = entry.isDefault;
+                const std::string keyUtf8       = Key::keySymToUTF8(entry.key);
                 std::string       keyLabel      = keyUtf8.empty() ? "" : "[" + keyUtf8 + "] ";
-                candidateList->append(std::make_unique<AppModeCandidateWord>(getLabel(info.mode, keyLabel + info.label), applyMode(info.mode, isDefaultItem)));
+                candidateList->append(std::make_unique<AppModeCandidateWord>(getLabel(entry.mode, keyLabel + modeLabel(entry)), applyMode(entry.mode, isDefaultItem)));
 
-                if (info.mode == realMode && !isDefaultItem) {
+                if (entry.mode == realMode && !isDefaultItem) {
                     activeSelectionIdx = currentCandidateIdx;
                 } else if (isDefaultItem && getAppRule(currentConfigureApp_) == defaultMode) {
 #if __cplusplus >= 202002L
@@ -1144,21 +1159,9 @@ namespace fcitx {
             ic->updateUserInterface(UserInterfaceComponent::InputPanel);
         };
 
-        // Map mode to label
-        std::string modeLabel;
-        switch (mode) {
-            case LotusMode::Smooth: modeLabel = _("Uinput (Smooth)"); break;
-            case LotusMode::Minecraft: modeLabel = _("Minecraft"); break;
-            case LotusMode::SurroundingText: modeLabel = _("Surrounding Text"); break;
-            case LotusMode::Preedit: modeLabel = _("Preedit"); break;
-            case LotusMode::Emoji: modeLabel = _("Emoji Picker"); break;
-            case LotusMode::Off: modeLabel = _("OFF"); break;
-            case LotusMode::SuperSmooth: modeLabel = _("Uinput (Super Smooth)"); break;
-            case LotusMode::Select: modeLabel = _("Uinput (Select)"); break;
-            default: modeLabel = _("Unknown Mode"); break;
-        }
+        const std::string modeLabel = LotusModeI18NAnnotation::toString(mode);
 
-        auto setCurrentMode = [cleanup](LotusMode) { return [cleanup](InputContext* ic) { cleanup(ic); }; };
+        auto              setCurrentMode = [cleanup](LotusMode) { return [cleanup](InputContext* ic) { cleanup(ic); }; };
 
         candidateList->append(std::make_unique<AppModeCandidateWord>(Text("✓ " + modeLabel), setCurrentMode(mode)));
 

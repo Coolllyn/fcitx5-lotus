@@ -11,6 +11,7 @@ add_library(lotus_engine STATIC
     engine_utils.cpp
     flattener.cpp
     input_method.cpp
+    rebuild.cpp
     rules_parser.cpp
     spelling.cpp
     utf8.cpp

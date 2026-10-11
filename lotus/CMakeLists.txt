@@ -7,6 +7,8 @@ add_library(lotus_engine STATIC
     case_map.cpp
     composition.cpp
     encoder.cpp
+    engine.cpp
+    engine_utils.cpp
     flattener.cpp
     input_method.cpp
     rules_parser.cpp

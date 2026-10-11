@@ -88,10 +88,11 @@ namespace lotus {
      * @brief Combines two mode flags, like Go's `mode | flag`.
      * @param first First flags.
      * @param second Second flags.
-     * @return Combined flags.
+     * @return Combined bit mask; the result is deliberately not a Mode value because a combination
+     *         lies outside the range of the enumeration.
      */
-    constexpr Mode operator|(Mode first, Mode second) {
-        return static_cast<Mode>(toMask(first) | toMask(second));
+    constexpr uint32_t operator|(Mode first, Mode second) {
+        return toMask(first) | toMask(second);
     }
 
 } // namespace lotus

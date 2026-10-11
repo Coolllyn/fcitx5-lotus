@@ -65,6 +65,8 @@ add_lotus_engine_test(lotus_encoder lotus-encoder-test.cpp "unit;lotus;charset")
 add_lotus_engine_test(lotus_rules_parser lotus-rules-parser-test.cpp "unit;lotus;rules")
 add_lotus_engine_test(lotus_flattener lotus-flattener-test.cpp "unit;lotus;flattener")
 add_lotus_engine_test(lotus_spelling lotus-spelling-test.cpp "unit;lotus;spelling")
+add_lotus_engine_test(lotus_engine_utils lotus-engine-utils-test.cpp "unit;lotus;engine-utils")
+add_lotus_engine_test(lotus_engine_smoke lotus-engine-smoke.cpp "unit;lotus;engine")
 add_lotus_engine_test(lotus_golden_smoke lotus-golden-smoke.cpp "unit;lotus;golden")
 
 add_lotus_headless_test(preedit_lifecycle preedit-lifecycle.cpp "integration;preedit")

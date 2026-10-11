@@ -11,10 +11,18 @@ Ba file ở đây do chính engine Go hiện tại sinh ra, dùng để kiểm c
 - Chuỗi UTF-8 được hex-hoá để file chỉ chứa ASCII.
 - `flags`/`w2u`/`bracket`/`opts` ở mỗi dòng là giá trị của cả case: test C++ khởi tạo engine ở dòng đầu
   tiên của mỗi `case` rồi phát lại tuần tự.
-- `opts` là bitmask: 1 = autoNonVnRestore, 2 = ddFreeStyle, 4 = spellCheckWithDicts (luôn tắt trong
-  corpus để không phụ thuộc file từ điển bên ngoài), 8 = macroEnabled (macro tĩnh `vn`/`ko`).
-- Corpus = 48 chuỗi curated + 2000 chuỗi ngẫu nhiên (seed `20261007`), mỗi chuỗi dài 1..12 phím, kèm
-  biến thể có chèn `FcitxBackSpace` ở giữa.
+- `mode` (engine core) là mode truyền cho `ProcessKey`: `VietnameseMode`, `EnglishMode`,
+  `VietnameseMode|ToneLess`, `VietnameseMode|InReverseOrder`, `VietnameseMode|PunctuationMode`, và `0`
+  cho bước `FcitxBackSpace`.
+- `state` (wrapper) là mask modifier: `0`, `Lock`, `Shift`, `Shift|Lock` (những mask `isValidState`
+  chấp nhận). Cột này **tách riêng** khỏi `mode`, không dùng chung một trường như bản corpus đầu.
+- `opts` là bitmask: 1 = autoNonVnRestore, 2 = ddFreeStyle, 4 = spellCheckWithDicts, 8 = macroEnabled
+  (macro tĩnh `vn`/`ko`). Bit 4 **được bật ngẫu nhiên** nhưng vẫn deterministic: dumper nạp danh sách
+  3 từ cố định (`vietnam`, `nguoi`, `duong`) vào `newTestEngine`, và test C++ nạp đúng 3 từ đó bằng
+  `Dictionary::loadFromWords` ⇒ không bao giờ đọc file từ điển bên ngoài.
+- Corpus = 68 chuỗi curated + 2000 chuỗi ngẫu nhiên (seed `20261007`), mỗi chuỗi dài 1..12 phím, kèm
+  biến thể có chèn `FcitxBackSpace` ở giữa. Chuỗi curated nhắm vào nhánh hiếm: bracket transform sát
+  ranh giới từ, đuôi shortcut `uwo`, macro `vn `/`ko.`, `Tab`, hai bracket-key liên tiếp.
 
 ## Tái sinh
 

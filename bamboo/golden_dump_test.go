@@ -56,11 +56,13 @@ func envInt(name string, fallback int) int {
 	return parsed
 }
 
-// step is one keystroke of a corpus sequence. mode is the ProcessKey mode for the core engine and
-// the modifier mask for the key processor.
+// step is one keystroke of a corpus sequence. mode is the ProcessKey mode for the core engine, state
+// is the modifier mask handed to the key processor wrapper (the two must not share a field: the core
+// interprets the value as a Mode, the wrapper as Fcitx modifier bits).
 type step struct {
-	key  uint32
-	mode bamboo.Mode
+	key   uint32
+	mode  bamboo.Mode
+	state uint32
 }
 
 // sequence is one independent scenario: a fresh engine, a flag set and a list of keys.
@@ -85,9 +87,17 @@ var curatedSequences = []string{
 	"nguwowif", "uow", "uoww", "uwo", "uowng", "w", "ww", "ow", "oow", "uw", "uww", "aw", "aaw",
 	"ee", "eee", "oo", "ooo", "dw", "[", "]", "{", "}", "[o", "{o", "dDuOwOwNgF", "f]", "z", "s",
 	"đ", "đđ", "nghieeng", "ngieng", "qu", "gi", "Khoong", "ddaay", " dduwowngf", "a.b", "w2u", "uwow",
+	// Rare branches: bracket transform right before a word boundary, the "uwo" shortcut tails, the
+	// built in macros of dumpKeyProcessor, Tab, and a bracket key after an already transformed one.
+	"[o]", "o]", "d[o", "{o}", "g20ư]", "ưow", "uơw", "uơo", "w]", "w{", "vn ", "ko.", "VN ", "Vn.", "\t",
+	"a\tb", "oow2", "uwo2", "đường",
 }
 
 var curatedKeyValues = []uint32{'[', ']', '{', '}', 'w', 'o', 'u', 'd', 'a', 's', 'f', 'z', ' '}
+
+// stateMasks are the modifier masks the wrapper accepts: isValidState only rejects Ctrl, Mod1,
+// Super, Hyper and Meta, so plain, Lock, Shift and Shift+Lock are the ones worth replaying.
+var stateMasks = []uint32{0, FcitxLockMask, FcitxShiftMask, FcitxShiftMask | FcitxLockMask}
 
 func randomFlags(rnd *rand.Rand) (uint, int, int) {
 	flags := bamboo.EstdFlags
@@ -122,8 +132,8 @@ func randomOptions(rnd *rand.Rand) uint32 {
 	if rnd.IntN(4) == 0 {
 		opts |= optMacroEnabled
 	}
-	// Deterministic corpus: never let spell checking depend on an external dictionary file.
-	opts &^= optSpellCheckWithDicts
+	// Spell checking stays deterministic: dumpKeyProcessor fills the fixed built in word list below,
+	// and the C++ replay builds the same three words, so no external dictionary file is ever read.
 	return opts
 }
 
@@ -132,13 +142,22 @@ func buildCorpus() []sequence {
 	var corpus []sequence
 	for i, text := range curatedSequences {
 		flags, w2u, brk := randomFlags(rand.New(rand.NewPCG(goldenSeed, uint64(i)+1)))
+		state := stateMasks[i%len(stateMasks)]
 		var steps []step
 		mode := bamboo.VietnameseMode
-		if i%2 == 1 {
+		switch i % 5 {
+		case 1:
 			mode = bamboo.EnglishMode
+		case 4:
+			mode = bamboo.VietnameseMode | bamboo.InReverseOrder
 		}
 		for _, r := range text {
-			steps = append(steps, step{key: uint32(r), mode: mode})
+			steps = append(steps, step{key: uint32(r), mode: mode, state: state})
+		}
+		// Every fourth curated sequence also exercises backspace in the middle of a word.
+		if i%4 == 0 && len(steps) > 1 {
+			position := len(steps) / 2
+			steps = append(steps[:position], append([]step{{key: FcitxBackSpace, state: state}}, steps[position:]...)...)
 		}
 		corpus = append(corpus, sequence{id: fmt.Sprintf("curated-%02d", i), flags: flags, w2u: w2u, brk: brk, opts: randomOptions(rand.New(rand.NewPCG(goldenSeed+1, uint64(i)+1))), steps: steps})
 	}
@@ -149,6 +168,7 @@ func buildCorpus() []sequence {
 		length := 1 + rnd.IntN(maxSequenceLength)
 		flags, w2u, brk := randomFlags(rnd)
 		opts := randomOptions(rnd)
+		state := stateMasks[rnd.IntN(len(stateMasks))]
 		var steps []step
 		for j := 0; j < length; j++ {
 			mode := bamboo.VietnameseMode
@@ -157,13 +177,17 @@ func buildCorpus() []sequence {
 				mode = bamboo.EnglishMode
 			case 1:
 				mode = bamboo.VietnameseMode | bamboo.ToneLess
+			case 2:
+				mode = bamboo.VietnameseMode | bamboo.InReverseOrder
+			case 3:
+				mode = bamboo.VietnameseMode | bamboo.PunctuationMode
 			}
-			steps = append(steps, step{key: uint32(alphabet[rnd.IntN(len(alphabet))]), mode: mode})
+			steps = append(steps, step{key: uint32(alphabet[rnd.IntN(len(alphabet))]), mode: mode, state: state})
 		}
 		// Every third sequence also exercises backspace in the middle of a word.
 		if i%3 == 0 && len(steps) > 1 {
 			position := rnd.IntN(len(steps))
-			steps = append(steps[:position], append([]step{{key: FcitxBackSpace, mode: 0}}, steps[position:]...)...)
+			steps = append(steps[:position], append([]step{{key: FcitxBackSpace, state: state}}, steps[position:]...)...)
 		}
 		corpus = append(corpus, sequence{id: fmt.Sprintf("random-%04d", i), flags: flags, w2u: w2u, brk: brk, opts: opts, steps: steps})
 	}
@@ -232,10 +256,7 @@ func dumpKeyProcessor(t *testing.T, path string) {
 		engine.preeditor.SetW2UMode(seq.w2u)
 		engine.preeditor.SetBracketTransformMode(seq.brk)
 		for index, s := range seq.steps {
-			state := uint32(s.mode)
-			if s.mode == bamboo.VietnameseMode {
-				state = 0 // corpus mode 0 means "no modifier" for the wrapper
-			}
+			state := s.state
 			accepted := engine.preeditProcessKeyEvent(s.key, state)
 			accept := "0"
 			if accepted {

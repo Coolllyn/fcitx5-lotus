@@ -13,12 +13,12 @@
 #include <string_view>
 #include <vector>
 
-/// @brief One data line of a golden TSV file, split on tabs.
+/** @brief One data line of a golden TSV file, split on tabs. */
 struct GoldenRow {
     std::vector<std::string> fields;
 };
 
-/// @brief Decodes a hex encoded byte string (empty input yields an empty string).
+/** @brief Decodes a hex encoded byte string (empty input yields an empty string). */
 inline std::string fromHex(std::string_view hex) {
     auto nibble = [](char c) -> unsigned {
         if (c >= '0' && c <= '9') {
@@ -40,7 +40,7 @@ inline std::string fromHex(std::string_view hex) {
     return out;
 }
 
-/// @brief Reads a golden TSV file, skipping empty lines and '#' comments.
+/** @brief Reads a golden TSV file, skipping empty lines and '#' comments. */
 inline std::vector<GoldenRow> readGolden(const std::string& path) {
     std::vector<GoldenRow> rows;
     std::ifstream          file(path);
@@ -65,7 +65,7 @@ inline std::vector<GoldenRow> readGolden(const std::string& path) {
     return rows;
 }
 
-/// @brief Parses a hexadecimal number field.
+/** @brief Parses a hexadecimal number field. */
 inline uint32_t hexValue(const std::string& field) {
     return static_cast<uint32_t>(std::stoul(field, nullptr, 16));
 }

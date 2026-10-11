@@ -11,56 +11,46 @@
 
 namespace lotus::utf8 {
 
-    namespace {
+    constexpr char32_t kContinuationMask = 0xC0U;
+    constexpr char32_t kContinuationBits = 0x80U;
+    constexpr char32_t kTrailMask        = 0x3FU;
 
-        /// Reads a byte as a code point value (unsigned char promotes to signed int otherwise).
-        constexpr char32_t toCodePoint(char c) {
-            return static_cast<char32_t>(static_cast<unsigned char>(c));
+    bool               isContinuation(char c) {
+        return (toCodePoint(c) & kContinuationMask) == kContinuationBits;
+    }
+
+    char32_t decodeOne(std::string_view in, std::size_t& index) {
+        const char32_t    b0        = toCodePoint(in[index]);
+        const std::size_t available = in.size() - index;
+        const auto        trail     = [&](std::size_t offset) { return toCodePoint(in[index + offset]) & kTrailMask; };
+
+        if (b0 < 0x80U) {
+            ++index;
+            return b0;
         }
-
-        constexpr char32_t kContinuationMask = 0xC0U;
-        constexpr char32_t kContinuationBits = 0x80U;
-        constexpr char32_t kTrailMask        = 0x3FU;
-
-        bool               isContinuation(char c) {
-            return (toCodePoint(c) & kContinuationMask) == kContinuationBits;
+        if (b0 >= 0xC2U && b0 <= 0xDFU && available >= 2U && isContinuation(in[index + 1])) {
+            const char32_t codePoint = ((b0 & 0x1FU) << 6U) | trail(1U);
+            index += 2U;
+            return codePoint;
         }
-
-        /// Decodes one sequence at in[index] and advances index by the number of bytes consumed.
-        char32_t decodeOne(std::string_view in, std::size_t& index) {
-            const char32_t    b0        = toCodePoint(in[index]);
-            const std::size_t available = in.size() - index;
-            const auto        trail     = [&](std::size_t offset) { return toCodePoint(in[index + offset]) & kTrailMask; };
-
-            if (b0 < 0x80U) {
-                ++index;
-                return b0;
-            }
-            if (b0 >= 0xC2U && b0 <= 0xDFU && available >= 2U && isContinuation(in[index + 1])) {
-                const char32_t codePoint = ((b0 & 0x1FU) << 6U) | trail(1U);
-                index += 2U;
+        if (b0 >= 0xE0U && b0 <= 0xEFU && available >= 3U && isContinuation(in[index + 1]) && isContinuation(in[index + 2])) {
+            const char32_t codePoint = ((b0 & 0x0FU) << 12U) | (trail(1U) << 6U) | trail(2U);
+            if (codePoint >= 0x800U && (codePoint < 0xD800U || codePoint > 0xDFFFU)) {
+                index += 3U;
                 return codePoint;
             }
-            if (b0 >= 0xE0U && b0 <= 0xEFU && available >= 3U && isContinuation(in[index + 1]) && isContinuation(in[index + 2])) {
-                const char32_t codePoint = ((b0 & 0x0FU) << 12U) | (trail(1U) << 6U) | trail(2U);
-                if (codePoint >= 0x800U && (codePoint < 0xD800U || codePoint > 0xDFFFU)) {
-                    index += 3U;
-                    return codePoint;
-                }
-            }
-            if (b0 >= 0xF0U && b0 <= 0xF4U && available >= 4U && isContinuation(in[index + 1]) && isContinuation(in[index + 2]) && isContinuation(in[index + 3])) {
-                const char32_t codePoint = ((b0 & 0x07U) << 18U) | (trail(1U) << 12U) | (trail(2U) << 6U) | trail(3U);
-                if (codePoint >= 0x10000U && codePoint <= 0x10FFFFU) {
-                    index += 4U;
-                    return codePoint;
-                }
-            }
-            // Invalid sequence: consume a single byte, like Go's range over a string.
-            ++index;
-            return kReplacement;
         }
-
-    } // namespace
+        if (b0 >= 0xF0U && b0 <= 0xF4U && available >= 4U && isContinuation(in[index + 1]) && isContinuation(in[index + 2]) && isContinuation(in[index + 3])) {
+            const char32_t codePoint = ((b0 & 0x07U) << 18U) | (trail(1U) << 12U) | (trail(2U) << 6U) | trail(3U);
+            if (codePoint >= 0x10000U && codePoint <= 0x10FFFFU) {
+                index += 4U;
+                return codePoint;
+            }
+        }
+        // Invalid sequence: consume a single byte, like Go's range over a string.
+        ++index;
+        return kReplacement;
+    }
 
     std::size_t length(std::string_view in) {
         std::size_t count = 0;
@@ -78,7 +68,7 @@ namespace lotus::utf8 {
         }
         std::size_t start  = in.size();
         std::size_t walked = 0;
-        while (start > 0 && walked < 3 && isContinuation(in[start - 1])) {
+        while (start > 0 && walked < 3U && isContinuation(in[start - 1])) {
             --start;
             ++walked;
         }

@@ -237,7 +237,9 @@ namespace lotus {
     }
 
     void Engine::restoreLastWord(bool toVietnamese) {
-        const auto [previous, lastComb] = extractLastWord(composition_, effectKeys());
+        // Go splits the last word with the raw input method keys here, so the brackets are not part
+        // of the word, unlike in isValid / processedString / canProcessKey.
+        const auto [previous, lastComb] = extractLastWord(composition_, std::u32string_view(inputMethod_.keys.data(), inputMethod_.keys.size()));
         if (lastComb.empty()) {
             return;
         }
@@ -270,7 +272,8 @@ namespace lotus {
             composition_.pop_back();
             return;
         }
-        const auto [previous, lastComb] = extractLastWord(composition_, effectKeys());
+        // Go also splits the last word with the raw input method keys here.
+        const auto [previous, lastComb] = extractLastWord(composition_, std::u32string_view(inputMethod_.keys.data(), inputMethod_.keys.size()));
         Composition newComb;
         for (const TransformationPtr& t : lastComb) {
             if (isSame(t->target, lastAppending) || isSame(t, lastAppending)) {

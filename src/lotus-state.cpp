@@ -27,20 +27,19 @@
 namespace fcitx {
     constexpr int MAX_SCAN_LENGTH = 15;
 
-    namespace {
-        constexpr int kMinDelayMs = 1;
-        constexpr int kMaxDelayMs = 1000;
-        int           clampDelay(int value) {
-            return std::clamp(value, kMinDelayMs, kMaxDelayMs);
-        }
-    } // namespace
+    constexpr int kMinDelayMs = 1;
+    constexpr int kMaxDelayMs = 1000;
 
-    static void commitStringWithLog(fcitx::InputContext* ic, const std::string& text) {
+    int           clampDelay(int value) {
+        return std::clamp(value, kMinDelayMs, kMaxDelayMs);
+    }
+
+    void commitStringWithLog(fcitx::InputContext* ic, const std::string& text) {
         ic->commitString(text);
         LOTUS_INFO("Commit: " + text);
     }
 
-    static inline bool isWordBreak(uint32_t ucs4) {
+    bool isWordBreak(uint32_t ucs4) {
         // Space, tab, newline, carriage return, null, or punctuation/symbols (: ; < = > ? @)
         return ucs4 == ' ' || ucs4 == '\t' || ucs4 == '\n' || ucs4 == '\r' || ucs4 == 0 || (ucs4 >= 58 && ucs4 <= 64);
     }

@@ -30,6 +30,27 @@ namespace fcitx {
     class SurroundingText;
 
     /**
+     * @brief Clamps a delay read from the configuration to the supported range.
+     * @param value Delay in milliseconds.
+     * @return The delay clamped to the supported range.
+     */
+    int clampDelay(int value);
+
+    /**
+     * @brief Commits text to the client application and logs it once.
+     * @param ic Input context of the client.
+     * @param text Text to commit.
+     */
+    void commitStringWithLog(InputContext* ic, const std::string& text);
+
+    /**
+     * @brief Whether a code point breaks a word.
+     * @param ucs4 Code point to test.
+     * @return True when the code point breaks a word.
+     */
+    bool isWordBreak(uint32_t ucs4);
+
+    /**
      * @brief Per-input-context state for Lotus input method.
      *
      * Manages the input state, buffers, and mode-specific handling for each input context.

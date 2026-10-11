@@ -236,7 +236,7 @@ namespace fcitx {
         return cachedValue;
     }
 
-    static inline uintptr_t newMacroTable(const lotusMacroTable& macroTable) {
+    uintptr_t newMacroTable(const lotusMacroTable& macroTable) {
         const auto&        macros = *macroTable.macros;
         std::vector<char*> charArray;
         charArray.reserve((macros.size() * 2) + 1);
@@ -249,7 +249,7 @@ namespace fcitx {
         return NewMacroTable(charArray.data());
     }
 
-    static inline std::vector<std::string> convertToStringList(char** list) {
+    std::vector<std::string> convertToStringList(char** list) {
         std::vector<std::string> result;
         if (list == nullptr) {
             return result;

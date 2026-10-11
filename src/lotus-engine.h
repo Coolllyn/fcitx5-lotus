@@ -127,6 +127,20 @@ namespace fcitx {
     KeySym typeKeyForModeMenuHotkey(KeySym hotkeySym, const lotusConfig& config);
 
     /**
+     * @brief Allocates a Go macro table handle from the macro table configuration.
+     * @param macroTable Macro table read from the configuration file.
+     * @return Handle of the Go macro table, or 0 when there is nothing to build.
+     */
+    uintptr_t newMacroTable(const lotusMacroTable& macroTable);
+
+    /**
+     * @brief Copies a NULL-terminated C string array into a string vector.
+     * @param list Array of C strings.
+     * @return The array contents, stopping at the NULL terminator.
+     */
+    std::vector<std::string> convertToStringList(char** list);
+
+    /**
      * @brief Main engine class for Lotus input method.
      *
      * Handles input processing, configuration management, and UI actions.

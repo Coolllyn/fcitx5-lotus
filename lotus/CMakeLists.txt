@@ -10,6 +10,7 @@ add_library(lotus_engine STATIC
     flattener.cpp
     input_method.cpp
     rules_parser.cpp
+    spelling.cpp
     utf8.cpp
     utils.cpp
     data/case_data.cpp

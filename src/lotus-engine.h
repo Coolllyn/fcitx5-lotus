@@ -35,6 +35,16 @@ namespace fcitx {
     class LotusState;
 
     /**
+     * @brief Menu label, shortcut key and visibility of one typing mode.
+     */
+    struct ModeInfo {
+        LotusMode   mode;
+        std::string label;
+        KeySym      key;
+        bool        visible;
+    };
+
+    /**
      * @brief Main engine class for Lotus input method.
      *
      * Handles input processing, configuration management, and UI actions.
@@ -316,6 +326,47 @@ namespace fcitx {
          * @param mode The mode to set
          */
         void setAppRule(const std::string& appName, LotusMode mode);
+
+        /**
+         * @brief Handles the key event while the application mode menu is open.
+         * @param keyEvent The key event.
+         * @return True when the event was consumed by the menu.
+         */
+        bool handleAppModeMenu(KeyEvent& keyEvent);
+
+        /**
+         * @brief Handles the cycle mode hotkey.
+         * @param ic Current input context.
+         * @param keyEvent The key event.
+         * @return True when the event was consumed by the hotkey.
+         */
+        bool handleCycleModeHotkey(InputContext* ic, KeyEvent& keyEvent);
+
+        /**
+         * @brief Handles the mode menu hotkey.
+         * @param ic Current input context.
+         * @param keyEvent The key event.
+         * @return True when the event was consumed by the hotkey.
+         */
+        bool handleModeMenuHotkey(InputContext* ic, KeyEvent& keyEvent);
+
+        /**
+         * @brief Stores the surrounding text length when the cursor sits at the end of the text.
+         * @param ic Current input context.
+         */
+        static void syncRealtextLen(InputContext* ic);
+
+        /**
+         * @brief Maps a mode name from Mode Order to its mode, menu label, shortcut and visibility.
+         * @return The mode information keyed by the mode name used in the configuration.
+         */
+        std::unordered_map<std::string, ModeInfo> modeMap() const;
+
+        /**
+         * @brief Collects the visible modes in Mode Order order, skipping duplicates.
+         * @return The enabled modes in the order they are cycled through.
+         */
+        std::vector<LotusMode> enabledModesInOrder() const;
 
         /**
          * @brief Shows the application mode selection menu.

@@ -149,6 +149,62 @@ namespace fcitx {
         static void send_select_uinput(size_t count, uint32_t pre_delay, uint32_t interval, uint32_t post_delay);
 
         /**
+         * @brief Handles the pre-dispatch guards of a key event (engine presence, shift in
+         * preedit mode, modifier taps and key releases).
+         * @param keyEvent The key event to inspect.
+         * @return True when the event must not be processed any further.
+         */
+        bool handleKeyEventGuards(KeyEvent& keyEvent);
+
+        /**
+         * @brief Reconnects to the uinput server when the client socket is not open.
+         */
+        static void ensureUinputConnection();
+
+        /**
+         * @brief Finishes an in-flight replacement once every echoed backspace arrived.
+         */
+        void completePendingReplacement();
+
+        /**
+         * @brief Applies auto-capitalization state to the pressed key.
+         * @param keyEvent The key event, which may be rewritten with an upper case key.
+         * @param currentSym The current key symbol, replaced by its upper case variant.
+         */
+        void applyAutoCapitalize(KeyEvent& keyEvent, KeySym& currentSym);
+
+        /**
+         * @brief Handles keys received while a replacement is still deleting text.
+         * @param keyEvent The key event.
+         * @param currentSym The current key symbol.
+         * @return True when the event was consumed.
+         */
+        bool handleKeyWhileDeleting(KeyEvent& keyEvent, KeySym currentSym);
+
+        /**
+         * @brief Handles the double space to period shortcut.
+         * @param keyEvent The key event.
+         * @param currentSym The current key symbol.
+         * @return True when the shortcut fired and the event was consumed.
+         */
+        bool handleDoubleSpaceToPeriod(KeyEvent& keyEvent, KeySym currentSym);
+
+        /**
+         * @brief Handles the double hyphen to em-dash shortcut.
+         * @param keyEvent The key event.
+         * @param currentSym The current key symbol.
+         * @return True when the shortcut fired and the event was consumed.
+         */
+        bool handleDoubleHyphenToEmDash(KeyEvent& keyEvent, KeySym currentSym);
+
+        /**
+         * @brief Dispatches the key event to the handler of the active mode.
+         * @param keyEvent The key event.
+         * @param currentSym The current key symbol.
+         */
+        void handleActiveMode(KeyEvent& keyEvent, KeySym currentSym);
+
+        /**
          * @brief Checks if autofill is certain for surrounding text.
          * @param s The surrounding text.
          * @return True if autofill should proceed.
@@ -204,6 +260,35 @@ namespace fcitx {
          * @param addedPart Text to insert.
          */
         void performReplacement(const std::string& deletedPart, const std::string& addedPart);
+
+        /**
+         * @brief Replaces the last character, either through surrounding text or through uinput.
+         * @param deleted Text to delete.
+         * @param added Text to insert.
+         * @param logMsg Message to log once the replacement is issued.
+         */
+        void commitOrReplace(const std::string& deleted, const std::string& added, const std::string& logMsg);
+
+        /**
+         * @brief Forwards special keys (cursor move, Tab, Escape, modifiers) and reports
+         * whether the event is consumed.
+         * @param keyEvent The key event.
+         * @param currentSym The current key symbol.
+         * @return True when the event was forwarded.
+         */
+        bool forwardSpecialKey(KeyEvent& keyEvent, KeySym& currentSym);
+
+        /**
+         * @brief Reads the text the engine wants to commit.
+         * @return The pending commit text, empty when there is none.
+         */
+        std::string pullCommitString();
+
+        /**
+         * @brief Reads the current engine preedit.
+         * @return The preedit text, empty when there is none.
+         */
+        std::string pullPreeditString();
 
         /**
          * @brief Handles the double space to period replacement.

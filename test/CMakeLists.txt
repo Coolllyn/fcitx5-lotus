@@ -70,6 +70,7 @@ add_lotus_engine_test(lotus_engine_smoke lotus-engine-smoke.cpp "unit;lotus;engi
 add_lotus_engine_test(lotus_engine_test lotus-engine-test.cpp "unit;lotus;engine")
 add_lotus_engine_test(lotus_rebuild lotus-rebuild-test.cpp "unit;lotus;rebuild")
 add_lotus_engine_test(lotus_macro_dictionary lotus-macro-dictionary-test.cpp "unit;lotus;macro")
+add_lotus_engine_test(lotus_key_processor lotus-key-processor-test.cpp "unit;lotus;key-processor")
 add_lotus_engine_test(lotus_golden_smoke lotus-golden-smoke.cpp "unit;lotus;golden")
 
 add_lotus_headless_test(preedit_lifecycle preedit-lifecycle.cpp "integration;preedit")

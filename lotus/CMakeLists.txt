@@ -5,6 +5,7 @@
 # Portable C++17 Vietnamese input engine, ported from bamboo/bamboo-core (MIT, kept in CREDITS).
 add_library(lotus_engine STATIC
     case_map.cpp
+    encoder.cpp
     utf8.cpp
     utils.cpp
     data/case_data.cpp

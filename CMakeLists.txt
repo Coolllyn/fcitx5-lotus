@@ -57,6 +57,7 @@ target_include_directories(lotus_executable_path PUBLIC ${CMAKE_CURRENT_SOURCE_D
 
 add_subdirectory(po)
 add_subdirectory(bamboo)
+add_subdirectory(lotus)
 add_subdirectory(src)
 add_subdirectory(data)
 add_subdirectory(server)

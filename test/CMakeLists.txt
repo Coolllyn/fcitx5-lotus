@@ -46,6 +46,19 @@ function(add_bamboo_test target source labels)
     set_tests_properties(${target} PROPERTIES LABELS "${labels}" TIMEOUT 20)
 endfunction()
 
+# Helper to compile a portable unit test of the C++ engine (lotus/), no fcitx or Go needed.
+#
+# Usage:
+#   add_lotus_engine_test(<target_name> <source_file> "<labels>")
+function(add_lotus_engine_test target source labels)
+    add_executable(${target} ${source})
+    target_link_libraries(${target} PRIVATE Lotus::Engine)
+    add_test(NAME ${target} COMMAND ${target})
+    set_tests_properties(${target} PROPERTIES LABELS "${labels}" TIMEOUT 20)
+endfunction()
+
+add_lotus_engine_test(lotus_utf8 lotus-utf8-test.cpp "unit;lotus")
+
 add_lotus_headless_test(preedit_lifecycle preedit-lifecycle.cpp "integration;preedit")
 add_lotus_headless_test(app_rule_reset app-rule-reset.cpp "integration;apprule")
 add_lotus_headless_test(preedit_smoke_client preedit-smoke-client.cpp "integration;preedit")

@@ -5,7 +5,7 @@
 // Unit test for lotus::utf8. The decoding rules must match Go's `for range string` and
 // `utf8.DecodeRuneInString` (invalid sequence -> U+FFFD, one byte consumed) because the port
 // of bamboo-core relies on that parity.
-#include "lotus/utf8.h"
+#include "utf8.h"
 
 #include <algorithm>
 #include <cstddef>

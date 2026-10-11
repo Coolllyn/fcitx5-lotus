@@ -60,6 +60,7 @@ endfunction()
 
 add_lotus_engine_test(lotus_utf8 lotus-utf8-test.cpp "unit;lotus")
 add_lotus_engine_test(lotus_data lotus-data-test.cpp "unit;lotus")
+add_lotus_engine_test(lotus_utils lotus-utils-test.cpp "unit;lotus")
 add_lotus_engine_test(lotus_golden_smoke lotus-golden-smoke.cpp "unit;lotus;golden")
 
 add_lotus_headless_test(preedit_lifecycle preedit-lifecycle.cpp "integration;preedit")

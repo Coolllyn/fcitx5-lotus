@@ -19,9 +19,11 @@
 #include <vector>
 
 namespace lotus::data {
-    /// @brief (lower, upper) code point pairs used by the engine.
+    /** @brief (lower, upper) code point pairs used by the engine. */
     const std::vector<std::pair<char32_t, char32_t>>& lowerUpperPairs();
-    /// @brief Every code point the engine treats as a letter (ASCII, Latin-1, Vietnamese).
+    /** @brief (upper, lower) code point pairs, sorted by upper, for the reverse lookup. */
+    const std::vector<std::pair<char32_t, char32_t>>& upperLowerPairs();
+    /** @brief Every code point the engine treats as a letter (ASCII, Latin-1, Vietnamese). */
     std::u32string_view letters();
 } // namespace lotus::data
 

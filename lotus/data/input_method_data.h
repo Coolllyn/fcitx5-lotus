@@ -19,7 +19,7 @@
 #include <vector>
 
 namespace lotus::data {
-    /// @brief input method name -> (key -> dsl line), 1:1 with Go's InputMethodDefinitions.
+    /** @brief input method name -> (key -> dsl line), 1:1 with Go's InputMethodDefinitions. */
     const std::unordered_map<std::string, std::unordered_map<std::string, std::string>>& inputMethodDefinitions();
 } // namespace lotus::data
 

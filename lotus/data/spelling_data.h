@@ -19,13 +19,13 @@
 #include <vector>
 
 namespace lotus::data {
-    /// @brief First consonant sequences (spelling rows).
+    /** @brief First consonant sequences (spelling rows). */
     const std::vector<std::vector<std::u32string_view>>& firstConsonantSeqs();
-    /// @brief Vowel sequences (row i pairs with vcMatrix()[i]).
+    /** @brief Vowel sequences (row i pairs with vcMatrix()[i]). */
     const std::vector<std::vector<std::u32string_view>>& vowelSeqs();
-    /// @brief Last consonant sequences (spelling rows).
+    /** @brief Last consonant sequences (spelling rows). */
     const std::vector<std::vector<std::u32string_view>>& lastConsonantSeqs();
-    /// @brief Vowel row -> allowed last consonant rows.
+    /** @brief Vowel row -> allowed last consonant rows. */
     const std::vector<std::vector<int>>& vcMatrix();
 } // namespace lotus::data
 

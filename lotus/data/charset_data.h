@@ -19,7 +19,7 @@
 #include <vector>
 
 namespace lotus::data {
-    /// @brief charset name -> (code point -> encoded bytes), byte identical to the Go engine.
+    /** @brief charset name -> (code point -> encoded bytes), byte identical to the Go engine. */
     const std::unordered_map<std::string_view, std::unordered_map<char32_t, std::string_view>>& charsetDefinitions();
 } // namespace lotus::data
 

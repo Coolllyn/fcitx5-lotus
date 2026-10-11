@@ -19,11 +19,11 @@
 #include <vector>
 
 namespace lotus::data {
-    /// @brief The Vietnamese vowel table (12 bases x 6 tones), 1:1 with Go's Vowels.
+    /** @brief The Vietnamese vowel table (12 bases x 6 tones), 1:1 with Go's Vowels. */
     std::u32string_view vowels();
-    /// @brief Punctuation marks that break a word.
+    /** @brief Punctuation marks that break a word. */
     const std::vector<char32_t>& punctuationMarks();
-    /// @brief Mark families (rune -> family row), 1:1 with Go's marksMaps; '_' marks an absent slot.
+    /** @brief Mark families (rune -> family row), 1:1 with Go's marksMaps; '_' marks an absent slot. */
     const std::vector<std::pair<char32_t, std::u32string_view>>& markFamilies();
 } // namespace lotus::data
 

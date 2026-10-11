@@ -6,6 +6,8 @@
 add_library(lotus_engine STATIC
     case_map.cpp
     encoder.cpp
+    input_method.cpp
+    rules_parser.cpp
     utf8.cpp
     utils.cpp
     data/case_data.cpp

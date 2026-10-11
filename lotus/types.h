@@ -84,6 +84,16 @@ namespace lotus {
         return static_cast<uint32_t>(mode);
     }
 
+    /**
+     * @brief Combines two mode flags, like Go's `mode | flag`.
+     * @param first First flags.
+     * @param second Second flags.
+     * @return Combined flags.
+     */
+    constexpr Mode operator|(Mode first, Mode second) {
+        return static_cast<Mode>(toMask(first) | toMask(second));
+    }
+
 } // namespace lotus
 
 #endif // _LOTUS_TYPES_H_

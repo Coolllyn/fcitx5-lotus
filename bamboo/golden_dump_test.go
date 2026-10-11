@@ -28,10 +28,33 @@ import (
 )
 
 const (
-	goldenSeed        = 20261007
-	randomCases       = 2000
-	maxSequenceLength = 12
+	goldenSeedDefault        = 20261007
+	randomCasesDefault       = 2000
+	maxSequenceLengthDefault = 12
 )
+
+// goldenSeed, randomCases and maxSequenceLength are configurable so a local sweep can drive the very
+// same corpus builder with a much larger sample. With no environment variable set they keep the
+// values the committed test/golden files were generated with, so
+// `LOTUS_DUMP_GOLDEN=1 go test -run TestDumpGoldenCorpus` stays byte for byte reproducible.
+var (
+	goldenSeed        = uint64(envInt("LOTUS_GOLDEN_SEED", goldenSeedDefault))
+	randomCases       = envInt("LOTUS_GOLDEN_RANDOM_COUNT", randomCasesDefault)
+	maxSequenceLength = envInt("LOTUS_GOLDEN_MAX_LENGTH", maxSequenceLengthDefault)
+)
+
+// envInt reads a positive integer from the environment, falling back on anything unset or invalid.
+func envInt(name string, fallback int) int {
+	value := os.Getenv(name)
+	if value == "" {
+		return fallback
+	}
+	var parsed int
+	if _, err := fmt.Sscanf(value, "%d", &parsed); err != nil || parsed <= 0 {
+		return fallback
+	}
+	return parsed
+}
 
 // step is one keystroke of a corpus sequence. mode is the ProcessKey mode for the core engine and
 // the modifier mask for the key processor.
@@ -233,6 +256,9 @@ func TestDumpGoldenCorpus(t *testing.T) {
 		t.Skip("set LOTUS_DUMP_GOLDEN=1 to regenerate test/golden")
 	}
 	outDir := filepath.Join("..", "test", "golden")
+	if override := os.Getenv("LOTUS_GOLDEN_OUT_DIR"); override != "" {
+		outDir = override
+	}
 	if err := os.MkdirAll(outDir, 0o755); err != nil {
 		t.Fatal(err)
 	}

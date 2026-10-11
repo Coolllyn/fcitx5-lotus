@@ -630,8 +630,17 @@ namespace {
     // then one preeditProcessKeyEvent per step. Columns are case, step, keyHex, state, opts, flags,
     // w2u, bracket, accepted, preeditHex, commitHex; keyHex is a keysym and preeditHex/commitHex are
     // the UTF-8 bytes of preeditText / commitText (commitText cleared after each step, like the dump).
+    // LOTUS_GOLDEN_DIR redirects the replay to a locally generated sweep; the compiled in
+    // LOTUS_TEST_GOLDEN_DIR stays the default for the committed corpus.
+    const char* goldenDir() {
+        if (const char* override = std::getenv("LOTUS_GOLDEN_DIR")) {
+            return override;
+        }
+        return LOTUS_TEST_GOLDEN_DIR;
+    }
+
     long replayGolden() {
-        const std::string                             path = std::string(LOTUS_TEST_GOLDEN_DIR) + "/key_processor.tsv";
+        const std::string                             path = std::string(goldenDir()) + "/key_processor.tsv";
         const auto                                    rows = readGolden(path);
 
         std::unordered_map<std::string, KeyProcessor> processors;

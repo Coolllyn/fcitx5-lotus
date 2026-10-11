@@ -20,8 +20,17 @@ namespace {
         }
     }
 
+    // LOTUS_GOLDEN_DIR redirects the smoke check to a locally generated sweep; the compiled in
+    // LOTUS_TEST_GOLDEN_DIR stays the default for the committed corpus.
+    const char* goldenDir() {
+        if (const char* override = std::getenv("LOTUS_GOLDEN_DIR")) {
+            return override;
+        }
+        return LOTUS_TEST_GOLDEN_DIR;
+    }
+
     std::string goldenPath(const char* name) {
-        return std::string(LOTUS_TEST_GOLDEN_DIR) + "/" + name;
+        return std::string(goldenDir()) + "/" + name;
     }
 
 } // namespace

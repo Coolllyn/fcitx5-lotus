@@ -617,8 +617,17 @@ namespace {
 
     // Replays test/golden/engine_core.tsv: one engine per case id, built from the flags/w2u/bracket
     // of its first row, then one ProcessKey per step. Returns the number of rows checked.
+    // LOTUS_GOLDEN_DIR redirects the replay to a locally generated sweep; the compiled in
+    // LOTUS_TEST_GOLDEN_DIR stays the default for the committed corpus.
+    const char* goldenDir() {
+        if (const char* override = std::getenv("LOTUS_GOLDEN_DIR")) {
+            return override;
+        }
+        return LOTUS_TEST_GOLDEN_DIR;
+    }
+
     long replayGolden() {
-        const std::string                                        path = std::string(LOTUS_TEST_GOLDEN_DIR) + "/engine_core.tsv";
+        const std::string                                        path = std::string(goldenDir()) + "/engine_core.tsv";
         const auto                                               rows = readGolden(path);
 
         std::unordered_map<std::string, std::unique_ptr<Engine>> engines;

@@ -58,6 +58,7 @@ function(add_lotus_engine_test target source labels)
 endfunction()
 
 add_lotus_engine_test(lotus_utf8 lotus-utf8-test.cpp "unit;lotus")
+add_lotus_engine_test(lotus_data lotus-data-test.cpp "unit;lotus")
 
 add_lotus_headless_test(preedit_lifecycle preedit-lifecycle.cpp "integration;preedit")
 add_lotus_headless_test(app_rule_reset app-rule-reset.cpp "integration;apprule")

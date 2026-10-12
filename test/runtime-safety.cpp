@@ -57,15 +57,15 @@ int main() {
 
     // Step 1: $TIME follows TZ, so the local time is still read from the zone of the process and
     // not from a fixed or shared time.
-    const std::string hourVietnam = hourInZone("Asia/Ho_Chi_Minh");
-    const std::string hourUtc     = hourInZone("UTC");
-    if (hourVietnam.size() != 2 || hourUtc.size() != 2) {
-        reportFailure("$TIME hour", "two digits in both zones", "[" + hourVietnam + "] and [" + hourUtc + "]", "$TIME must render the hour of the configured zone with two digits");
+    const std::string hourAhead = hourInZone("UTC-7");
+    const std::string hourUtc   = hourInZone("UTC0");
+    if (hourAhead.size() != 2 || hourUtc.size() != 2) {
+        reportFailure("$TIME hour", "two digits in both zones", "[" + hourAhead + "] and [" + hourUtc + "]", "$TIME must render the hour of the configured zone with two digits");
         ok = false;
     } else {
-        const int difference = ((std::stoi(hourVietnam) - std::stoi(hourUtc)) + 24) % 24;
+        const int difference = ((std::stoi(hourAhead) - std::stoi(hourUtc)) + 24) % 24;
         if (difference != 7) {
-            reportFailure("$TIME hour", "Asia/Ho_Chi_Minh ahead of UTC by 7 hours", "difference=" + std::to_string(difference),
+            reportFailure("$TIME hour", "UTC-7 (local time UTC+7) ahead of UTC0 by 7 hours", "difference=" + std::to_string(difference),
                           "$TIME must render the local time of the configured TZ, not UTC or a fixed zone");
             ok = false;
         }

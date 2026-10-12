@@ -178,7 +178,7 @@ namespace lotus {
             }
         }
 
-        const CvcParts appendingParts = extractCvcAppendingTrans(appendingList);
+        CvcParts appendingParts = extractCvcAppendingTrans(appendingList);
         if (appendingList.size() == n) {
             return appendingParts;
         }

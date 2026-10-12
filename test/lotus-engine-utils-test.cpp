@@ -292,9 +292,9 @@ int main() {
         const auto        o  = lotus::makeAppendingTrans(U'o', false);
         const auto        a  = lotus::makeAppendingTrans(U'a', false);
         const Composition uo = {u, o};
-        check("right most vowels", lotus::getRightMostVowels(uo).size() == 2U);
-        check("right most vowels empty", lotus::getRightMostVowels({}).empty());
-        check("right most vowels consonants only", lotus::getRightMostVowels({lotus::makeAppendingTrans(U'b', false)}).empty());
+        check("right most vowels", lotus::rightMostVowels(uo).size() == 2U);
+        check("right most vowels empty", lotus::rightMostVowels({}).empty());
+        check("right most vowels consonants only", lotus::rightMostVowels({lotus::makeAppendingTrans(U'b', false)}).empty());
 
         const auto        graveOnO = makeEffect(o, EffectType::ToneTransformation, Tone::Grave);
         const auto        graveOnA = makeEffect(a, EffectType::ToneTransformation, Tone::Grave);

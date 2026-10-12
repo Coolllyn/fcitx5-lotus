@@ -46,7 +46,7 @@ namespace lotus {
         return isValidCVC(flatten(cvc.firstConsonant, flattenMode), flatten(cvc.vowel, flattenMode), flatten(cvc.lastConsonant, flattenMode), inputIsFullComplete);
     }
 
-    Composition getRightMostVowels(const Composition& composition) {
+    Composition rightMostVowels(const Composition& composition) {
         return extractCvcTrans(composition).vowel;
     }
 
@@ -267,7 +267,7 @@ namespace lotus {
         } else {
             // Implement ươ/ưo(i/c/ng) + o -> uô.
             if (matchesUhO(flatten(composition, toMask(Mode::VietnameseMode) | toMask(Mode::ToneLess) | toMask(Mode::LowerCase)))) {
-                const Composition vowels = filterAppendingComposition(getRightMostVowels(composition));
+                const Composition vowels = filterAppendingComposition(rightMostVowels(composition));
                 if (!vowels.empty()) {
                     auto clearEffect             = std::make_shared<Transformation>();
                     clearEffect->target          = vowels[0];
@@ -322,7 +322,7 @@ namespace lotus {
         Composition transformations;
         // Go compares the vowels with nil, which only happens when the composition holds no vowel at
         // all, so an empty result carries the same information here.
-        const Composition       rightmostVowels = getRightMostVowels(composition);
+        const Composition       rightmostVowels = rightMostVowels(composition);
         const TransformationPtr lastToneTrans   = getLastToneTransformation(composition);
         if (rightmostVowels.empty() || lastToneTrans == nullptr) {
             return transformations;

@@ -45,7 +45,7 @@ namespace lotus {
      * @param composition Composition.
      * @return Vowel part of extractCvcTrans, empty when the composition has no vowel (Go returns nil).
      */
-    Composition getRightMostVowels(const Composition& composition);
+    Composition rightMostVowels(const Composition& composition);
 
     /**
      * @brief Vowel the last tone has to be applied to, like Go's findToneTarget.

@@ -14,7 +14,6 @@
 
 #include "composition.h"
 
-#include <cstdint>
 #include <string>
 
 namespace lotus {

@@ -12,12 +12,8 @@
 #ifndef _LOTUS_GENERATED_INPUT_METHOD_DATA_H_
 #define _LOTUS_GENERATED_INPUT_METHOD_DATA_H_
 
-#include <cstdint>
 #include <string>
-#include <string_view>
 #include <unordered_map>
-#include <utility>
-#include <vector>
 
 namespace lotus::data {
     /** @brief input method name -> (key -> dsl line), 1:1 with Go's InputMethodDefinitions. */

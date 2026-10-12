@@ -20,11 +20,9 @@
 #include "rule.h"
 #include "transformation.h"
 
-#include <cstdint>
 #include <optional>
 #include <string>
 #include <string_view>
-#include <utility>
 #include <vector>
 
 namespace lotus {

@@ -16,7 +16,6 @@
 #include "utf8.h"
 
 #include <algorithm>
-#include <array>
 #include <string>
 #include <unordered_map>
 #include <utility>

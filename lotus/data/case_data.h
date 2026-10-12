@@ -12,10 +12,7 @@
 #ifndef _LOTUS_GENERATED_CASE_DATA_H_
 #define _LOTUS_GENERATED_CASE_DATA_H_
 
-#include <cstdint>
-#include <string>
 #include <string_view>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 

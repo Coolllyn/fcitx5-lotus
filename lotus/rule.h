@@ -14,7 +14,6 @@
 
 #include "types.h"
 
-#include <cstdint>
 #include <string>
 #include <variant>
 #include <vector>
@@ -31,12 +30,12 @@ namespace lotus {
         std::vector<Rule>        appendedRules;                      // Extra appending rules of the same key
 
         /** @brief Stores a tone in effect, like Go's Rule.SetTone. */
-        constexpr void setTone(Tone tone) {
+        void setTone(Tone tone) {
             effect = tone;
         }
 
         /** @brief Stores a mark in effect, like Go's Rule.SetMark. */
-        constexpr void setMark(Mark mark) {
+        void setMark(Mark mark) {
             effect = mark;
         }
 

@@ -16,6 +16,7 @@
 #define _LOTUS_ENGINE_H_
 
 #include "composition.h"
+#include "engine_utils.h"
 #include "rule.h"
 #include "transformation.h"
 
@@ -163,7 +164,7 @@ namespace lotus {
          * @param key Input key (any case).
          * @return Target node (null when there is none) and the rule that matches it.
          */
-        [[nodiscard]] std::pair<TransformationPtr, Rule> findTargetByKey(const Composition& composition, char32_t key) const;
+        [[nodiscard]] TargetRule findTargetByKey(const Composition& composition, char32_t key) const;
 
         /**
          * @brief Transformations a key produces on a composition, like the BambooEngine method.

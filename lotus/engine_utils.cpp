@@ -41,14 +41,13 @@ namespace lotus {
             }
         }
         // Spell checking.
-        const auto [firstConsonant, vowel, lastConsonant] = extractCvcTrans(composition);
-        const uint32_t flattenMode                        = toMask(Mode::VietnameseMode) | toMask(Mode::LowerCase) | toMask(Mode::ToneLess);
-        return isValidCVC(flatten(firstConsonant, flattenMode), flatten(vowel, flattenMode), flatten(lastConsonant, flattenMode), inputIsFullComplete);
+        const CvcParts cvc         = extractCvcTrans(composition);
+        const uint32_t flattenMode = toMask(Mode::VietnameseMode) | toMask(Mode::LowerCase) | toMask(Mode::ToneLess);
+        return isValidCVC(flatten(cvc.firstConsonant, flattenMode), flatten(cvc.vowel, flattenMode), flatten(cvc.lastConsonant, flattenMode), inputIsFullComplete);
     }
 
     Composition getRightMostVowels(const Composition& composition) {
-        const auto cvc = extractCvcTrans(composition);
-        return std::get<1>(cvc);
+        return extractCvcTrans(composition).vowel;
     }
 
     TransformationPtr findToneTarget(const Composition& composition, bool stdStyle) {
@@ -56,9 +55,9 @@ namespace lotus {
             return nullptr;
         }
         TransformationPtr target;
-        const auto        cvc           = extractCvcTrans(composition);
-        const auto&       vowel         = std::get<1>(cvc);
-        const auto&       lastConsonant = std::get<2>(cvc);
+        const CvcParts    cvc           = extractCvcTrans(composition);
+        const auto&       vowel         = cvc.vowel;
+        const auto&       lastConsonant = cvc.lastConsonant;
         const Composition vowels        = filterAppendingComposition(vowel);
         if (vowels.size() == 1U) {
             target = vowels[0];
@@ -96,8 +95,8 @@ namespace lotus {
         if (tone == Tone::None || tone == Tone::Acute || tone == Tone::Dot) {
             return true;
         }
-        const auto  cvc           = extractCvcTrans(composition);
-        const auto& lastConsonant = std::get<2>(cvc);
+        const CvcParts cvc           = extractCvcTrans(composition);
+        const auto&    lastConsonant = cvc.lastConsonant;
         if (lastConsonant.empty()) {
             return true;
         }
@@ -107,7 +106,7 @@ namespace lotus {
         return std::none_of(kDotWithConsonants.begin(), kDotWithConsonants.end(), [&lastConsonants](std::u32string_view sequence) { return lastConsonants == sequence; });
     }
 
-    std::pair<TransformationPtr, Rule> findMarkTarget(const Composition& composition, const std::vector<Rule>& rules) {
+    TargetRule findMarkTarget(const Composition& composition, const std::vector<Rule>& rules) {
         const std::u32string str = flatten(composition, toMask(Mode::VietnameseMode));
         for (auto it = composition.rbegin(); it != composition.rend(); ++it) {
             const TransformationPtr& trans = *it;
@@ -128,14 +127,14 @@ namespace lotus {
                     continue;
                 }
                 if (isValid(withEffect, false)) {
-                    return {target, rule};
+                    return TargetRule{target, rule};
                 }
             }
         }
-        return {nullptr, Rule{}};
+        return TargetRule{};
     }
 
-    std::pair<TransformationPtr, Rule> findTarget(const Composition& composition, const std::vector<Rule>& applicableRules, uint32_t flags) {
+    TargetRule findTarget(const Composition& composition, const std::vector<Rule>& applicableRules, uint32_t flags) {
         const std::u32string str = flatten(composition, toMask(Mode::VietnameseMode));
         // Find the tone target first.
         for (const auto& applicableRule : applicableRules) {
@@ -238,14 +237,14 @@ namespace lotus {
             }
         }
         // A target may be applied by many different transformations, e.g. o + o + w -> ơ.
-        const auto [target, applicableRule] = findTarget(composition, applicableRules, flags);
-        if (target != nullptr) {
+        const TargetRule found = findTarget(composition, applicableRules, flags);
+        if (found.target != nullptr) {
             auto trans         = std::make_shared<Transformation>();
-            trans->rule        = applicableRule;
-            trans->target      = target;
+            trans->rule        = found.rule;
+            trans->target      = found.target;
             trans->isUpperCase = isUpperCase;
             transformations.push_back(trans);
-            if (applicableRule.effectType != EffectType::MarkTransformation) {
+            if (found.rule.effectType != EffectType::MarkTransformation) {
                 return transformations;
             }
             Composition newComposition = composition;
@@ -255,13 +254,13 @@ namespace lotus {
             }
             // Implement the uow typing shortcut by creating a virtual Mark_HORN rule that targets
             // 'u' or 'o'.
-            const auto [virtualTarget, virtualRule] = findTarget(newComposition, applicableRules, flags);
-            if (virtualTarget != nullptr) {
-                Rule rule                 = virtualRule;
+            const TargetRule virtualFound = findTarget(newComposition, applicableRules, flags);
+            if (virtualFound.target != nullptr) {
+                Rule rule                 = virtualFound.rule;
                 rule.key                  = 0;
                 auto virtualTrans         = std::make_shared<Transformation>();
                 virtualTrans->rule        = std::move(rule);
-                virtualTrans->target      = virtualTarget;
+                virtualTrans->target      = virtualFound.target;
                 virtualTrans->isUpperCase = false;
                 transformations.push_back(virtualTrans);
             }
@@ -277,12 +276,12 @@ namespace lotus {
                     clearEffect->rule.setMark(Mark::None);
                     Composition withEffect = composition;
                     withEffect.push_back(clearEffect);
-                    const auto [newTarget, newRule] = findTarget(withEffect, applicableRules, flags);
-                    if (newTarget != nullptr && !isSame(newTarget, vowels[0])) {
+                    const TargetRule newFound = findTarget(withEffect, applicableRules, flags);
+                    if (newFound.target != nullptr && !isSame(newFound.target, vowels[0])) {
                         transformations.push_back(clearEffect);
                         auto trans         = std::make_shared<Transformation>();
-                        trans->rule        = newRule;
-                        trans->target      = newTarget;
+                        trans->rule        = newFound.rule;
+                        trans->target      = newFound.target;
                         trans->isUpperCase = isUpperCase;
                         transformations.push_back(trans);
                         return transformations;
@@ -346,11 +345,11 @@ namespace lotus {
         return transformations;
     }
 
-    std::pair<Composition, Composition> extractLastSyllable(const Composition& composition) {
-        const auto  split    = extractLastWord(composition, U"");
-        Composition previous = split.first;
-        Composition last     = split.second;
-        std::size_t anchor   = 0U;
+    WordSplit extractLastSyllable(const Composition& composition) {
+        const WordSplit split    = extractLastWord(composition, U"");
+        Composition     previous = split.previous;
+        Composition     last     = split.last;
+        std::size_t     anchor   = 0U;
         for (std::size_t i = 0U; i < last.size(); ++i) {
             if (!isValid(sliceComposition(last, anchor, i + 1U), false)) {
                 anchor = i;
@@ -360,7 +359,7 @@ namespace lotus {
             const Composition head = sliceComposition(last, 0U, anchor);
             previous.insert(previous.end(), head.begin(), head.end());
         }
-        return {previous, sliceComposition(last, anchor, last.size())};
+        return WordSplit{previous, sliceComposition(last, anchor, last.size())};
     }
 
     bool matchesUOhTail(std::u32string_view text) {

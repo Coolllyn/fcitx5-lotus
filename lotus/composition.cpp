@@ -121,10 +121,10 @@ namespace lotus {
         return makeAppendingTrans(lowerKey, isUpperCase);
     }
 
-    std::tuple<Composition, Composition, Composition> extractCvcAppendingTrans(const Composition& composition) {
+    CvcParts extractCvcAppendingTrans(const Composition& composition) {
         const std::size_t n = composition.size();
         if (n == 0U) {
-            return {Composition{}, Composition{}, Composition{}};
+            return CvcParts{};
         }
 
         std::size_t lcStart = n;
@@ -161,13 +161,13 @@ namespace lotus {
             firstConsonant = sliceComposition(composition, 0U, voStart + 1U);
             vowel          = sliceComposition(composition, voStart + 1U, lcStart);
         }
-        return {firstConsonant, vowel, lastConsonant};
+        return CvcParts{firstConsonant, vowel, lastConsonant};
     }
 
-    std::tuple<Composition, Composition, Composition> extractCvcTrans(const Composition& composition) {
+    CvcParts extractCvcTrans(const Composition& composition) {
         const std::size_t n = composition.size();
         if (n == 0U) {
-            return {Composition{}, Composition{}, Composition{}};
+            return CvcParts{};
         }
 
         Composition appendingList;
@@ -178,30 +178,30 @@ namespace lotus {
             }
         }
 
-        const auto [fcApp, voApp, lcApp] = extractCvcAppendingTrans(appendingList);
+        const CvcParts appendingParts = extractCvcAppendingTrans(appendingList);
         if (appendingList.size() == n) {
-            return {fcApp, voApp, lcApp};
+            return appendingParts;
         }
 
-        Composition fc = fcApp;
-        Composition vo = voApp;
-        Composition lc = lcApp;
+        Composition fc = appendingParts.firstConsonant;
+        Composition vo = appendingParts.vowel;
+        Composition lc = appendingParts.lastConsonant;
         for (const auto& trans : composition) {
             if (trans->target == nullptr) {
                 continue;
             }
-            if (isIn(trans->target, voApp)) {
+            if (isIn(trans->target, appendingParts.vowel)) {
                 vo.push_back(trans);
-            } else if (isIn(trans->target, fcApp)) {
+            } else if (isIn(trans->target, appendingParts.firstConsonant)) {
                 fc.push_back(trans);
-            } else if (isIn(trans->target, lcApp)) {
+            } else if (isIn(trans->target, appendingParts.lastConsonant)) {
                 lc.push_back(trans);
             }
         }
-        return {fc, vo, lc};
+        return CvcParts{fc, vo, lc};
     }
 
-    std::pair<Composition, Composition> extractLastWord(const Composition& composition, std::u32string_view effectKeys) {
+    WordSplit extractLastWord(const Composition& composition, std::u32string_view effectKeys) {
         const std::size_t n = composition.size();
         for (std::size_t index = n; index > 0U; --index) {
             const std::size_t    i = index - 1U;
@@ -213,15 +213,15 @@ namespace lotus {
             const char32_t codePoint = canvas.front();
             if (!utils::isAlpha(codePoint) && !utils::inKeyList(effectKeys, codePoint)) {
                 if (i == n - 1U) {
-                    return {composition, Composition{}};
+                    return WordSplit{composition, Composition{}};
                 }
-                return {sliceComposition(composition, 0U, i + 1U), sliceComposition(composition, i + 1U, n)};
+                return WordSplit{sliceComposition(composition, 0U, i + 1U), sliceComposition(composition, i + 1U, n)};
             }
         }
-        return {Composition{}, composition};
+        return WordSplit{Composition{}, composition};
     }
 
-    std::pair<Composition, Composition> extractLastWordWithPunctuationMarks(const Composition& composition) {
+    WordSplit extractLastWordWithPunctuationMarks(const Composition& composition) {
         const std::size_t n = composition.size();
         for (std::size_t index = n; index > 0U; --index) {
             const std::size_t    i      = index - 1U;
@@ -231,12 +231,12 @@ namespace lotus {
             }
             if (utils::isSpace(canvas.front())) {
                 if (i == n - 1U) {
-                    return {composition, Composition{}};
+                    return WordSplit{composition, Composition{}};
                 }
-                return {sliceComposition(composition, 0U, i + 1U), sliceComposition(composition, i + 1U, n)};
+                return WordSplit{sliceComposition(composition, 0U, i + 1U), sliceComposition(composition, i + 1U, n)};
             }
         }
-        return {Composition{}, composition};
+        return WordSplit{Composition{}, composition};
     }
 
 } // namespace lotus

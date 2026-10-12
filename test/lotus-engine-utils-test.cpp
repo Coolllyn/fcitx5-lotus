@@ -184,20 +184,20 @@ int main() {
     // findTarget: the first tone rule wins, mark rules are found afterwards, and a key without any
     // applicable rule returns a null target with a default constructed rule (Go's nil, Rule{}).
     {
-        const auto a                         = lotus::makeAppendingTrans(U'a', false);
-        const Rule tRule                     = toneRule(U'f', Tone::Grave);
-        const auto [toneTarget, toneApplied] = lotus::findTarget({a}, {tRule}, kStdFlags);
-        check("findTarget tone target", lotus::isSame(toneTarget, a));
-        check("findTarget tone rule", toneApplied.effectType == EffectType::ToneTransformation && toneApplied.tone() == Tone::Grave && toneApplied.key == U'f');
+        const auto              a         = lotus::makeAppendingTrans(U'a', false);
+        const Rule              tRule     = toneRule(U'f', Tone::Grave);
+        const lotus::TargetRule toneFound = lotus::findTarget({a}, {tRule}, kStdFlags);
+        check("findTarget tone target", lotus::isSame(toneFound.target, a));
+        check("findTarget tone rule", toneFound.rule.effectType == EffectType::ToneTransformation && toneFound.rule.tone() == Tone::Grave && toneFound.rule.key == U'f');
 
-        const Rule mRule                     = markRule(U'w', U'a', U'ă', Mark::Breve);
-        const auto [markTarget, markApplied] = lotus::findTarget({a}, {mRule}, kStdFlags);
-        check("findTarget mark target", lotus::isSame(markTarget, a));
-        check("findTarget mark rule", markApplied.effectType == EffectType::MarkTransformation && markApplied.mark() == Mark::Breve && markApplied.effectOn == U'a');
+        const Rule              mRule     = markRule(U'w', U'a', U'ă', Mark::Breve);
+        const lotus::TargetRule markFound = lotus::findTarget({a}, {mRule}, kStdFlags);
+        check("findTarget mark target", lotus::isSame(markFound.target, a));
+        check("findTarget mark rule", markFound.rule.effectType == EffectType::MarkTransformation && markFound.rule.mark() == Mark::Breve && markFound.rule.effectOn == U'a');
 
-        const auto [noTarget, noRule] = lotus::findTarget({lotus::makeAppendingTrans(U'b', false)}, {tRule}, 0U);
-        check("findTarget nothing target", noTarget == nullptr);
-        check("findTarget nothing rule", noRule.key == 0 && noRule.mark() == Mark::None && noRule.effectType == EffectType::Appending);
+        const lotus::TargetRule noneFound = lotus::findTarget({lotus::makeAppendingTrans(U'b', false)}, {tRule}, 0U);
+        check("findTarget nothing target", noneFound.target == nullptr);
+        check("findTarget nothing rule", noneFound.rule.key == 0 && noneFound.rule.mark() == Mark::None && noneFound.rule.effectType == EffectType::Appending);
     }
 
     // generateTransformations: "uo" + "w" (golden curated-10), double typing an effect key, and
@@ -309,24 +309,24 @@ int main() {
     // extractLastSyllable: the punctuation mark stays with the previous part, and an invalid tail
     // is moved there as well.
     {
-        const auto        b        = lotus::makeAppendingTrans(U'b', false);
-        const auto        a        = lotus::makeAppendingTrans(U'a', false);
-        const auto        space    = lotus::makeAppendingTrans(U' ', false);
-        const Composition twoWords = {b, a, space, lotus::makeAppendingTrans(U'b', false), lotus::makeAppendingTrans(U'a', false)};
-        const auto        split    = lotus::extractLastSyllable(twoWords);
-        check("extractLastSyllable two words previous", split.first.size() == 3U);
-        check("extractLastSyllable two words last", split.second.size() == 2U);
+        const auto             b        = lotus::makeAppendingTrans(U'b', false);
+        const auto             a        = lotus::makeAppendingTrans(U'a', false);
+        const auto             space    = lotus::makeAppendingTrans(U' ', false);
+        const Composition      twoWords = {b, a, space, lotus::makeAppendingTrans(U'b', false), lotus::makeAppendingTrans(U'a', false)};
+        const lotus::WordSplit split    = lotus::extractLastSyllable(twoWords);
+        check("extractLastSyllable two words previous", split.previous.size() == 3U);
+        check("extractLastSyllable two words last", split.last.size() == 2U);
 
-        const Composition punctuation = {b, a, lotus::makeAppendingTrans(U'.', false), lotus::makeAppendingTrans(U'b', false), lotus::makeAppendingTrans(U'a', false)};
-        const auto        punctSplit  = lotus::extractLastSyllable(punctuation);
-        check("extractLastSyllable punctuation previous", punctSplit.first.size() == 3U);
-        check("extractLastSyllable punctuation last", punctSplit.second.size() == 2U);
+        const Composition      punctuation = {b, a, lotus::makeAppendingTrans(U'.', false), lotus::makeAppendingTrans(U'b', false), lotus::makeAppendingTrans(U'a', false)};
+        const lotus::WordSplit punctSplit  = lotus::extractLastSyllable(punctuation);
+        check("extractLastSyllable punctuation previous", punctSplit.previous.size() == 3U);
+        check("extractLastSyllable punctuation last", punctSplit.last.size() == 2U);
 
-        const Composition brokenTail  = {b, a, space, lotus::makeAppendingTrans(U'b', false), lotus::makeAppendingTrans(U'b', false)};
-        const auto        anchorSplit = lotus::extractLastSyllable(brokenTail);
-        check("extractLastSyllable anchor previous", anchorSplit.first.size() == 4U);
-        check("extractLastSyllable anchor last", anchorSplit.second.size() == 1U);
-        check("extractLastSyllable anchor node", anchorSplit.second.size() == 1U && lotus::isSame(anchorSplit.second[0], brokenTail[4]));
+        const Composition      brokenTail  = {b, a, space, lotus::makeAppendingTrans(U'b', false), lotus::makeAppendingTrans(U'b', false)};
+        const lotus::WordSplit anchorSplit = lotus::extractLastSyllable(brokenTail);
+        check("extractLastSyllable anchor previous", anchorSplit.previous.size() == 4U);
+        check("extractLastSyllable anchor last", anchorSplit.last.size() == 1U);
+        check("extractLastSyllable anchor node", anchorSplit.last.size() == 1U && lotus::isSame(anchorSplit.last[0], brokenTail[4]));
     }
 
     // The hand written replacements of the two Go regular expressions (`regUOhTail` and `regUhO`).

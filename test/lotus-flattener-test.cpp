@@ -95,16 +95,16 @@ int main() {
     check("slice reversed range", lotus::sliceComposition(three, 2U, 1U).empty());
 
     // extractLastWord splits before the last word: "a b" -> [a, ' '] + [b].
-    const auto space = lotus::makeAppendingTrans(U' ', false);
-    const auto b     = lotus::makeAppendingTrans(U'b', false);
-    const auto parts = lotus::extractLastWord({lotus::makeAppendingTrans(U'a', false), space, b}, U"");
-    check("split previous size", parts.first.size() == 2U);
-    check("split last size", parts.second.size() == 1U);
+    const auto             space = lotus::makeAppendingTrans(U' ', false);
+    const auto             b     = lotus::makeAppendingTrans(U'b', false);
+    const lotus::WordSplit parts = lotus::extractLastWord({lotus::makeAppendingTrans(U'a', false), space, b}, U"");
+    check("split previous size", parts.previous.size() == 2U);
+    check("split last size", parts.last.size() == 1U);
 
     // extractLastWord returns the whole composition when the last word reaches the end.
-    const auto single = lotus::extractLastWord(three, U"");
-    check("split single word previous", single.first.empty());
-    check("split single word last", single.second.size() == 3U);
+    const lotus::WordSplit single = lotus::extractLastWord(three, U"");
+    check("split single word previous", single.previous.empty());
+    check("split single word last", single.last.size() == 3U);
 
     if (failures != 0) {
         std::printf("%d failure(s)\n", failures);

@@ -64,8 +64,8 @@ namespace lotus {
     }
 
     bool Engine::isValid(bool inputIsFullComplete) const {
-        const auto [previous, last] = extractLastWord(composition_, effectKeys());
-        return lotus::isValid(last, inputIsFullComplete);
+        const WordSplit split = extractLastWord(composition_, effectKeys());
+        return lotus::isValid(split.last, inputIsFullComplete);
     }
 
     std::u32string Engine::processedString(uint32_t mode) const {
@@ -73,10 +73,10 @@ namespace lotus {
         if ((mode & toMask(Mode::FullText)) != 0U) {
             part = composition_;
         } else if ((mode & toMask(Mode::PunctuationMode)) != 0U) {
-            part = extractLastWordWithPunctuationMarks(composition_).second;
+            part = extractLastWordWithPunctuationMarks(composition_).last;
             return flatten(part, toMask(Mode::VietnameseMode));
         } else {
-            part = extractLastWord(composition_, effectKeys()).second;
+            part = extractLastWord(composition_, effectKeys()).last;
         }
         return flatten(part, mode);
     }
@@ -92,7 +92,7 @@ namespace lotus {
         return applicableRules;
     }
 
-    std::pair<TransformationPtr, Rule> Engine::findTargetByKey(const Composition& composition, char32_t key) const {
+    TargetRule Engine::findTargetByKey(const Composition& composition, char32_t key) const {
         return findTarget(composition, getApplicableRules(key), flags_);
     }
 
@@ -186,13 +186,13 @@ namespace lotus {
 
     Composition Engine::newComposition(const Composition& composition, char32_t key, bool isUpperCase) const {
         // Just process the key stroke on the last syllable.
-        const auto [previousTransformations, lastSyllable] = extractLastSyllable(composition);
-        Composition       syllable                         = lastSyllable;
-        const Composition produced                         = generateTransformations(syllable, key, isUpperCase);
+        const WordSplit   split    = extractLastSyllable(composition);
+        Composition       syllable = split.last;
+        const Composition produced = generateTransformations(syllable, key, isUpperCase);
         syllable.insert(syllable.end(), produced.begin(), produced.end());
 
         // Put these transformations back to the composition.
-        Composition result = previousTransformations;
+        Composition result = split.previous;
         result.insert(result.end(), syllable.begin(), syllable.end());
         return result;
     }
@@ -200,12 +200,12 @@ namespace lotus {
     TransformationPtr Engine::applyUowShortcut(const Composition& syllable) const {
         const std::u32string str = flatten(syllable, Mode::ToneLess | Mode::LowerCase);
         if (!inputMethod_.superKeys.empty() && matchesUOhTail(str)) {
-            const auto [target, missingRule] = findTargetByKey(syllable, inputMethod_.superKeys[0]);
-            if (target != nullptr) {
+            const TargetRule found = findTargetByKey(syllable, inputMethod_.superKeys[0]);
+            if (found.target != nullptr) {
                 auto virtualTrans      = std::make_shared<Transformation>();
-                virtualTrans->rule     = missingRule;
+                virtualTrans->rule     = found.rule;
                 virtualTrans->rule.key = 0; // A virtual rule must not appear in the raw string.
-                virtualTrans->target   = target;
+                virtualTrans->target   = found.target;
                 return virtualTrans;
             }
         }
@@ -242,7 +242,9 @@ namespace lotus {
     void Engine::restoreLastWord(bool toVietnamese) {
         // Go splits the last word with the raw input method keys here, so the brackets are not part
         // of the word, unlike in isValid / processedString / canProcessKey.
-        const auto [previous, lastComb] = extractLastWord(composition_, std::u32string_view(inputMethod_.keys.data(), inputMethod_.keys.size()));
+        const WordSplit    split    = extractLastWord(composition_, std::u32string_view(inputMethod_.keys.data(), inputMethod_.keys.size()));
+        const Composition& previous = split.previous;
+        const Composition& lastComb = split.last;
         if (lastComb.empty()) {
             return;
         }
@@ -276,8 +278,10 @@ namespace lotus {
             return;
         }
         // Go also splits the last word with the raw input method keys here.
-        const auto [previous, lastComb] = extractLastWord(composition_, std::u32string_view(inputMethod_.keys.data(), inputMethod_.keys.size()));
-        Composition newComb;
+        const WordSplit    split    = extractLastWord(composition_, std::u32string_view(inputMethod_.keys.data(), inputMethod_.keys.size()));
+        const Composition& previous = split.previous;
+        const Composition& lastComb = split.last;
+        Composition        newComb;
         for (const TransformationPtr& t : lastComb) {
             if (isSame(t->target, lastAppending) || isSame(t, lastAppending)) {
                 continue;

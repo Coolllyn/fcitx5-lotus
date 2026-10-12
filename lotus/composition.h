@@ -30,6 +30,19 @@ namespace lotus {
     /** @brief A list of composition nodes, 1:1 with Go's []*Transformation. */
     using Composition = std::vector<TransformationPtr>;
 
+    /** @brief A composition split into the three parts of a syllable. */
+    struct CvcParts {
+        Composition firstConsonant; ///< Onset.
+        Composition vowel;          ///< Rime vowels.
+        Composition lastConsonant;  ///< Coda.
+    };
+
+    /** @brief A composition split before its last word. */
+    struct WordSplit {
+        Composition previous; ///< Everything before the last word.
+        Composition last;     ///< The last word itself.
+    };
+
     /**
      * @brief Copies a sub range of a composition, replacing Go's slice expressions.
      * @param source Source composition.
@@ -104,17 +117,17 @@ namespace lotus {
      * @brief Splits appending nodes into first consonant, vowel and last consonant, like Go's
      *        extractCvcAppendingTrans.
      * @param composition Composition.
-     * @return First consonant, vowel, last consonant.
+     * @return The three parts of the syllable.
      */
-    std::tuple<Composition, Composition, Composition> extractCvcAppendingTrans(const Composition& composition);
+    CvcParts extractCvcAppendingTrans(const Composition& composition);
 
     /**
      * @brief Splits a composition into first consonant, vowel and last consonant, like Go's
      *        extractCvcTrans (effects follow their target).
      * @param composition Composition.
-     * @return First consonant, vowel, last consonant.
+     * @return The three parts of the syllable.
      */
-    std::tuple<Composition, Composition, Composition> extractCvcTrans(const Composition& composition);
+    CvcParts extractCvcTrans(const Composition& composition);
 
     /**
      * @brief Splits a composition before its last word, like Go's extractLastWord.
@@ -122,7 +135,7 @@ namespace lotus {
      * @param effectKeys Keys that do not break a word.
      * @return Everything before the last word, then the last word.
      */
-    std::pair<Composition, Composition> extractLastWord(const Composition& composition, std::u32string_view effectKeys);
+    WordSplit extractLastWord(const Composition& composition, std::u32string_view effectKeys);
 
     /**
      * @brief Splits a composition before its last word, spaces included, like Go's
@@ -130,7 +143,7 @@ namespace lotus {
      * @param composition Composition.
      * @return Everything before the last word, then the last word.
      */
-    std::pair<Composition, Composition> extractLastWordWithPunctuationMarks(const Composition& composition);
+    WordSplit extractLastWordWithPunctuationMarks(const Composition& composition);
 
 } // namespace lotus
 

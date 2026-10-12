@@ -65,6 +65,12 @@ namespace lotus {
      */
     bool hasValidTone(const Composition& composition, Tone tone);
 
+    /** @brief A rule that applies to a composition node. */
+    struct TargetRule {
+        TransformationPtr target; ///< Node the rule applies to, null when nothing applies.
+        Rule              rule;   ///< Rule to apply.
+    };
+
     /**
      * @brief Mark rule that can be applied to a composition, like Go's findMarkTarget.
      * @param composition Composition.
@@ -72,7 +78,7 @@ namespace lotus {
      * @return The target node and the rule producing a change; a null target and a default
      *         constructed Rule when no mark applies (Go returns nil, Rule{}).
      */
-    std::pair<TransformationPtr, Rule> findMarkTarget(const Composition& composition, const std::vector<Rule>& rules);
+    TargetRule findMarkTarget(const Composition& composition, const std::vector<Rule>& rules);
 
     /**
      * @brief Rule to apply to a composition, tone rules first, like Go's findTarget.
@@ -81,7 +87,7 @@ namespace lotus {
      * @param flags Engine flags (kEfreeToneMarking, kEstdToneStyle, ...), Go's flags.
      * @return The target node and the rule to apply; a null target when nothing applies.
      */
-    std::pair<TransformationPtr, Rule> findTarget(const Composition& composition, const std::vector<Rule>& applicableRules, uint32_t flags);
+    TargetRule findTarget(const Composition& composition, const std::vector<Rule>& applicableRules, uint32_t flags);
 
     /**
      * @brief Transformations undoing the effects a key can no longer apply, like Go's
@@ -133,7 +139,7 @@ namespace lotus {
      *         a valid syllable; the head of the last word that is not part of that suffix is moved
      *         to the first part (Go appends it to a nil slice there).
      */
-    std::pair<Composition, Composition> extractLastSyllable(const Composition& composition);
+    WordSplit extractLastSyllable(const Composition& composition);
 
     /**
      * @brief Reports whether a text contains the pattern of Go's regUOhTail, `(uơ|ưo)\p{L}+`.

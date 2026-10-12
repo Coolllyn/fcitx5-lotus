@@ -36,17 +36,30 @@ namespace lotus {
     inline constexpr uint32_t kEbracketTransformEnabled = 1U << 4U;
     inline constexpr uint32_t kEstdFlags                = kEfreeToneMarking | kEstdToneStyle | kEautoCorrectEnabled | kEw2uEnabled;
 
-    /** @brief "w" to "ư" mode values, 1:1 with Go's W2u* constants (-1 follows the engine flags). */
-    inline constexpr int kW2uFollowFlags = -1;
-    inline constexpr int kW2uDisabled    = 0;
-    inline constexpr int kW2uNonStart    = 1;
-    inline constexpr int kW2uEverywhere  = 2;
+    /**
+     * @brief "w" to "ư" mode, shared with the addon configuration.
+     *
+     * The engine additionally knows an internal "follow the engine flags" state, which it models as an
+     * empty std::optional<W2uMode> instead of a fourth enumerator, so it never reaches the user
+     * interface.
+     */
+    enum class W2uMode : uint8_t {
+        Disabled   = 0,
+        NonStart   = 1,
+        Everywhere = 2,
+    };
 
-    /** @brief Bracket transform mode values, 1:1 with Go's BracketTransform* constants. */
-    inline constexpr int kBracketTransformFollowFlags = -1;
-    inline constexpr int kBracketTransformDisabled    = 0;
-    inline constexpr int kBracketTransformNonStart    = 1;
-    inline constexpr int kBracketTransformEverywhere  = 2;
+    /**
+     * @brief Bracket transform mode, shared with the addon configuration.
+     *
+     * The engine models its internal "follow the engine flags" state as an empty
+     * std::optional<BracketTransformMode>, see W2uMode.
+     */
+    enum class BracketTransformMode : uint8_t {
+        Disabled   = 0,
+        NonStart   = 1,
+        Everywhere = 2,
+    };
 
     /** @brief Rule effect types, 1:1 with Go's EffectType. */
     enum class EffectType : uint8_t {

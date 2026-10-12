@@ -20,6 +20,7 @@
 #include "transformation.h"
 
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -59,17 +60,17 @@ namespace lotus {
 
         /**
          * @brief Sets the "w" to "ư" mode, like Go's SetW2UMode.
-         * @param mode kW2uFollowFlags, kW2uDisabled, kW2uNonStart or kW2uEverywhere; other values are
-         *             ignored.
+         * @param mode Mode to apply; an empty optional keeps following the W2uEnabled engine flag,
+         *             which is the state a fresh engine starts in.
          */
-        void setW2uMode(int mode);
+        void setW2uMode(std::optional<W2uMode> mode);
 
         /**
          * @brief Sets the bracket transform mode, like Go's SetBracketTransformMode.
-         * @param mode kBracketTransformFollowFlags, kBracketTransformDisabled, NonStart or Everywhere;
-         *             other values are ignored.
+         * @param mode Mode to apply; an empty optional keeps following the
+         *             BracketTransformEnabled engine flag, the state a fresh engine starts in.
          */
-        void setBracketTransformMode(int mode);
+        void setBracketTransformMode(std::optional<BracketTransformMode> mode);
 
         /**
          * @brief Validates the last word, like Go's IsValid.
@@ -194,13 +195,13 @@ namespace lotus {
          * @param syllable Syllable after the key stroke.
          * @return Extra transformations (empty when nothing must move).
          */
-        [[nodiscard]] Composition refreshLastToneTarget(const Composition& syllable) const;
+        [[nodiscard]] Composition           refreshLastToneTarget(const Composition& syllable) const;
 
-        Composition               composition_;
-        InputMethod               inputMethod_;
-        uint32_t                  flags_;
-        int                       w2uMode_              = kW2uFollowFlags;
-        int                       bracketTransformMode_ = kBracketTransformFollowFlags;
+        Composition                         composition_;
+        InputMethod                         inputMethod_;
+        uint32_t                            flags_;
+        std::optional<W2uMode>              w2uMode_;
+        std::optional<BracketTransformMode> bracketTransformMode_;
     };
 
 } // namespace lotus

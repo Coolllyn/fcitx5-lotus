@@ -8,6 +8,7 @@
 // guessed. Column semantics of the corpus are documented in bamboo/golden_dump_test.go: the "mode"
 // column is only the mode handed to ProcessKey, while processedHex is always
 // GetProcessedString(VietnameseMode | FullText) (mask 33) and isValid is IsValid(true).
+#include <optional>
 #include "engine.h"
 
 #include "input_method.h"
@@ -68,7 +69,7 @@ namespace {
     // Go's newStdEngine: Telex + EstdFlags + BracketTransformEverywhere.
     Engine newStdEngine() {
         Engine engine(lotus::parseInputMethod("Telex"), lotus::kEstdFlags);
-        engine.setBracketTransformMode(lotus::kBracketTransformEverywhere);
+        engine.setBracketTransformMode(lotus::BracketTransformMode::Everywhere);
         return engine;
     }
 
@@ -186,7 +187,7 @@ namespace {
         checkU32("Process ]aa", processed(engine, kVietnamese), U"]a");
 
         Engine bracketEngine(lotus::parseInputMethod("Telex"), lotus::kEstdFlags);
-        bracketEngine.setBracketTransformMode(lotus::kBracketTransformEverywhere);
+        bracketEngine.setBracketTransformMode(lotus::BracketTransformMode::Everywhere);
         type(bracketEngine, U"[", kVietnamese);
         checkU32("Process BracketTransform [[]", processed(bracketEngine, kVietnamese), U"ơ");
         bracketEngine.reset();
@@ -324,7 +325,7 @@ namespace {
 
     void case_process_eenghf() {
         Engine engine(lotus::parseInputMethod("Telex"), lotus::kEstdFlags);
-        engine.setBracketTransformMode(lotus::kBracketTransformEverywhere);
+        engine.setBracketTransformMode(lotus::BracketTransformMode::Everywhere);
         type(engine, U"ddawks", kVietnamese);
         checkU32("Process eenghf", processed(engine, kVietnamese), U"đắk");
     }
@@ -361,7 +362,7 @@ namespace {
 
     void case_process_choas() {
         Engine engine(lotus::parseInputMethod("Telex"), lotus::kEstdFlags & ~lotus::kEstdToneStyle);
-        engine.setBracketTransformMode(lotus::kBracketTransformEverywhere);
+        engine.setBracketTransformMode(lotus::BracketTransformMode::Everywhere);
         type(engine, U"choas", kVietnamese);
         checkU32("Process [choas]", processed(engine, kVietnamese), U"choá");
         engine.reset();
@@ -567,7 +568,7 @@ namespace {
 
     void case_bracket_transform_global() {
         Engine engine(lotus::parseInputMethod("Telex"), lotus::kEstdFlags);
-        engine.setBracketTransformMode(lotus::kBracketTransformEverywhere);
+        engine.setBracketTransformMode(lotus::BracketTransformMode::Everywhere);
 
         type(engine, U"[", kVietnamese);
         checkU32("BracketTransform (Everywhere): [", processed(engine, kVietnameseFullText), U"ơ");
@@ -576,7 +577,7 @@ namespace {
         checkU32("BracketTransform (Everywhere): ]", processed(engine, kVietnameseFullText), U"ư");
 
         engine.reset();
-        engine.setBracketTransformMode(lotus::kBracketTransformNonStart);
+        engine.setBracketTransformMode(lotus::BracketTransformMode::NonStart);
         type(engine, U"[", kVietnamese);
         // At start of word, [ should stay [.
         checkU32("BracketTransform (NonStart) at start: [", processed(engine, kVietnameseFullText), U"[");
@@ -587,14 +588,14 @@ namespace {
 
         // Test double typing to cancel.
         engine.reset();
-        engine.setBracketTransformMode(lotus::kBracketTransformEverywhere);
+        engine.setBracketTransformMode(lotus::BracketTransformMode::Everywhere);
         type(engine, U"[[", kVietnamese);
         checkU32("BracketTransform (Everywhere) double typing: [[", processed(engine, kVietnameseFullText), U"[");
     }
 
     void case_bracket_transform_with_tone() {
         Engine engine(lotus::parseInputMethod("Telex"), lotus::kEstdFlags);
-        engine.setBracketTransformMode(lotus::kBracketTransformEverywhere);
+        engine.setBracketTransformMode(lotus::BracketTransformMode::Everywhere);
 
         // Test m[f -> mờ
         type(engine, U"m[f", kVietnamese);
@@ -608,7 +609,7 @@ namespace {
 
     void case_bracket_disabled_with_tone() {
         Engine engine(lotus::parseInputMethod("Telex"), lotus::kEstdFlags);
-        engine.setBracketTransformMode(lotus::kBracketTransformDisabled);
+        engine.setBracketTransformMode(lotus::BracketTransformMode::Disabled);
 
         // Test m[f -> m[f (since [ is literal and not a vowel, f remains f)
         type(engine, U"m[f", kVietnamese);
@@ -626,6 +627,26 @@ namespace {
         return LOTUS_TEST_GOLDEN_DIR;
     }
 
+    // The corpus stores the modes as the integers of the Go API; -1 is the engine internal "follow the
+    // flags" state, which is the state a fresh engine starts in, so the setter stays untouched.
+    std::optional<lotus::W2uMode> w2uModeOf(const std::string& field) {
+        switch (std::stoi(field)) {
+            case 0: return lotus::W2uMode::Disabled;
+            case 1: return lotus::W2uMode::NonStart;
+            case 2: return lotus::W2uMode::Everywhere;
+            default: return std::nullopt;
+        }
+    }
+
+    std::optional<lotus::BracketTransformMode> bracketTransformModeOf(const std::string& field) {
+        switch (std::stoi(field)) {
+            case 0: return lotus::BracketTransformMode::Disabled;
+            case 1: return lotus::BracketTransformMode::NonStart;
+            case 2: return lotus::BracketTransformMode::Everywhere;
+            default: return std::nullopt;
+        }
+    }
+
     long replayGolden() {
         const std::string                                        path = std::string(goldenDir()) + "/engine_core.tsv";
         const auto                                               rows = readGolden(path);
@@ -639,8 +660,8 @@ namespace {
             auto               it = engines.find(id);
             if (it == engines.end()) {
                 auto engine = std::make_unique<Engine>(lotus::parseInputMethod("Telex"), static_cast<uint32_t>(std::stoul(row.fields[4])));
-                engine->setW2uMode(std::stoi(row.fields[5]));
-                engine->setBracketTransformMode(std::stoi(row.fields[6]));
+                engine->setW2uMode(w2uModeOf(row.fields[5]));
+                engine->setBracketTransformMode(bracketTransformModeOf(row.fields[6]));
                 it = engines.emplace(id, std::move(engine)).first;
             }
             Engine&    engine = *it->second;

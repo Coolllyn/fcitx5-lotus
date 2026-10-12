@@ -84,7 +84,7 @@ int main() {
         lotus::Engine engine = newStdEngine();
         check("bracket key is not processed by default", !engine.canProcessKey(U'['));
         check("letter key is processed", engine.canProcessKey(U'w'));
-        engine.setBracketTransformMode(lotus::kBracketTransformEverywhere);
+        engine.setBracketTransformMode(lotus::BracketTransformMode::Everywhere);
         check("bracket key is processed when enabled", engine.canProcessKey(U'['));
         type(engine, U"d[");
         checkPreedit("bracket transform", engine, U"dơ");

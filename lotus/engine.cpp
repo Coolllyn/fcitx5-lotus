@@ -33,21 +33,23 @@ namespace lotus {
         return flags_;
     }
 
-    void Engine::setW2uMode(int mode) {
-        if (mode >= kW2uDisabled && mode <= kW2uEverywhere) {
-            w2uMode_ = mode;
-        }
+    void Engine::setW2uMode(std::optional<W2uMode> mode) {
+        w2uMode_ = mode;
     }
 
-    void Engine::setBracketTransformMode(int mode) {
-        if (mode >= kBracketTransformFollowFlags && mode <= kBracketTransformEverywhere) {
-            bracketTransformMode_ = mode;
-        }
+    void Engine::setBracketTransformMode(std::optional<BracketTransformMode> mode) {
+        bracketTransformMode_ = mode;
     }
 
     bool Engine::isBracketEnabled() const {
-        return (bracketTransformMode_ == kBracketTransformEverywhere) || (bracketTransformMode_ == kBracketTransformNonStart && !composition_.empty()) ||
-            (bracketTransformMode_ == kBracketTransformFollowFlags && (flags_ & kEbracketTransformEnabled) != 0U);
+        if (!bracketTransformMode_.has_value()) {
+            // Empty optional: the mode that follows the bracket transform engine flag.
+            return (flags_ & kEbracketTransformEnabled) != 0U;
+        }
+        if (*bracketTransformMode_ == BracketTransformMode::Everywhere) {
+            return true;
+        }
+        return *bracketTransformMode_ == BracketTransformMode::NonStart && !composition_.empty();
     }
 
     std::u32string Engine::effectKeys() const {
@@ -149,7 +151,7 @@ namespace lotus {
 
         // Keep old W2U logic for backward compatibility.
         const bool canApplyW2U =
-            (w2uMode_ == kW2uEverywhere) || (w2uMode_ == kW2uNonStart && !composition.empty()) || (w2uMode_ == kW2uFollowFlags && (flags_ & kEw2uEnabled) != 0U);
+            !w2uMode_.has_value() ? ((flags_ & kEw2uEnabled) != 0U) : (*w2uMode_ == W2uMode::Everywhere || (*w2uMode_ == W2uMode::NonStart && !composition.empty()));
 
         if (canApplyW2U && lowerKey == U'w' && !transformations.empty()) {
             switch (transformations[0]->rule.result) {

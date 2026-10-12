@@ -325,7 +325,7 @@ namespace {
         checkBool("toUpper(b) got [b] expected [b]", engine.toUpper(U'b') == U'b', true);
         checkBool("toUpper([) without bracket mode got [[] expected [[]", engine.toUpper(U'[') == U'[', true);
         // brackets active: [ -> {, ] -> }, { -> [, } -> ]
-        engine.engine().setBracketTransformMode(lotus::kBracketTransformEverywhere);
+        engine.engine().setBracketTransformMode(lotus::BracketTransformMode::Everywhere);
         struct Case {
             char32_t in;
             char32_t want;
@@ -493,27 +493,25 @@ namespace {
     // TestW2UModes.
     void case_w2u_modes() {
         struct Case {
-            std::string_view    name;
-            uint32_t            flags;
-            int                 mode; // -1 = don't call setW2uMode
-            std::string_view    keys;
-            std::u32string_view want;
+            std::string_view              name;
+            uint32_t                      flags;
+            std::optional<lotus::W2uMode> mode; // nullopt = don't call setW2uMode
+            std::string_view              keys;
+            std::u32string_view           want;
         };
         const std::vector<Case> cases = {
-            {"default", lotus::kEstdFlags, -1, "w", U"ư"},
-            {"default-bw", lotus::kEstdFlags, -1, "bw", U"bư"},
-            {"flag-off", lotus::kEstdFlags & ~lotus::kEw2uEnabled, -1, "w", U"w"},
-            {"flag-off-bw", lotus::kEstdFlags & ~lotus::kEw2uEnabled, -1, "bw", U"bw"},
-            {"disabled", lotus::kEstdFlags, lotus::kW2uDisabled, "w", U"w"},
-            {"nonstart", lotus::kEstdFlags, lotus::kW2uNonStart, "w", U"w"},
-            {"nonstart-bw", lotus::kEstdFlags, lotus::kW2uNonStart, "bw", U"bư"},
-            {"everywhere", lotus::kEstdFlags, lotus::kW2uEverywhere, "w", U"ư"},
+            {"default", lotus::kEstdFlags, std::nullopt, "w", U"ư"},
+            {"default-bw", lotus::kEstdFlags, std::nullopt, "bw", U"bư"},
+            {"flag-off", lotus::kEstdFlags & ~lotus::kEw2uEnabled, std::nullopt, "w", U"w"},
+            {"flag-off-bw", lotus::kEstdFlags & ~lotus::kEw2uEnabled, std::nullopt, "bw", U"bw"},
+            {"disabled", lotus::kEstdFlags, lotus::W2uMode::Disabled, "w", U"w"},
+            {"nonstart", lotus::kEstdFlags, lotus::W2uMode::NonStart, "w", U"w"},
+            {"nonstart-bw", lotus::kEstdFlags, lotus::W2uMode::NonStart, "bw", U"bư"},
+            {"everywhere", lotus::kEstdFlags, lotus::W2uMode::Everywhere, "w", U"ư"},
         };
         for (const Case& c : cases) {
             KeyProcessor engine = newOptEngine(c.flags, {}, false);
-            if (c.mode >= 0) {
-                engine.engine().setW2uMode(c.mode);
-            }
+            engine.engine().setW2uMode(c.mode);
             typeKeys(engine, c.keys);
             const std::string name = "w2u " + std::string(c.name) + ": type [" + std::string(c.keys) + "] preedit";
             checkU32(name.c_str(), engine.preedit(), c.want);
@@ -608,7 +606,7 @@ namespace {
         };
         for (const Case& c : cases) {
             KeyProcessor engine = newTestEngine({}, false);
-            engine.engine().setBracketTransformMode(lotus::kBracketTransformEverywhere);
+            engine.engine().setBracketTransformMode(lotus::BracketTransformMode::Everywhere);
             typeKeys(engine, c.keys);
             const std::string name = "bracket: type [" + std::string(c.keys) + "] preedit";
             checkU32(name.c_str(), engine.preedit(), c.want);
@@ -639,6 +637,26 @@ namespace {
         return LOTUS_TEST_GOLDEN_DIR;
     }
 
+    // The corpus stores the modes as the integers of the Go API; -1 is the engine internal "follow the
+    // flags" state, which is the state a fresh engine starts in, so the setter stays untouched.
+    std::optional<lotus::W2uMode> w2uModeOf(const std::string& field) {
+        switch (std::stoi(field)) {
+            case 0: return lotus::W2uMode::Disabled;
+            case 1: return lotus::W2uMode::NonStart;
+            case 2: return lotus::W2uMode::Everywhere;
+            default: return std::nullopt;
+        }
+    }
+
+    std::optional<lotus::BracketTransformMode> bracketTransformModeOf(const std::string& field) {
+        switch (std::stoi(field)) {
+            case 0: return lotus::BracketTransformMode::Disabled;
+            case 1: return lotus::BracketTransformMode::NonStart;
+            case 2: return lotus::BracketTransformMode::Everywhere;
+            default: return std::nullopt;
+        }
+    }
+
     long replayGolden() {
         const std::string                             path = std::string(goldenDir()) + "/key_processor.tsv";
         const auto                                    rows = readGolden(path);
@@ -666,8 +684,8 @@ namespace {
                 processor.options().ddFreeStyle      = (opts & kOptDdFreeStyle) != 0;
                 processor.setMacroEnabled((opts & kOptMacroEnabled) != 0);
                 processor.engine().setFlag(static_cast<uint32_t>(std::stoul(row.fields[5])));
-                processor.engine().setW2uMode(std::stoi(row.fields[6]));
-                processor.engine().setBracketTransformMode(std::stoi(row.fields[7]));
+                processor.engine().setW2uMode(w2uModeOf(row.fields[6]));
+                processor.engine().setBracketTransformMode(bracketTransformModeOf(row.fields[7]));
                 it = processors.emplace(id, std::move(processor)).first;
             }
             KeyProcessor&     processor     = it->second;

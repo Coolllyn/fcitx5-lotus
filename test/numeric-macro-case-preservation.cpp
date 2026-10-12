@@ -33,8 +33,8 @@ namespace {
         options.outputCharset       = "Unicode";
         options.modernStyle         = false;
         options.freeMarking         = false;
-        options.w2u                 = 0;
-        options.bracketTransform    = 0;
+        options.w2u                 = lotus::W2uMode::Disabled;
+        options.bracketTransform    = lotus::BracketTransformMode::Disabled;
         options.timeFormat          = "%H:%M";
         options.dateFormat          = "%d/%m/%Y";
         processor.setOptions(options);

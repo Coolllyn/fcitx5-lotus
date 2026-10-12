@@ -70,12 +70,13 @@ namespace lotus {
         } else {
             flags &= ~kEfreeToneMarking;
         }
-        if (options.w2u != 0) {
+        // Go compared against 0: an unset (follow flags) mode enabled the flag, Disabled cleared it.
+        if (!options.w2u.has_value() || *options.w2u != W2uMode::Disabled) {
             flags |= kEw2uEnabled;
         } else {
             flags &= ~kEw2uEnabled;
         }
-        if (options.bracketTransform != 0) {
+        if (!options.bracketTransform.has_value() || *options.bracketTransform != BracketTransformMode::Disabled) {
             flags |= kEbracketTransformEnabled;
         } else {
             flags &= ~kEbracketTransformEnabled;

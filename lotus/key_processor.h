@@ -96,10 +96,12 @@ namespace lotus {
         bool        modernStyle         = true;                         // "hòa" instead of "hoà"
         bool        freeMarking         = true;                         // Free tone marking style
         std::string outputCharset       = std::string(kUnicodeCharset); // Charset of the committed text
-        int         w2u                 = kW2uFollowFlags;              // "w" to "ư" mode
-        int         bracketTransform    = kBracketTransformFollowFlags; // "[ -> ơ, ] -> ư" mode
-        std::string timeFormat          = "%H:%M";                      // Format of the $TIME macro
-        std::string dateFormat          = "%d/%m/%Y";                   // Format of the $DATE macro
+        // Empty optional = follow the engine flags, the mode a fresh engine starts in. The addon always
+        // fills them from the configuration, so it only ever sees the three public enumerators.
+        std::optional<W2uMode>              w2u              = std::nullopt; // "w" to "ư" mode
+        std::optional<BracketTransformMode> bracketTransform = std::nullopt; // "[ -> ơ, ] -> ư" mode
+        std::string                         timeFormat       = "%H:%M";      // Format of the $TIME macro
+        std::string                         dateFormat       = "%d/%m/%Y";   // Format of the $DATE macro
     };
 
     /**

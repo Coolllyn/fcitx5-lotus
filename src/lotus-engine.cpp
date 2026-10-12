@@ -17,7 +17,7 @@
 
 #include "dictionary.h"
 #include "input_method.h"
-#include "lotus-fcitx-text.h"
+#include "utf8.h"
 
 #include <optional>
 #include <sys/socket.h>
@@ -743,10 +743,10 @@ namespace fcitx {
     }
 
     void LotusEngine::syncRealtextLen(InputContext* ic) {
-        const auto&          s       = ic->surroundingText();
-        const std::u32string text    = lotus::fcitx_text::surroundingText(ic);
-        const size_t         textLen = text.size();
-        unsigned int         cursor  = s.cursor();
+        const auto&  s       = ic->surroundingText();
+        const auto&  text    = s.text();
+        const size_t textLen = lotus::utf8::length(text);
+        unsigned int cursor  = s.cursor();
         if (textLen == static_cast<size_t>(cursor))
             realtextLen.store(static_cast<unsigned int>(textLen), std::memory_order_release);
     }

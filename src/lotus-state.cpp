@@ -731,10 +731,10 @@ namespace fcitx {
             return;
         }
 
-        const std::u32string text   = lotus::fcitx_text::surroundingText(ic);
-        const unsigned int   cursor = std::min(surrounding.anchor(), surrounding.cursor());
+        const std::string& text   = surrounding.text();
+        const unsigned int cursor = std::min(surrounding.anchor(), surrounding.cursor());
 
-        const size_t         textLen = text.size();
+        const size_t       textLen = lotus::utf8::length(text);
 
         if (cursor <= 0 || cursor > textLen) {
             processNormalKey(keyEvent, currentSym);
@@ -742,22 +742,38 @@ namespace fcitx {
         }
 
         {
-            size_t start     = cursor;
-            int    scanCount = 0;
-            while (start > 0 && scanCount < MAX_SCAN_LENGTH) {
-                if (isWordBreak(text[start - 1U])) {
-                    break;
+            // The whole surrounding text is never decoded: the byte scan stops after MAX_SCAN_LENGTH
+            // code points before the cursor, and only that slice is decoded for the engine.
+            auto startIter = utf8::nextNChar(text.begin(), cursor);
+            auto endIter   = startIter;
+
+            int  scanCount = 0;
+            while (startIter != text.begin() && scanCount < MAX_SCAN_LENGTH) {
+                auto prev = startIter;
+                if (prev != text.begin()) {
+                    --prev;
+                    while (prev != text.begin() && ((static_cast<unsigned char>(*prev) & 0xC0U) == 0x80)) {
+                        --prev;
+                    }
                 }
-                --start;
+
+                const uint32_t ucs4 = utf8::getChar(prev, text.end());
+
+                if (isWordBreak(ucs4))
+                    break;
+
+                startIter = prev;
                 ++scanCount;
             }
 
-            const std::u32string oldWord = text.substr(start, cursor - start);
+            const std::string oldWordText(startIter, endIter);
 
-            if (oldWord.empty()) {
+            if (oldWordText.empty()) {
                 processNormalKey(keyEvent, currentSym);
                 return;
             }
+
+            const std::u32string oldWord = lotus::utf8::decode(oldWordText);
 
             lotusEngine_->rebuildFromText(oldWord);
 

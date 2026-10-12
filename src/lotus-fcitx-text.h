@@ -43,16 +43,6 @@ namespace lotus::fcitx_text {
     void commit(fcitx::InputContext* ic, std::u32string_view text, std::chrono::steady_clock::time_point& lastCommitTime);
 
     /**
-     * @brief Text of the surrounding text of an input context, as UTF-32.
-     *
-     * The caller keeps the capability and validity checks of the surrounding text, because it also
-     * needs the anchor and cursor of the same SurroundingText object.
-     * @param ic Input context (empty result when it is null).
-     * @return Decoded surrounding text.
-     */
-    std::u32string surroundingText(const fcitx::InputContext* ic);
-
-    /**
      * @brief Code point of a key symbol, as a one code point text.
      * @param sym Key symbol.
      * @return One code point text, empty when the symbol has no Unicode mapping.

@@ -37,13 +37,6 @@ namespace lotus::fcitx_text {
         lastCommitTime = std::chrono::steady_clock::now();
     }
 
-    std::u32string surroundingText(const fcitx::InputContext* ic) {
-        if (ic == nullptr) {
-            return {};
-        }
-        return utf8::decode(ic->surroundingText().text());
-    }
-
     std::u32string fromKeySym(fcitx::KeySym sym) {
         const uint32_t codePoint = fcitx::Key::keySymToUnicode(sym);
         if (codePoint == 0U) {

@@ -42,7 +42,7 @@ namespace lotus {
         }
         // Spell checking.
         const CvcParts cvc         = extractCvcTrans(composition);
-        const uint32_t flattenMode = toMask(Mode::VietnameseMode) | toMask(Mode::LowerCase) | toMask(Mode::ToneLess);
+        const ModeSet  flattenMode = toMask(Mode::VietnameseMode) | toMask(Mode::LowerCase) | toMask(Mode::ToneLess);
         return isValidCVC(flatten(cvc.firstConsonant, flattenMode), flatten(cvc.vowel, flattenMode), flatten(cvc.lastConsonant, flattenMode), inputIsFullComplete);
     }
 
@@ -134,7 +134,7 @@ namespace lotus {
         return TargetRule{};
     }
 
-    TargetRule findTarget(const Composition& composition, const std::vector<Rule>& applicableRules, uint32_t flags) {
+    TargetRule findTarget(const Composition& composition, const std::vector<Rule>& applicableRules, EngineFlags flags) {
         const std::u32string str = flatten(composition, toMask(Mode::VietnameseMode));
         // Find the tone target first.
         for (const auto& applicableRule : applicableRules) {
@@ -142,9 +142,9 @@ namespace lotus {
                 continue;
             }
             TransformationPtr target;
-            if ((flags & kEfreeToneMarking) != 0U) {
+            if (flags.has(EngineFlag::FreeToneMarking)) {
                 if (hasValidTone(composition, applicableRule.tone())) {
-                    target = findToneTarget(composition, (flags & kEstdToneStyle) != 0U);
+                    target = findToneTarget(composition, flags.has(EngineFlag::StdToneStyle));
                 }
             } else {
                 const TransformationPtr lastAppending = findLastAppendingTrans(composition);
@@ -171,17 +171,17 @@ namespace lotus {
         return findMarkTarget(composition, applicableRules);
     }
 
-    Composition generateUndoTransformations(const Composition& composition, const std::vector<Rule>& rules, uint32_t flags) {
+    Composition generateUndoTransformations(const Composition& composition, const std::vector<Rule>& rules, EngineFlags flags) {
         Composition          transformations;
-        const uint32_t       flattenMode = toMask(Mode::VietnameseMode) | toMask(Mode::ToneLess) | toMask(Mode::LowerCase);
+        const ModeSet        flattenMode = toMask(Mode::VietnameseMode) | toMask(Mode::ToneLess) | toMask(Mode::LowerCase);
         const std::u32string str         = flatten(composition, flattenMode);
         transformations.reserve(rules.size());
         for (const auto& rule : rules) {
             if (rule.effectType == EffectType::ToneTransformation) {
                 TransformationPtr target;
-                if ((flags & kEfreeToneMarking) != 0U) {
+                if (flags.has(EngineFlag::FreeToneMarking)) {
                     if (hasValidTone(composition, rule.tone())) {
-                        target = findToneTarget(composition, (flags & kEstdToneStyle) != 0U);
+                        target = findToneTarget(composition, flags.has(EngineFlag::StdToneStyle));
                     }
                 } else {
                     const TransformationPtr lastAppending = findLastAppendingTrans(composition);
@@ -221,7 +221,7 @@ namespace lotus {
         return transformations;
     }
 
-    Composition generateTransformations(const Composition& composition, const std::vector<Rule>& applicableRules, uint32_t flags, char32_t lowerKey, bool isUpperCase) {
+    Composition generateTransformations(const Composition& composition, const std::vector<Rule>& applicableRules, EngineFlags flags, char32_t lowerKey, bool isUpperCase) {
         Composition transformations;
         // Double typing an effect key undoes it and its effects, e.g. w + w -> w.
         if (!composition.empty()) {

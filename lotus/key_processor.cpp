@@ -58,28 +58,28 @@ namespace lotus {
     }
 
     void KeyProcessor::setOptions(const Options& options) {
-        options_       = options;
-        uint32_t flags = kEstdFlags;
+        options_          = options;
+        EngineFlags flags = kEstdFlags;
         if (options.modernStyle) {
-            flags &= ~kEstdToneStyle;
+            flags.remove(EngineFlag::StdToneStyle);
         } else {
-            flags |= kEstdToneStyle;
+            flags.add(EngineFlag::StdToneStyle);
         }
         if (options.freeMarking) {
-            flags |= kEfreeToneMarking;
+            flags.add(EngineFlag::FreeToneMarking);
         } else {
-            flags &= ~kEfreeToneMarking;
+            flags.remove(EngineFlag::FreeToneMarking);
         }
         // Go compared against 0: an unset (follow flags) mode enabled the flag, Disabled cleared it.
         if (!options.w2u.has_value() || *options.w2u != W2uMode::Disabled) {
-            flags |= kEw2uEnabled;
+            flags.add(EngineFlag::W2uEnabled);
         } else {
-            flags &= ~kEw2uEnabled;
+            flags.remove(EngineFlag::W2uEnabled);
         }
         if (!options.bracketTransform.has_value() || *options.bracketTransform != BracketTransformMode::Disabled) {
-            flags |= kEbracketTransformEnabled;
+            flags.add(EngineFlag::BracketTransformEnabled);
         } else {
-            flags &= ~kEbracketTransformEnabled;
+            flags.remove(EngineFlag::BracketTransformEnabled);
         }
         engine_.setFlag(flags);
         engine_.setW2uMode(options.w2u);
@@ -264,7 +264,7 @@ namespace lotus {
         return expandMacro(text, utf8::decode(*macroVal));
     }
 
-    std::u32string KeyProcessor::getProcessedString(uint32_t mode) const {
+    std::u32string KeyProcessor::getProcessedString(ModeSet mode) const {
         return engine_.processedString(mode);
     }
 
@@ -286,7 +286,7 @@ namespace lotus {
         return getPreeditString().size();
     }
 
-    uint32_t KeyProcessor::getBambooInputMode() const {
+    ModeSet KeyProcessor::getBambooInputMode() const {
         if (shouldFallbackToEnglish(false)) {
             return toMask(Mode::EnglishMode);
         }

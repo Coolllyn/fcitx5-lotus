@@ -325,7 +325,7 @@ namespace lotus {
          * @param mode Output mode.
          * @return Rendered text.
          */
-        [[nodiscard]] std::u32string getProcessedString(uint32_t mode) const;
+        [[nodiscard]] std::u32string getProcessedString(ModeSet mode) const;
 
         /**
          * @brief Text of the composition before encoding, like Go's getPreeditString.
@@ -350,7 +350,7 @@ namespace lotus {
          * @brief Mode handed to the engine for the current sequence, like Go's getBambooInputMode.
          * @return EnglishMode when the sequence falls back, VietnameseMode otherwise.
          */
-        [[nodiscard]] uint32_t getBambooInputMode() const;
+        [[nodiscard]] ModeSet getBambooInputMode() const;
 
         /**
          * @brief Remembers whether the last processed key was typed with Shift, like the Go method.

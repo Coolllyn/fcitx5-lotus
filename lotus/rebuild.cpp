@@ -143,7 +143,7 @@ namespace lotus {
 
     void Engine::rebuildFromText(std::u32string_view text) {
         reset();
-        composition_ = rebuildCompositionFromText(text, (flags_ & kEstdToneStyle) != 0U);
+        composition_ = rebuildCompositionFromText(text, flags_.has(EngineFlag::StdToneStyle));
     }
 
 } // namespace lotus

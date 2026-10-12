@@ -54,7 +54,7 @@ int main() {
     {
         lotus::Engine engine = newStdEngine();
         check("input method name", engine.inputMethod().name == "Telex");
-        check("flags", engine.flag() == lotus::kEstdFlags);
+        check("flags", engine.flag().bits == lotus::kEstdFlags.bits);
         type(engine, U"dd");
         checkPreedit("dd", engine, U"đ");
         check("dd is valid", engine.isValid(true));

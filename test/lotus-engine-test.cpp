@@ -33,11 +33,22 @@ namespace {
     using lotus::Mode;
 
     // Mode masks of the Go tests: VietnameseMode, EnglishMode and VietnameseMode | FullText.
-    constexpr uint32_t kVietnamese         = lotus::toMask(Mode::VietnameseMode);
-    constexpr uint32_t kEnglish            = lotus::toMask(Mode::EnglishMode);
-    constexpr uint32_t kVietnameseFullText = lotus::toMask(Mode::VietnameseMode) | lotus::toMask(Mode::FullText);
+    constexpr lotus::ModeSet kVietnamese         = lotus::toMask(Mode::VietnameseMode);
+    constexpr lotus::ModeSet kEnglish            = lotus::toMask(Mode::EnglishMode);
+    constexpr lotus::ModeSet kVietnameseFullText = lotus::toMask(Mode::VietnameseMode) | lotus::toMask(Mode::FullText);
 
-    int                failures = 0;
+    int                      failures = 0;
+
+    // Engine flags of the Go tests: EstdFlags without the W2U / std tone style bit.
+    lotus::EngineFlags withoutW2u() {
+        lotus::EngineFlags flags = lotus::kEstdFlags;
+        return flags.remove(lotus::EngineFlag::W2uEnabled);
+    }
+
+    lotus::EngineFlags withoutStdToneStyle() {
+        lotus::EngineFlags flags = lotus::kEstdFlags;
+        return flags.remove(lotus::EngineFlag::StdToneStyle);
+    }
 
     // Renders a code point list as "U+XXXX U+YYYY", used to report mismatching expectations.
     std::string hexOf(std::u32string_view text) {
@@ -74,12 +85,12 @@ namespace {
     }
 
     // Go's GetProcessedString(mode).
-    std::u32string processed(Engine& engine, uint32_t modeMask) {
+    std::u32string processed(Engine& engine, lotus::ModeSet modeMask) {
         return engine.processedString(modeMask);
     }
 
     // Go's ProcessString(text, mode).
-    void type(Engine& engine, std::u32string_view keys, uint32_t modeMask) {
+    void type(Engine& engine, std::u32string_view keys, lotus::ModeSet modeMask) {
         engine.processString(keys, modeMask);
     }
 
@@ -361,7 +372,7 @@ namespace {
     }
 
     void case_process_choas() {
-        Engine engine(lotus::parseInputMethod("Telex"), lotus::kEstdFlags & ~lotus::kEstdToneStyle);
+        Engine engine(lotus::parseInputMethod("Telex"), withoutStdToneStyle());
         engine.setBracketTransformMode(lotus::BracketTransformMode::Everywhere);
         type(engine, U"choas", kVietnamese);
         checkU32("Process [choas]", processed(engine, kVietnamese), U"choá");
@@ -509,12 +520,12 @@ namespace {
         const lotus::InputMethod im = lotus::parseInputMethod("Telex");
 
         // Flag OFF
-        Engine engine(im, lotus::kEstdFlags & ~lotus::kEw2uEnabled);
+        Engine engine(lotus::parseInputMethod("Telex"), withoutW2u());
         engine.processKey(U'w', kVietnamese);
         checkU32("Ew2uEnabled OFF: Process [w]", processed(engine, kVietnamese), U"w");
 
         // Flag ON - Start of word
-        engine = Engine(im, lotus::kEstdFlags | lotus::kEw2uEnabled);
+        engine = Engine(im, lotus::kEstdFlags | lotus::EngineFlag::W2uEnabled);
         engine.processKey(U'w', kVietnamese);
         checkU32("Ew2uEnabled ON (start): Process [w]", processed(engine, kVietnamese), U"ư");
 
@@ -562,7 +573,7 @@ namespace {
         checkCase(engine, U"tawsk", U"tắk", true);
 
         // w2u OFF: previously stayed raw "boawjm".
-        engine = Engine(lotus::parseInputMethod("Telex"), lotus::kEstdFlags & ~lotus::kEw2uEnabled);
+        engine = Engine(lotus::parseInputMethod("Telex"), withoutW2u());
         checkCase(engine, U"boawjm", U"boặm", true);
     }
 
@@ -659,14 +670,14 @@ namespace {
             const std::string& id = row.fields[0];
             auto               it = engines.find(id);
             if (it == engines.end()) {
-                auto engine = std::make_unique<Engine>(lotus::parseInputMethod("Telex"), static_cast<uint32_t>(std::stoul(row.fields[4])));
+                auto engine = std::make_unique<Engine>(lotus::parseInputMethod("Telex"), lotus::engineFlagsFromBits(static_cast<uint32_t>(std::stoul(row.fields[4]))));
                 engine->setW2uMode(w2uModeOf(row.fields[5]));
                 engine->setBracketTransformMode(bracketTransformModeOf(row.fields[6]));
                 it = engines.emplace(id, std::move(engine)).first;
             }
-            Engine&    engine = *it->second;
-            const auto key    = static_cast<char32_t>(hexValue(row.fields[2]));
-            const auto mode   = static_cast<uint32_t>(std::stoul(row.fields[3]));
+            Engine&              engine = *it->second;
+            const auto           key    = static_cast<char32_t>(hexValue(row.fields[2]));
+            const lotus::ModeSet mode   = lotus::modeSetFromBits(static_cast<uint32_t>(std::stoul(row.fields[3])));
             engine.processKey(key, mode);
             // The dumper always renders with VietnameseMode | FullText (mask 33); the mode column is
             // only the mode handed to ProcessKey.
@@ -680,7 +691,7 @@ namespace {
                 if (shown < 20) {
                     ++shown;
                     std::printf("FAIL golden %s step %s key U+%04X mode %u: processed=[%s], expected=[%s], valid=%d, want=%d\n", id.c_str(), row.fields[1].c_str(),
-                                static_cast<unsigned>(key), mode, actual.c_str(), expected.c_str(), valid ? 1 : 0, wantValid ? 1 : 0);
+                                static_cast<unsigned>(key), mode.bits, actual.c_str(), expected.c_str(), valid ? 1 : 0, wantValid ? 1 : 0);
                 }
             }
         }

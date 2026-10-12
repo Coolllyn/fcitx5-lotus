@@ -37,9 +37,9 @@ namespace lotus {
         /**
          * @brief Builds an engine, like Go's NewEngine.
          * @param inputMethod Input method used to transform keys.
-         * @param flags Engine flags (kE* constants).
+         * @param flags Engine flags (EngineFlag::…).
          */
-        Engine(InputMethod inputMethod, uint32_t flags);
+        Engine(InputMethod inputMethod, EngineFlags flags);
 
         /**
          * @brief Input method of the engine, like Go's GetInputMethod.
@@ -51,13 +51,13 @@ namespace lotus {
          * @brief Replaces the engine flags, like Go's SetFlag.
          * @param flag New engine flags.
          */
-        void setFlag(uint32_t flag);
+        void setFlag(EngineFlags flag);
 
         /**
          * @brief Engine flags, like Go's GetFlag.
          * @return Engine flags.
          */
-        [[nodiscard]] uint32_t flag() const;
+        [[nodiscard]] EngineFlags flag() const;
 
         /**
          * @brief Sets the "w" to "ư" mode, like Go's SetW2UMode.
@@ -85,7 +85,7 @@ namespace lotus {
          * @param mode Output mode, including FullText / PunctuationMode.
          * @return Rendered text.
          */
-        [[nodiscard]] std::u32string processedString(uint32_t mode) const;
+        [[nodiscard]] std::u32string processedString(ModeSet mode) const;
 
         /**
          * @brief Reports whether the engine transforms a key, like Go's CanProcessKey.
@@ -99,14 +99,14 @@ namespace lotus {
          * @param text Input text.
          * @param mode Typing mode.
          */
-        void processString(std::u32string_view text, uint32_t mode);
+        void processString(std::u32string_view text, ModeSet mode);
 
         /**
          * @brief Processes one key stroke, like Go's ProcessKey.
          * @param key Input key (any case).
          * @param mode Typing mode.
          */
-        void processKey(char32_t key, uint32_t mode);
+        void processKey(char32_t key, ModeSet mode);
 
         /**
          * @brief Restores the last word, like Go's RestoreLastWord.
@@ -206,7 +206,7 @@ namespace lotus {
 
         Composition                         composition_;
         InputMethod                         inputMethod_;
-        uint32_t                            flags_;
+        EngineFlags                         flags_;
         std::optional<W2uMode>              w2uMode_;
         std::optional<BracketTransformMode> bracketTransformMode_;
         // Cached effect key lists, see buildEffectKeys.

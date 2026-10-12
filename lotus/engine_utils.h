@@ -84,10 +84,10 @@ namespace lotus {
      * @brief Rule to apply to a composition, tone rules first, like Go's findTarget.
      * @param composition Composition.
      * @param applicableRules Rules of the key that was typed.
-     * @param flags Engine flags (kEfreeToneMarking, kEstdToneStyle, ...), Go's flags.
+     * @param flags Engine flags (EngineFlag::FreeToneMarking, EngineFlag::StdToneStyle, ...).
      * @return The target node and the rule to apply; a null target when nothing applies.
      */
-    TargetRule findTarget(const Composition& composition, const std::vector<Rule>& applicableRules, uint32_t flags);
+    TargetRule findTarget(const Composition& composition, const std::vector<Rule>& applicableRules, EngineFlags flags);
 
     /**
      * @brief Transformations undoing the effects a key can no longer apply, like Go's
@@ -97,7 +97,7 @@ namespace lotus {
      * @param flags Engine flags, Go's flags.
      * @return Undo transformations, empty when the key has nothing to undo (Go returns nil).
      */
-    Composition generateUndoTransformations(const Composition& composition, const std::vector<Rule>& rules, uint32_t flags);
+    Composition generateUndoTransformations(const Composition& composition, const std::vector<Rule>& rules, EngineFlags flags);
 
     /**
      * @brief Transformations a key produces on a composition, like Go's generateTransformations.
@@ -109,7 +109,7 @@ namespace lotus {
      * @return The transformations, empty when the key cannot be applied (Go returns nil, which makes
      *         the caller fall back to generateFallbackTransformations).
      */
-    Composition generateTransformations(const Composition& composition, const std::vector<Rule>& applicableRules, uint32_t flags, char32_t lowerKey, bool isUpperCase);
+    Composition generateTransformations(const Composition& composition, const std::vector<Rule>& applicableRules, EngineFlags flags, char32_t lowerKey, bool isUpperCase);
 
     /**
      * @brief Transformations that append a key when no rule applies, like Go's

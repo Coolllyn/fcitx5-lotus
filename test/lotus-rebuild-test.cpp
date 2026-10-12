@@ -25,8 +25,8 @@ namespace {
     using lotus::Mode;
 
     // Mode masks of the Go tests: VietnameseMode and VietnameseMode | FullText.
-    constexpr uint32_t kVietnamese         = lotus::toMask(Mode::VietnameseMode);
-    constexpr uint32_t kVietnameseFullText = lotus::toMask(Mode::VietnameseMode) | lotus::toMask(Mode::FullText);
+    constexpr lotus::ModeSet kVietnamese         = lotus::toMask(Mode::VietnameseMode);
+    constexpr lotus::ModeSet kVietnameseFullText = lotus::toMask(Mode::VietnameseMode) | lotus::toMask(Mode::FullText);
 
     // Go's anonymous `tests` struct of the tables that only carry input and expectation.
     struct RebuildCase {

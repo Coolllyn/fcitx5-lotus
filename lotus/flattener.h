@@ -25,7 +25,7 @@ namespace lotus {
      * @param mode Flattening mode (English, ToneLess, MarkLess, LowerCase, ...).
      * @return Rendered code points. Go's Flatten would then encode this canvas to UTF-8.
      */
-    std::u32string flatten(const Composition& composition, uint32_t mode);
+    std::u32string flatten(const Composition& composition, ModeSet mode);
 
 } // namespace lotus
 

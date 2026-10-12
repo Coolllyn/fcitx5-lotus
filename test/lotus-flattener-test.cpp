@@ -32,7 +32,7 @@ namespace {
         }
     }
 
-    void checkCanvas(const char* name, const Composition& composition, uint32_t mode, std::u32string_view expected) {
+    void checkCanvas(const char* name, const Composition& composition, lotus::ModeSet mode, std::u32string_view expected) {
         const std::u32string actual = lotus::flatten(composition, mode);
         if (actual != expected) {
             std::printf("FAIL %s: got %zu code points, expected %zu\n", name, actual.size(), expected.size());
@@ -57,8 +57,8 @@ namespace {
         return trans;
     }
 
-    constexpr uint32_t kVietnamese = lotus::toMask(Mode::VietnameseMode);
-    constexpr uint32_t kEnglish    = lotus::toMask(Mode::EnglishMode);
+    constexpr lotus::ModeSet kVietnamese = lotus::toMask(Mode::VietnameseMode);
+    constexpr lotus::ModeSet kEnglish    = lotus::toMask(Mode::EnglishMode);
 
 } // namespace
 

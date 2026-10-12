@@ -19,18 +19,18 @@
 
 namespace lotus {
 
-    Engine::Engine(InputMethod inputMethod, uint32_t flags) : inputMethod_(std::move(inputMethod)), flags_(flags) {}
+    Engine::Engine(InputMethod inputMethod, EngineFlags flags) : inputMethod_(std::move(inputMethod)), flags_(flags) {}
 
     const InputMethod& Engine::inputMethod() const {
         return inputMethod_;
     }
 
-    void Engine::setFlag(uint32_t flag) {
+    void Engine::setFlag(EngineFlags flag) {
         flags_           = flag;
         effectKeysValid_ = false;
     }
 
-    uint32_t Engine::flag() const {
+    EngineFlags Engine::flag() const {
         return flags_;
     }
 
@@ -46,7 +46,7 @@ namespace lotus {
     bool Engine::isBracketEnabled() const {
         if (!bracketTransformMode_.has_value()) {
             // Empty optional: the mode that follows the bracket transform engine flag.
-            return (flags_ & kEbracketTransformEnabled) != 0U;
+            return flags_.has(EngineFlag::BracketTransformEnabled);
         }
         if (*bracketTransformMode_ == BracketTransformMode::Everywhere) {
             return true;
@@ -77,11 +77,11 @@ namespace lotus {
         return lotus::isValid(split.last, inputIsFullComplete);
     }
 
-    std::u32string Engine::processedString(uint32_t mode) const {
+    std::u32string Engine::processedString(ModeSet mode) const {
         Composition part;
-        if ((mode & toMask(Mode::FullText)) != 0U) {
+        if (mode.has(Mode::FullText)) {
             part = composition_;
-        } else if ((mode & toMask(Mode::PunctuationMode)) != 0U) {
+        } else if (mode.has(Mode::PunctuationMode)) {
             part = extractLastWordWithPunctuationMarks(composition_).last;
             return flatten(part, toMask(Mode::VietnameseMode));
         } else {
@@ -160,7 +160,7 @@ namespace lotus {
 
         // Keep old W2U logic for backward compatibility.
         const bool canApplyW2U =
-            !w2uMode_.has_value() ? ((flags_ & kEw2uEnabled) != 0U) : (*w2uMode_ == W2uMode::Everywhere || (*w2uMode_ == W2uMode::NonStart && !composition.empty()));
+            !w2uMode_.has_value() ? flags_.has(EngineFlag::W2uEnabled) : (*w2uMode_ == W2uMode::Everywhere || (*w2uMode_ == W2uMode::NonStart && !composition.empty()));
 
         if (canApplyW2U && lowerKey == U'w' && !transformations.empty()) {
             switch (transformations[0]->rule.result) {
@@ -222,23 +222,23 @@ namespace lotus {
     }
 
     Composition Engine::refreshLastToneTarget(const Composition& syllable) const {
-        if ((flags_ & kEfreeToneMarking) != 0U && lotus::isValid(syllable, false)) {
-            return lotus::refreshLastToneTarget(syllable, (flags_ & kEstdToneStyle) != 0U);
+        if (flags_.has(EngineFlag::FreeToneMarking) && lotus::isValid(syllable, false)) {
+            return lotus::refreshLastToneTarget(syllable, flags_.has(EngineFlag::StdToneStyle));
         }
         return Composition{};
     }
 
-    void Engine::processString(std::u32string_view text, uint32_t mode) {
+    void Engine::processString(std::u32string_view text, ModeSet mode) {
         for (const char32_t key : text) {
             processKey(key, mode);
         }
     }
 
-    void Engine::processKey(char32_t key, uint32_t mode) {
+    void Engine::processKey(char32_t key, ModeSet mode) {
         const char32_t lowerKey    = case_map::toLower(key);
         const bool     isUpperCase = case_map::isUpper(key);
-        if ((mode & toMask(Mode::EnglishMode)) != 0U || !canProcessKey(lowerKey)) {
-            if ((mode & toMask(Mode::InReverseOrder)) != 0U) {
+        if (mode.has(Mode::EnglishMode) || !canProcessKey(lowerKey)) {
+            if (mode.has(Mode::InReverseOrder)) {
                 composition_.insert(composition_.begin(), makeAppendingTrans(lowerKey, isUpperCase));
                 return;
             }

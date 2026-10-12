@@ -49,6 +49,22 @@ namespace {
 
     int                failures = 0;
 
+    // Engine flags of the Go tests: EstdFlags without the W2U / std tone style / free tone marking bit.
+    lotus::EngineFlags withoutW2u() {
+        lotus::EngineFlags flags = lotus::kEstdFlags;
+        return flags.remove(lotus::EngineFlag::W2uEnabled);
+    }
+
+    lotus::EngineFlags withoutStdToneStyle() {
+        lotus::EngineFlags flags = lotus::kEstdFlags;
+        return flags.remove(lotus::EngineFlag::StdToneStyle);
+    }
+
+    lotus::EngineFlags withoutFreeToneMarking() {
+        lotus::EngineFlags flags = lotus::kEstdFlags;
+        return flags.remove(lotus::EngineFlag::FreeToneMarking);
+    }
+
     // Renders a code point list as "U+XXXX U+YYYY", used to report mismatching expectations.
     std::string hexOf(std::u32string_view text) {
         std::string          out;
@@ -107,7 +123,7 @@ namespace {
     }
 
     // Go's newOptEngine(flags, dict, spellCheckWithDicts).
-    KeyProcessor newOptEngine(uint32_t flags, const std::vector<std::string>& dict, bool spellCheckWithDicts) {
+    KeyProcessor newOptEngine(lotus::EngineFlags flags, const std::vector<std::string>& dict, bool spellCheckWithDicts) {
         KeyProcessor engine = newTestEngine(dict, spellCheckWithDicts);
         engine.engine().setFlag(flags);
         return engine;
@@ -494,7 +510,7 @@ namespace {
     void case_w2u_modes() {
         struct Case {
             std::string_view              name;
-            uint32_t                      flags;
+            lotus::EngineFlags            flags;
             std::optional<lotus::W2uMode> mode; // nullopt = don't call setW2uMode
             std::string_view              keys;
             std::u32string_view           want;
@@ -502,8 +518,8 @@ namespace {
         const std::vector<Case> cases = {
             {"default", lotus::kEstdFlags, std::nullopt, "w", U"ư"},
             {"default-bw", lotus::kEstdFlags, std::nullopt, "bw", U"bư"},
-            {"flag-off", lotus::kEstdFlags & ~lotus::kEw2uEnabled, std::nullopt, "w", U"w"},
-            {"flag-off-bw", lotus::kEstdFlags & ~lotus::kEw2uEnabled, std::nullopt, "bw", U"bw"},
+            {"flag-off", withoutW2u(), std::nullopt, "w", U"w"},
+            {"flag-off-bw", withoutW2u(), std::nullopt, "bw", U"bw"},
             {"disabled", lotus::kEstdFlags, lotus::W2uMode::Disabled, "w", U"w"},
             {"nonstart", lotus::kEstdFlags, lotus::W2uMode::NonStart, "w", U"w"},
             {"nonstart-bw", lotus::kEstdFlags, lotus::W2uMode::NonStart, "bw", U"bư"},
@@ -587,7 +603,7 @@ namespace {
         KeyProcessor engine = newOptEngine(lotus::kEstdFlags, {}, false);
         typeKeys(engine, "hoaf");
         checkU32("std tone style: hoaf preedit got [hòa] expected [hòa]", engine.preedit(), U"hòa");
-        engine = newOptEngine(lotus::kEstdFlags & ~lotus::kEstdToneStyle, {}, false);
+        engine = newOptEngine(withoutStdToneStyle(), {}, false);
         typeKeys(engine, "hoaf");
         checkU32("modern tone style: hoaf preedit got [hoà] expected [hoà]", engine.preedit(), U"hoà");
     }
@@ -616,11 +632,11 @@ namespace {
     // TestFreeMarkingFlag.
     void case_free_marking_flag() {
         KeyProcessor engine = newTestEngine({}, false);
-        checkBool("default EstdFlags: EfreeToneMarking missing from flags", (engine.engine().flag() & lotus::kEfreeToneMarking) != 0, true);
-        KeyProcessor modernEngine = newOptEngine(lotus::kEstdFlags & ~lotus::kEfreeToneMarking, {}, false);
-        checkBool("EstdFlags&^EfreeToneMarking: flag still set", (modernEngine.engine().flag() & lotus::kEfreeToneMarking) == 0, true);
-        modernEngine.engine().setFlag(lotus::kEstdFlags | lotus::kEfreeToneMarking);
-        checkBool("SetFlag(EstdFlags|EfreeToneMarking): flag not present", (modernEngine.engine().flag() & lotus::kEfreeToneMarking) != 0, true);
+        checkBool("default EstdFlags: EfreeToneMarking missing from flags", engine.engine().flag().has(lotus::EngineFlag::FreeToneMarking), true);
+        KeyProcessor modernEngine = newOptEngine(withoutFreeToneMarking(), {}, false);
+        checkBool("EstdFlags&^EfreeToneMarking: flag still set", !modernEngine.engine().flag().has(lotus::EngineFlag::FreeToneMarking), true);
+        modernEngine.engine().setFlag(lotus::kEstdFlags | lotus::EngineFlag::FreeToneMarking);
+        checkBool("SetFlag(EstdFlags|EfreeToneMarking): flag not present", modernEngine.engine().flag().has(lotus::EngineFlag::FreeToneMarking), true);
     }
 
     // Replays test/golden/key_processor.tsv: one processor per case id, built from the opts/flags/
@@ -683,7 +699,7 @@ namespace {
                 processor.options().autoNonVnRestore = (opts & kOptAutoNonVnRestore) != 0;
                 processor.options().ddFreeStyle      = (opts & kOptDdFreeStyle) != 0;
                 processor.setMacroEnabled((opts & kOptMacroEnabled) != 0);
-                processor.engine().setFlag(static_cast<uint32_t>(std::stoul(row.fields[5])));
+                processor.engine().setFlag(lotus::engineFlagsFromBits(static_cast<uint32_t>(std::stoul(row.fields[5]))));
                 processor.engine().setW2uMode(w2uModeOf(row.fields[6]));
                 processor.engine().setBracketTransformMode(bracketTransformModeOf(row.fields[7]));
                 it = processors.emplace(id, std::move(processor)).first;

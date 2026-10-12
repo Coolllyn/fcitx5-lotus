@@ -28,13 +28,97 @@ namespace lotus {
         InReverseOrder  = 1U << 7U,
     };
 
-    /** @brief Engine flags (bit flags), 1:1 with Go's E* constants. */
-    inline constexpr uint32_t kEfreeToneMarking         = 1U << 0U;
-    inline constexpr uint32_t kEstdToneStyle            = 1U << 1U;
-    inline constexpr uint32_t kEautoCorrectEnabled      = 1U << 2U;
-    inline constexpr uint32_t kEw2uEnabled              = 1U << 3U;
-    inline constexpr uint32_t kEbracketTransformEnabled = 1U << 4U;
-    inline constexpr uint32_t kEstdFlags                = kEfreeToneMarking | kEstdToneStyle | kEautoCorrectEnabled | kEw2uEnabled;
+    /**
+     * @brief A set of bit flags of one enumeration.
+     *
+     * Replaces the plain uint32_t masks the Go engine passed around, so a mode set can no longer be
+     * mixed up with an engine flag set or with an unrelated integer.
+     * @tparam Flag Flag enumeration.
+     */
+    template <typename Flag>
+    struct FlagSet {
+        uint32_t bits = 0U;
+
+        /**
+         * @brief Reports whether a flag is part of the set.
+         * @param flag Flag to test.
+         * @return True when the flag is set.
+         */
+        [[nodiscard]] constexpr bool has(Flag flag) const {
+            return (bits & static_cast<uint32_t>(flag)) != 0U;
+        }
+
+        /**
+         * @brief Sets a flag.
+         * @param flag Flag to set.
+         * @return This set, so calls can chain.
+         */
+        constexpr FlagSet& add(Flag flag) {
+            bits |= static_cast<uint32_t>(flag);
+            return *this;
+        }
+
+        /**
+         * @brief Clears a flag.
+         * @param flag Flag to clear.
+         * @return This set, so calls can chain.
+         */
+        constexpr FlagSet& remove(Flag flag) {
+            bits &= ~static_cast<uint32_t>(flag);
+            return *this;
+        }
+    };
+
+    /** @brief A set of Mode flags. */
+    using ModeSet = FlagSet<Mode>;
+
+    /** @brief Engine flags (bit flags), replacing the Go E* constants. */
+    enum class EngineFlag : uint8_t {
+        FreeToneMarking         = 1U << 0U,
+        StdToneStyle            = 1U << 1U,
+        AutoCorrectEnabled      = 1U << 2U,
+        W2uEnabled              = 1U << 3U,
+        BracketTransformEnabled = 1U << 4U,
+    };
+
+    /** @brief A set of engine flags. */
+    using EngineFlags = FlagSet<EngineFlag>;
+
+    /**
+     * @brief Combines two flags of one set.
+     * @param first First flag.
+     * @param second Second flag.
+     * @return Set holding both flags.
+     */
+    template <typename Flag>
+    constexpr FlagSet<Flag> operator|(Flag first, Flag second) {
+        return FlagSet<Flag>{static_cast<uint32_t>(first) | static_cast<uint32_t>(second)};
+    }
+
+    /**
+     * @brief Adds a flag to a set.
+     * @param set Set to extend.
+     * @param flag Flag to add.
+     * @return Extended set.
+     */
+    template <typename Flag>
+    constexpr FlagSet<Flag> operator|(FlagSet<Flag> set, Flag flag) {
+        return FlagSet<Flag>{set.bits | static_cast<uint32_t>(flag)};
+    }
+
+    /**
+     * @brief Combines two sets of the same flag type.
+     * @param first First set.
+     * @param second Second set.
+     * @return Set holding both sets.
+     */
+    template <typename Flag>
+    constexpr FlagSet<Flag> operator|(FlagSet<Flag> first, FlagSet<Flag> second) {
+        return FlagSet<Flag>{first.bits | second.bits};
+    }
+
+    /** @brief Default engine flags, the Go EstdFlags set. */
+    inline constexpr EngineFlags kEstdFlags = EngineFlag::FreeToneMarking | EngineFlag::StdToneStyle | EngineFlag::AutoCorrectEnabled | EngineFlag::W2uEnabled;
 
     /**
      * @brief "w" to "ư" mode, shared with the addon configuration.
@@ -90,23 +174,30 @@ namespace lotus {
     };
 
     /**
-     * @brief Converts a Mode value to the bit mask used by the engine API.
-     * @param mode Mode value (possibly a combination of flags).
-     * @return Bit mask.
+     * @brief Mode set of a single mode flag, the Go `Mode` value.
+     * @param mode Mode flag.
+     * @return Mode set holding that flag.
      */
-    constexpr uint32_t toMask(Mode mode) {
-        return static_cast<uint32_t>(mode);
+    constexpr ModeSet toMask(Mode mode) {
+        return ModeSet{static_cast<uint32_t>(mode)};
     }
 
     /**
-     * @brief Combines two mode flags, like Go's `mode | flag`.
-     * @param first First flags.
-     * @param second Second flags.
-     * @return Combined bit mask; the result is deliberately not a Mode value because a combination
-     *         lies outside the range of the enumeration.
+     * @brief Mode set of a raw bit mask, for callers that carry the mask as a number.
+     * @param bits Raw mask; unknown bits are kept, like Go kept them.
+     * @return Mode set holding those bits.
      */
-    constexpr uint32_t operator|(Mode first, Mode second) {
-        return toMask(first) | toMask(second);
+    constexpr ModeSet modeSetFromBits(uint32_t bits) {
+        return ModeSet{bits};
+    }
+
+    /**
+     * @brief Engine flag set of a raw bit mask, for callers that carry the flags as a number.
+     * @param bits Raw mask; unknown bits are kept.
+     * @return Engine flag set holding those bits.
+     */
+    constexpr EngineFlags engineFlagsFromBits(uint32_t bits) {
+        return EngineFlags{bits};
     }
 
 } // namespace lotus

@@ -18,12 +18,12 @@
 
 namespace lotus {
 
-    std::u32string flatten(const Composition& composition, uint32_t mode) {
+    std::u32string flatten(const Composition& composition, ModeSet mode) {
         std::unordered_map<TransformationPtr, Composition> appendingMap;
         Composition                                        appendingList;
 
         for (const auto& trans : composition) {
-            const bool isEnglish   = (mode & toMask(Mode::EnglishMode)) != 0U;
+            const bool isEnglish   = mode.has(Mode::EnglishMode);
             const bool isAppending = trans->rule.effectType == EffectType::Appending;
             if (isEnglish || isAppending) {
                 if (trans->rule.key == 0) {
@@ -40,7 +40,7 @@ namespace lotus {
         for (const auto& appendingTrans : appendingList) {
             char32_t   char32 = 0;
             const auto found  = appendingMap.find(appendingTrans);
-            if ((mode & toMask(Mode::EnglishMode)) != 0U) {
+            if (mode.has(Mode::EnglishMode)) {
                 char32 = appendingTrans->rule.key;
             } else {
                 char32 = appendingTrans->rule.effectOn;
@@ -58,13 +58,13 @@ namespace lotus {
                     }
                 }
             }
-            if ((mode & toMask(Mode::ToneLess)) != 0U) {
+            if (mode.has(Mode::ToneLess)) {
                 char32 = utils::addToneToChar(char32, Tone::None);
             }
-            if ((mode & toMask(Mode::MarkLess)) != 0U) {
+            if (mode.has(Mode::MarkLess)) {
                 char32 = utils::addMarkToChar(char32, Mark::None);
             }
-            if ((mode & toMask(Mode::LowerCase)) != 0U) {
+            if (mode.has(Mode::LowerCase)) {
                 char32 = case_map::toLower(char32);
             } else if (appendingTrans->isUpperCase) {
                 char32 = case_map::toUpper(char32);

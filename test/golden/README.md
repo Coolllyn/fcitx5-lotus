@@ -29,10 +29,11 @@ Lam); bản port C++ nằm trong `lotus/`, phát hành dưới GPL-3.0-or-later,
 
 ## Tái sinh
 
-Corpus **đã commit là nguồn sự thật** và **không tái sinh được trong repo này nữa**: dumper Go
-(`golden_dump_test.go`) nằm trong cây Go cũ và đã bị xoá cùng engine Go. Muốn sinh lại phải dùng lại cây
-Go lịch sử (dumper + engine Go gốc); corpus mới **bắt buộc** phải chạy lại toàn bộ test C++ — sửa golden
-bằng tay là mất tính 1-1.
+Corpus **đã commit là nguồn sự thật** và **không tái sinh được trong repo này nữa**: engine Go và dumper
+(`golden_dump_test.go`) đã được chuyển sang repo tham chiếu riêng
+[**LotusInputMethod/bamboo**](https://github.com/LotusInputMethod/bamboo) (chỉ để đối chiếu logic, không
+khuyến khích sử dụng). Muốn sinh lại corpus thì chạy dumper ở repo đó — hướng dẫn nằm trong README của
+nó; corpus mới **bắt buộc** phải chạy lại toàn bộ test C++, và sửa golden bằng tay là mất tính 1-1.
 
 ## Quét locally (không commit)
 

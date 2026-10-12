@@ -35,7 +35,7 @@ namespace {
 
 } // namespace
 
-int main() {
+int run_golden_smoke() {
     const auto charset = readGolden(goldenPath("charset.tsv"));
     const auto core    = readGolden(goldenPath("engine_core.tsv"));
     const auto wrapper = readGolden(goldenPath("key_processor.tsv"));

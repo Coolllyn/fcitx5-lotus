@@ -39,7 +39,7 @@ namespace {
 
 } // namespace
 
-int main() {
+int run_data() {
     // Charsets: 16 tables, 2112 entries, values byte identical to Go (including the raw-string tables).
     std::size_t totalEntries = 0;
     for (const auto& table : charsetDefinitions()) {

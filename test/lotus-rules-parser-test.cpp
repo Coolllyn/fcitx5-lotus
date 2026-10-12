@@ -53,7 +53,7 @@ namespace {
 
 } // namespace
 
-int main() {
+int run_rules_parser() {
     // TestParseToneRules
     {
         const auto rules = parseRules(U'z', "XoaDauThanh");

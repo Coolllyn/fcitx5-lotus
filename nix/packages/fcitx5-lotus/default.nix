@@ -6,7 +6,6 @@
   fcitx5,
   fetchFromGitHub,
   gettext,
-  go,
   hicolor-icon-theme,
   kdePackages,
   libinput,
@@ -44,7 +43,6 @@ stdenv.mkDerivation (finalAttrs: {
   nativeBuildInputs = [
     cmake
     gettext
-    go
     hicolor-icon-theme
     kdePackages.extra-cmake-modules
     pkg-config
@@ -72,11 +70,6 @@ stdenv.mkDerivation (finalAttrs: {
     "-DLOTUS_ALT_EXECUTABLE_PREFIX=/nix/store/"
     "-DLOTUS_SETFACL_EXECUTABLE=${acl}/bin/setfacl"
   ];
-
-  preConfigure = ''
-    export GOCACHE=$TMPDIR/go-cache
-    export GOPATH=$TMPDIR/go
-  '';
 
   postFixup = ''
     patchShebangs $out/share/fcitx5-lotus/settings-gui

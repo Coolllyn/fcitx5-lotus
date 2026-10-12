@@ -13,16 +13,10 @@ Files: debian/*
 Copyright: 2026 Nguyen Hoang Ky <nhktmdzhg@gmail.com>
 License: GPL-3.0-or-later
 
-Files: bamboo/*
-Copyright: 2022 CSSlayer <wengxt@gmail.com>
-           2018 Luong Thanh Lam <ltlam93@gmail.com>
-           2026 Nguyen Hoang Ky <nhktmdzhg@gmail.com>
-License: GPL-3.0-or-later
-
-Files: bamboo/bamboo-core/*
+Files: lotus/*
 Copyright: 2018 Luong Thanh Lam <ltlam93@gmail.com>
            2026 Nguyen Hoang Ky <nhktmdzhg@gmail.com>
-License: Expat
+License: GPL-3.0-or-later
 
 Files: cmake/*
 Copyright: 2016 Xuetian Weng <wengxt@gmail.com>

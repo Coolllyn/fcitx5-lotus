@@ -14,7 +14,6 @@ BuildRequires:  fcitx5-devel
 BuildRequires:  libinput-devel
 BuildRequires:  systemd-devel
 
-BuildRequires:  go
 BuildRequires:  sysuser-tools
 Requires(pre):  sysuser-shadow >= 3.1
 

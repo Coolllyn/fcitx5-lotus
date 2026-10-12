@@ -15,7 +15,7 @@ target_link_libraries(lotus_core_objects PRIVATE
     Fcitx5::Core
     Fcitx5::Config
     Fcitx5::Module::Emoji
-    Bamboo::Core
+    Lotus::Engine
     Pthread::Pthread
 )
 
@@ -25,12 +25,11 @@ add_library(lotus MODULE lotus.cpp
 )
 set_target_properties(lotus PROPERTIES OUTPUT_NAME "lotus")
 set_target_properties(lotus PROPERTIES POSITION_INDEPENDENT_CODE ON)
-target_link_options(lotus PRIVATE "-Wl,-exclude-libs,ALL")
 target_link_libraries(lotus
         Fcitx5::Core
         Fcitx5::Config
   Fcitx5::Module::Emoji
-        Bamboo::Core
+        Lotus::Engine
         Pthread::Pthread
 )
 

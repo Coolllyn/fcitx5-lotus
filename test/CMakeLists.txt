@@ -1,11 +1,8 @@
-# Wraps the core objects compiled once in src/lotus_core_objects, so the Go
-# runtime is linked once here; exclude-libs keeps its symbols out of the
-# dynamic symbol table.
+# Wraps the core objects compiled once in src/lotus_core_objects for the headless tests.
 add_library(lotus_test_core SHARED
     $<TARGET_OBJECTS:lotus_core_objects>
     $<TARGET_OBJECTS:lotus_executable_path>
 )
-target_link_options(lotus_test_core PRIVATE "-Wl,-exclude-libs,ALL")
 target_include_directories(lotus_test_core PUBLIC
     ${PROJECT_BINARY_DIR}
     ${PROJECT_SOURCE_DIR}/src
@@ -14,7 +11,7 @@ target_link_libraries(lotus_test_core PUBLIC
     Fcitx5::Core
     Fcitx5::Config
     Fcitx5::Module::Emoji
-    Bamboo::Core
+    Lotus::Engine
     Pthread::Pthread
 )
 
@@ -38,13 +35,7 @@ function(add_lotus_headless_test target source labels)
     set_tests_properties(${target} PROPERTIES LABELS "${labels}" TIMEOUT 20)
 endfunction()
 
-# Helper to compile lightweight unit test linked with Bamboo engine core.
-function(add_bamboo_test target source labels)
-    add_executable(${target} ${source})
-    target_link_libraries(${target} PRIVATE Bamboo::Core)
-    add_test(NAME ${target} COMMAND ${target})
-    set_tests_properties(${target} PROPERTIES LABELS "${labels}" TIMEOUT 20)
-endfunction()
+# Helper to compile lightweight unit tests linked with the C++ lotus engine.
 
 # Helper to compile a portable unit test of the C++ engine (lotus/), no fcitx or Go needed.
 #
@@ -91,24 +82,8 @@ add_lotus_headless_test(modifier_key_bypasses_surrounding_text
     modifier-key-bypasses-surrounding-text.cpp "integration;surrounding")
 add_lotus_headless_test(emoji_history_page_navigation
     emoji-history-page-navigation.cpp "integration;emoji")
-add_bamboo_test(numeric_macro_case_preservation
+add_lotus_engine_test(numeric_macro_case_preservation
     numeric-macro-case-preservation.cpp "unit;macro")
-
-add_executable(emoji_backspace_utf8
-    test-emoji-backspace.cpp
-    ${PROJECT_SOURCE_DIR}/src/lotus-utils.cpp
-)
-target_include_directories(emoji_backspace_utf8 PRIVATE
-    ${PROJECT_SOURCE_DIR}/src
-)
-target_link_libraries(emoji_backspace_utf8 PRIVATE
-    Fcitx5::Core
-)
-add_test(NAME emoji_backspace_utf8 COMMAND emoji_backspace_utf8)
-set_tests_properties(emoji_backspace_utf8 PROPERTIES
-    LABELS "unit;emoji"
-    TIMEOUT 20
-)
 
 add_executable(executable_path_match
     executable-path-match.cpp

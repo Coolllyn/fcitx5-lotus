@@ -14,9 +14,20 @@
 
 #include "rule.h"
 
+#include <string>
 #include <string_view>
+#include <unordered_map>
+#include <vector>
 
 namespace lotus {
+
+    /**
+     * @brief Builds an input method from an explicit definition map, like Go's ParseInputMethod.
+     * @param definition Key/value pairs of the definition (input key -> DSL line).
+     * @param name Definition name to store in the result ("Custom", "Telex", ...).
+     * @return Parsed input method; an empty rule set when the definition has no usable line.
+     */
+    InputMethod parseInputMethod(const std::unordered_map<std::string, std::string>& definition, std::string_view name);
 
     /**
      * @brief Builds the input method named by name, like Go's ParseInputMethod.
@@ -24,6 +35,15 @@ namespace lotus {
      * @return Parsed input method; a default (empty name, no rules) InputMethod when unknown.
      */
     InputMethod parseInputMethod(std::string_view name);
+
+    /**
+     * @brief Names of every generated input method, in the order the addon menu shows them.
+     *
+     * Go sorts the definition names with an explicit order table (bamboo/bamboo-c.go:279-287) because
+     * the definitions themselves live in a map. The seven names below are that table, in order.
+     * @return Input method names, menu order first.
+     */
+    std::vector<std::string> inputMethodNames();
 
 } // namespace lotus
 

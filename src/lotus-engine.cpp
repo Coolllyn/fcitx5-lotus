@@ -15,10 +15,13 @@
 #include "lotus-utils.h"
 #include "lotus-plasma-theme.h"
 
-#include "bamboo-core.h" // generated cgo header; only included where the bridge is called
+#include "dictionary.h"
+#include "input_method.h"
+#include "lotus-fcitx-text.h"
 
 #include <optional>
 #include <sys/socket.h>
+#include <unistd.h>
 #include <utility>
 
 #include <fcitx-config/iniparser.h>
@@ -236,50 +239,30 @@ namespace fcitx {
         return cachedValue;
     }
 
-    uintptr_t newMacroTable(const lotusMacroTable& macroTable) {
-        const auto&        macros = *macroTable.macros;
-        std::vector<char*> charArray;
-        charArray.reserve((macros.size() * 2) + 1);
+    std::shared_ptr<const lotus::MacroTable> buildMacroTable(const lotusMacroTable& macroTable) {
+        auto        table  = std::make_shared<lotus::MacroTable>();
+        const auto& macros = *macroTable.macros;
         for (const auto& keymap : macros) {
-            // External C API doesn't use const, but doesn't modify data
-            charArray.push_back(const_cast<char*>(keymap.key->data()));   //NOLINT
-            charArray.push_back(const_cast<char*>(keymap.value->data())); //NOLINT
+            table->set(*keymap.key, *keymap.value);
         }
-        charArray.push_back(nullptr);
-        return NewMacroTable(charArray.data());
+        return table;
     }
 
-    std::vector<std::string> convertToStringList(char** list) {
-        std::vector<std::string> result;
-        if (list == nullptr) {
-            return result;
-        }
-        // Go allocates the array and every element with malloc (toCStringArray in bamboo-c.go);
-        // owned here so an allocation failure while building result does not leak them.
-        const std::unique_ptr<char*, decltype(&std::free)> owner(list, &std::free);      //NOLINT
-        for (size_t i = 0; list[i] != nullptr; ++i) {                                    //NOLINT
-            const std::unique_ptr<char, decltype(&std::free)> item(list[i], &std::free); //NOLINT
-            result.emplace_back(item.get());
-        }
-        return result;
+    const std::shared_ptr<const lotus::MacroTable>& LotusEngine::macroTable() const {
+        return macroTable_;
     }
 
-    uintptr_t LotusEngine::macroTable() const {
-        if (config_.inputMethod.value().empty()) {
-            return 0;
-        }
-        return macroTableObject_.handle();
+    const std::shared_ptr<const lotus::Dictionary>& LotusEngine::dictionary() const {
+        return dictionary_;
     }
 
     LotusEngine::LotusEngine(Instance* instance) : instance_(instance), factory_([this](InputContext& ic) { return new LotusState(this, &ic); }) { //NOLINT
         std::string desktop = getEnv("XDG_CURRENT_DESKTOP");
         isGnome_            = (!desktop.empty()) && desktop.find("GNOME") != std::string::npos;
         // emptyCustomKeymap_.customKeymap is implicitly initialized to empty by fcitx::Option default value macro.
-        Init();
         {
-            auto imNames = convertToStringList(GetInputMethodNames());
-            imNames.emplace_back("Custom");
-            imNames_ = std::move(imNames);
+            imNames_ = lotus::inputMethodNames();
+            imNames_.emplace_back("Custom");
         }
         config_.inputMethod.annotation().setList(imNames_);
 
@@ -292,7 +275,7 @@ namespace fcitx {
         charsetMenu_ = std::make_unique<Menu>();
         charsetAction_->setMenu(charsetMenu_.get());
 
-        auto charsets = convertToStringList(GetCharsetNames());
+        const std::vector<std::string> charsets = lotus::charsetNames();
         for (const auto& charset : charsets) {
             charsetSubAction_.emplace_back(std::make_unique<SimpleAction>());
             auto* action = charsetSubAction_.back().get();
@@ -389,13 +372,25 @@ namespace fcitx {
         readAsIni(config_, "conf/lotus.conf");
         readAsIni(customKeymap_, CustomKeymapFile);
         readAsIni(macroTables_, MacroTableFile);
-        macroTableObject_.reset(newMacroTable(macroTables_));
+        macroTable_ = buildMacroTable(macroTables_);
         loadDictionary();
         loadAppRules();
         populateConfig();
     }
 
     void LotusEngine::loadDictionary() {
+        auto dictionary = std::make_shared<lotus::Dictionary>();
+        // Go read the descriptor handed to it; the port reads the same descriptor into the text
+        // Dictionary::loadFromText expects.
+        auto loadFromFd = [&dictionary](int fd) {
+            std::string            contents;
+            std::array<char, 4096> buffer{};
+            for (ssize_t count = ::read(fd, buffer.data(), buffer.size()); count > 0; count = ::read(fd, buffer.data(), buffer.size())) {
+                contents.append(buffer.data(), static_cast<std::size_t>(count));
+            }
+            ::close(fd);
+            dictionary->loadFromText(contents);
+        };
         if (config_.enableDictionary.value()) {
 #if LOTUS_USE_MODERN_FCITX_API
             auto fd = StandardPaths::global().open(StandardPathsType::PkgData, "lotus/vietnamese.cm.dict");
@@ -403,7 +398,7 @@ namespace fcitx {
             auto fd = StandardPath::global().open(StandardPath::Type::PkgData, "lotus/vietnamese.cm.dict", O_RDONLY);
 #endif
             if (fd.isValid()) {
-                dictionary_.reset(NewDictionary(fd.release()));
+                loadFromFd(fd.release());
             }
         } else {
 #if LOTUS_USE_MODERN_FCITX_API
@@ -416,18 +411,19 @@ namespace fcitx {
                 if (!isStartsWith(p.string(), "/home/")) {
                     auto fd = fcitx::UnixFD(::open(p.c_str(), O_RDONLY));
                     if (fd.isValid()) {
-                        dictionary_.reset(NewDictionary(fd.release()));
+                        loadFromFd(fd.release());
 #else
                 if (!isStartsWith(p, "home/")) {
                     int fd = ::open(p.c_str(), O_RDONLY);
                     if (fd != -1) {
-                        dictionary_.reset(NewDictionary(fd));
+                        loadFromFd(fd);
 #endif
                         break;
                     }
                 }
             }
         }
+        dictionary_ = std::move(dictionary);
     }
 
     const Configuration* LotusEngine::getSubConfig(const std::string& path) const {
@@ -468,7 +464,7 @@ namespace fcitx {
         } else if (path == "lotus-macro") {
             macroTables_.load(config, true);
             safeSaveAsIni(macroTables_, MacroTableFile);
-            macroTableObject_.reset(newMacroTable(macroTables_));
+            macroTable_ = buildMacroTable(macroTables_);
             refreshEngine();
         } else if (path == "app_rules") {
             appRulesTables_.load(config, true);
@@ -747,10 +743,10 @@ namespace fcitx {
     }
 
     void LotusEngine::syncRealtextLen(InputContext* ic) {
-        const auto&  s       = ic->surroundingText();
-        const auto&  text    = s.text();
-        size_t       textLen = fcitx_utf8_strlen(text.c_str());
-        unsigned int cursor  = s.cursor();
+        const auto&          s       = ic->surroundingText();
+        const std::u32string text    = lotus::fcitx_text::surroundingText(ic);
+        const size_t         textLen = text.size();
+        unsigned int         cursor  = s.cursor();
         if (textLen == static_cast<size_t>(cursor))
             realtextLen.store(static_cast<unsigned int>(textLen), std::memory_order_release);
     }

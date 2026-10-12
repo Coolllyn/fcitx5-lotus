@@ -15,26 +15,22 @@
 #include "utf8.h"
 
 #include <algorithm>
+#include <array>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
 namespace lotus {
 
-    InputMethod parseInputMethod(std::string_view name) {
-        const auto& definitions = data::inputMethodDefinitions();
-        const auto  definition  = definitions.find(std::string(name));
-        if (definition == definitions.end()) {
-            return InputMethod{};
-        }
-
+    InputMethod parseInputMethod(const std::unordered_map<std::string, std::string>& definition, std::string_view name) {
         InputMethod method;
         method.name = name;
 
         // Go iterates a map here, so the order of the definition keys is random; only the
         // key -> rules association matters, and the keys/toneKeys/appendingKeys lists are used
         // for membership tests. Sort the keys to keep the result deterministic.
-        std::vector<std::pair<std::string, std::string>> entries(definition->second.begin(), definition->second.end());
+        std::vector<std::pair<std::string, std::string>> entries(definition.begin(), definition.end());
         std::sort(entries.begin(), entries.end());
 
         for (const auto& entry : entries) {
@@ -59,6 +55,29 @@ namespace lotus {
             }
         }
         return method;
+    }
+
+    InputMethod parseInputMethod(std::string_view name) {
+        const auto& definitions = data::inputMethodDefinitions();
+        const auto  definition  = definitions.find(std::string(name));
+        if (definition == definitions.end()) {
+            return InputMethod{};
+        }
+        return parseInputMethod(definition->second, name);
+    }
+
+    std::vector<std::string> inputMethodNames() {
+        // Go's order table (bamboo/bamboo-c.go:279-287): the definitions live in a map, so the menu
+        // order has to be spelled out instead of derived from the data.
+        static constexpr std::array<std::string_view, 7> kOrder = {
+            "Telex", "VNI", "Telex + VNI", "Telex + VNI + VIQR", "VIQR", "Microsoft layout", "VNI Bàn phím tiếng Pháp",
+        };
+        std::vector<std::string> names;
+        names.reserve(kOrder.size());
+        for (const std::string_view name : kOrder) {
+            names.emplace_back(name);
+        }
+        return names;
     }
 
 } // namespace lotus

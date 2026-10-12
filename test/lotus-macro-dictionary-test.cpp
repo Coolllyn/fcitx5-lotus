@@ -51,26 +51,20 @@ namespace {
         lotus::MacroTable table;
         table.set("vn", "Việt Nam");
 
-        std::string value;
-        bool        found = table.get("VN", value);
-        check("Get(VN) got [missing] expected [found] (case-insensitive)", found);
-        checkStr("Get(VN) got [Việt Nam] expected [Việt Nam] (case-insensitive)", value, "Việt Nam");
+        const auto vnValue = table.get("VN");
+        check("Get(VN) got [missing] expected [found] (case-insensitive)", vnValue.has_value());
+        checkStr("Get(VN) got [Việt Nam] expected [Việt Nam] (case-insensitive)", vnValue.value_or(""), "Việt Nam");
 
-        found = table.get("vn", value);
-        check("Get(vn) got [missing] expected [found]", found);
-        checkStr("Get(vn) got [Việt Nam] expected [Việt Nam]", value, "Việt Nam");
+        const auto vnLower = table.get("vn");
+        check("Get(vn) got [missing] expected [found]", vnLower.has_value());
+        checkStr("Get(vn) got [Việt Nam] expected [Việt Nam]", vnLower.value_or(""), "Việt Nam");
 
-        found = table.get("", value);
-        check("Get(empty key) got [found] expected [missing]", !found);
-        checkStr("Get(empty key) got [] expected []", value, "");
+        check("Get(empty key) got [found] expected [missing]", !table.get("").has_value());
 
-        found = table.get("xyz", value);
-        check("Get(xyz) got [found] expected [missing]", !found);
-        checkStr("Get(xyz) got [] expected []", value, "");
+        check("Get(xyz) got [found] expected [missing]", !table.get("xyz").has_value());
 
         const lotus::MacroTable emptyTable;
-        found = emptyTable.get("vn", value);
-        check("Get on empty table got [found] expected [missing]", !found);
+        check("Get on empty table got [found] expected [missing]", !emptyTable.get("vn").has_value());
     }
 
     // TestDictionaryLookup.

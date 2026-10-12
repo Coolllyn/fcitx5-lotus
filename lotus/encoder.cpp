@@ -17,7 +17,7 @@
 
 namespace lotus {
 
-    std::vector<std::string> charsetNames() {
+    std::vector<std::string> buildCharsetNames() {
         std::vector<std::string> others;
         others.reserve(data::charsetDefinitions().size());
         for (const auto& table : data::charsetDefinitions()) {
@@ -30,6 +30,11 @@ namespace lotus {
         names.emplace_back(kUnicodeCharset);
         names.insert(names.end(), others.begin(), others.end());
         return names;
+    }
+
+    const std::vector<std::string>& charsetNames() {
+        static const std::vector<std::string> kNames = buildCharsetNames();
+        return kNames;
     }
 
     std::string encode(std::string_view charsetName, std::u32string_view text) {

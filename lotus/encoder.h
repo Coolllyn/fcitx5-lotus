@@ -23,10 +23,16 @@ namespace lotus {
     inline constexpr std::string_view kUnicodeCharset = "Unicode";
 
     /**
-     * @brief Names of every supported charset, "Unicode" first then the rest sorted ascending.
-     * @return Charset names, 1:1 with Go's GetCharsetNames.
+     * @brief Builds the charset name list from the generated table, "Unicode" first.
+     * @return Charset names: the Unicode charset, then every table name sorted ascending.
      */
-    std::vector<std::string> charsetNames();
+    std::vector<std::string> buildCharsetNames();
+
+    /**
+     * @brief Names of every supported charset, "Unicode" first then the rest sorted ascending.
+     * @return Charset names, 1:1 with Go's GetCharsetNames, built once and reused by every call.
+     */
+    const std::vector<std::string>& charsetNames();
 
     /**
      * @brief Encodes engine text into a charset, like Go's Encode.

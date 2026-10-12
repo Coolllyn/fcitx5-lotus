@@ -224,10 +224,9 @@ namespace lotus {
         if (utils::isWordBreakSymbol(keyRune)) {
             // macro processing
             if (options_.macroEnabled && macroTable_ != nullptr) {
-                std::string macroVal;
-                if (macroTable_->get(utf8::encode(oldText), macroVal)) {
+                if (const auto macroVal = macroTable_->get(utf8::encode(oldText))) {
                     engine_.reset();
-                    std::u32string text = expandMacro(oldText, utf8::decode(macroVal));
+                    std::u32string text = expandMacro(oldText, utf8::decode(*macroVal));
                     text.push_back(keyRune);
                     return {std::move(text), true};
                 }
@@ -257,12 +256,12 @@ namespace lotus {
         if (!options_.macroEnabled || macroTableEmpty()) {
             return std::nullopt;
         }
-        const std::u32string text = getProcessedString(toMask(Mode::PunctuationMode));
-        std::string          macroVal;
-        if (!macroTable_->get(utf8::encode(text), macroVal)) {
+        const std::u32string text     = getProcessedString(toMask(Mode::PunctuationMode));
+        const auto           macroVal = macroTable_->get(utf8::encode(text));
+        if (!macroVal.has_value()) {
             return std::nullopt;
         }
-        return expandMacro(text, utf8::decode(macroVal));
+        return expandMacro(text, utf8::decode(*macroVal));
     }
 
     std::u32string KeyProcessor::getProcessedString(uint32_t mode) const {
@@ -500,8 +499,7 @@ namespace lotus {
             return false;
         }
         if (options_.macroEnabled && !macroTableEmpty()) {
-            std::string macroVal;
-            if (macroTable_->get(utf8::encode(getProcessedString(toMask(Mode::PunctuationMode))), macroVal)) {
+            if (macroTable_->get(utf8::encode(getProcessedString(toMask(Mode::PunctuationMode)))).has_value()) {
                 return false;
             }
         }
@@ -527,8 +525,7 @@ namespace lotus {
             return true;
         }
         if (keyVal == kFcitxTab && options_.macroEnabled && !macroTableEmpty() && !preedit_.empty()) {
-            std::string macroVal;
-            if (macroTable_->get(utf8::encode(getProcessedString(toMask(Mode::PunctuationMode))), macroVal)) {
+            if (macroTable_->get(utf8::encode(getProcessedString(toMask(Mode::PunctuationMode)))).has_value()) {
                 return true;
             }
         }

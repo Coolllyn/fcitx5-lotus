@@ -40,11 +40,12 @@ namespace lotus {
     /**
      * @brief Names of every generated input method, in the order the addon menu shows them.
      *
-     * Go sorts the definition names with an explicit order table (bamboo/bamboo-c.go:279-287) because
+     * Go sorts the definition names with an explicit order table (bamboo-c.go:279-287) because
      * the definitions themselves live in a map. The seven names below are that table, in order.
+     * The list is built once and reused by every call.
      * @return Input method names, menu order first.
      */
-    std::vector<std::string> inputMethodNames();
+    const std::vector<std::string>& inputMethodNames();
 
 } // namespace lotus
 

@@ -275,7 +275,7 @@ namespace fcitx {
         charsetMenu_ = std::make_unique<Menu>();
         charsetAction_->setMenu(charsetMenu_.get());
 
-        const std::vector<std::string> charsets = lotus::charsetNames();
+        const std::vector<std::string>& charsets = lotus::charsetNames();
         for (const auto& charset : charsets) {
             charsetSubAction_.emplace_back(std::make_unique<SimpleAction>());
             auto* action = charsetSubAction_.back().get();

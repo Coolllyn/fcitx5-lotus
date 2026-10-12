@@ -18,17 +18,15 @@ namespace lotus {
         return table_.empty();
     }
 
-    bool MacroTable::get(std::string_view keyUtf8, std::string& out) const {
-        out.clear();
+    std::optional<std::string_view> MacroTable::get(std::string_view keyUtf8) const {
         if (keyUtf8.empty() || empty()) {
-            return false;
+            return std::nullopt;
         }
         const auto found = table_.find(case_map::toLowerUtf8(keyUtf8));
         if (found == table_.end()) {
-            return false;
+            return std::nullopt;
         }
-        out = found->second;
-        return true;
+        return found->second;
     }
 
     void MacroTable::set(std::string_view keyUtf8, std::string_view valueUtf8) {

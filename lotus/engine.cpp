@@ -26,7 +26,8 @@ namespace lotus {
     }
 
     void Engine::setFlag(uint32_t flag) {
-        flags_ = flag;
+        flags_           = flag;
+        effectKeysValid_ = false;
     }
 
     uint32_t Engine::flag() const {
@@ -39,6 +40,7 @@ namespace lotus {
 
     void Engine::setBracketTransformMode(std::optional<BracketTransformMode> mode) {
         bracketTransformMode_ = mode;
+        effectKeysValid_      = false;
     }
 
     bool Engine::isBracketEnabled() const {
@@ -52,15 +54,22 @@ namespace lotus {
         return *bracketTransformMode_ == BracketTransformMode::NonStart && !composition_.empty();
     }
 
-    std::u32string Engine::effectKeys() const {
-        std::u32string keys(inputMethod_.keys.begin(), inputMethod_.keys.end());
-        if (isBracketEnabled()) {
-            keys.push_back(U'[');
-            keys.push_back(U']');
-            keys.push_back(U'{');
-            keys.push_back(U'}');
+    void Engine::buildEffectKeys() const {
+        if (effectKeysValid_) {
+            return;
         }
-        return keys;
+        effectKeysPlain_.assign(inputMethod_.keys.begin(), inputMethod_.keys.end());
+        effectKeysWithBrackets_ = effectKeysPlain_;
+        effectKeysWithBrackets_.push_back(U'[');
+        effectKeysWithBrackets_.push_back(U']');
+        effectKeysWithBrackets_.push_back(U'{');
+        effectKeysWithBrackets_.push_back(U'}');
+        effectKeysValid_ = true;
+    }
+
+    const std::u32string& Engine::effectKeys() const {
+        buildEffectKeys();
+        return isBracketEnabled() ? effectKeysWithBrackets_ : effectKeysPlain_;
     }
 
     bool Engine::isValid(bool inputIsFullComplete) const {

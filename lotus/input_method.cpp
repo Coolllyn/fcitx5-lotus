@@ -67,18 +67,13 @@ namespace lotus {
         return parseInputMethod(definition->second, name);
     }
 
-    std::vector<std::string> inputMethodNames() {
-        // Go's order table (bamboo/bamboo-c.go:279-287): the definitions live in a map, so the menu
-        // order has to be spelled out instead of derived from the data.
-        static constexpr std::array<std::string_view, 7> kOrder = {
+    const std::vector<std::string>& inputMethodNames() {
+        // Go's order table (bamboo-c.go:279-287): the definitions live in a map, so the menu order
+        // has to be spelled out instead of derived from the data.
+        static const std::vector<std::string> kNames = {
             "Telex", "VNI", "Telex + VNI", "Telex + VNI + VIQR", "VIQR", "Microsoft layout", "VNI Bàn phím tiếng Pháp",
         };
-        std::vector<std::string> names;
-        names.reserve(kOrder.size());
-        for (const std::string_view name : kOrder) {
-            names.emplace_back(name);
-        }
-        return names;
+        return kNames;
     }
 
 } // namespace lotus

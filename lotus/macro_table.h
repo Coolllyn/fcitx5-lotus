@@ -17,6 +17,7 @@
 #ifndef _LOTUS_MACRO_TABLE_H_
 #define _LOTUS_MACRO_TABLE_H_
 
+#include <optional>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -38,11 +39,10 @@ namespace lotus {
         /**
          * @brief Looks a key up case-insensitively, like Go's MacroTable.Get.
          * @param keyUtf8 Text to expand; an empty key never matches.
-         * @param out Receives the replacement text on a hit and is cleared on a miss, which is what
-         *            Go returns ("", false) there.
-         * @return True when the table holds the key.
+         * @return The replacement text, or std::nullopt on a miss (what Go returns as ("", false)
+         *         there).
          */
-        bool get(std::string_view keyUtf8, std::string& out) const;
+        [[nodiscard]] std::optional<std::string_view> get(std::string_view keyUtf8) const;
 
         /**
          * @brief Stores a replacement text under a key, like the map literal and NewMacroTable of Go.

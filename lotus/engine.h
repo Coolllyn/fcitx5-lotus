@@ -149,7 +149,13 @@ namespace lotus {
          * @brief Keys that do not break a word, brackets included when they are transformed.
          * @return Key list.
          */
-        [[nodiscard]] std::u32string effectKeys() const;
+        [[nodiscard]] const std::u32string& effectKeys() const;
+
+        /**
+         * @brief Fills the cached effect key lists, called by effectKeys on first use and whenever the
+         *        bracket state changes.
+         */
+        void buildEffectKeys() const;
 
         /**
          * @brief Rules of the input method that accept a key, like Go's getApplicableRules.
@@ -203,6 +209,10 @@ namespace lotus {
         uint32_t                            flags_;
         std::optional<W2uMode>              w2uMode_;
         std::optional<BracketTransformMode> bracketTransformMode_;
+        // Cached effect key lists, see buildEffectKeys.
+        mutable std::u32string effectKeysPlain_;
+        mutable std::u32string effectKeysWithBrackets_;
+        mutable bool           effectKeysValid_ = false;
     };
 
 } // namespace lotus

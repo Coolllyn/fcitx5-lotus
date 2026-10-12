@@ -28,6 +28,17 @@
 
 namespace {
 
+    // The engine carries fcitx5's raw modifier bits through the C boundary, so every bit the
+    // portable model uses must stay identical to fcitx5's KeyState.
+    static_assert(static_cast<uint32_t>(lotus::KeyState::Shift) == static_cast<uint32_t>(fcitx::KeyState::Shift), "Shift bit");
+    static_assert(static_cast<uint32_t>(lotus::KeyState::Lock) == static_cast<uint32_t>(fcitx::KeyState::CapsLock), "Lock bit is CapsLock");
+    static_assert(static_cast<uint32_t>(lotus::KeyState::Ctrl) == static_cast<uint32_t>(fcitx::KeyState::Ctrl), "Ctrl bit");
+    static_assert(static_cast<uint32_t>(lotus::KeyState::Mod1) == static_cast<uint32_t>(fcitx::KeyState::Alt), "Mod1 bit is Alt");
+    static_assert(static_cast<uint32_t>(lotus::KeyState::Ignored) == static_cast<uint32_t>(fcitx::KeyState::IgnoredMask), "Ignored bit is IgnoredMask");
+    static_assert(static_cast<uint32_t>(lotus::KeyState::Super) == static_cast<uint32_t>(fcitx::KeyState::Super2), "Super bit is Super2");
+    static_assert(static_cast<uint32_t>(lotus::KeyState::Hyper) == static_cast<uint32_t>(fcitx::KeyState::Hyper2), "Hyper bit is Hyper2");
+    static_assert(static_cast<uint32_t>(lotus::KeyState::Meta) == static_cast<uint32_t>(fcitx::KeyState::Meta), "Meta bit");
+
     // Number of descriptors this process currently has open.
     std::size_t openDescriptorCount() {
         std::size_t     count = 0;

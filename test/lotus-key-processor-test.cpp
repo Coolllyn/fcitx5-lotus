@@ -132,7 +132,7 @@ namespace {
     // Go's typeKeys: every rune of keys is typed with no modifier.
     void typeKeys(KeyProcessor& engine, std::string_view keys) {
         for (const char32_t key : lotus::utf8::decode(keys)) {
-            engine.processKey(key, 0);
+            engine.processKey(key, {});
         }
     }
 
@@ -236,7 +236,7 @@ namespace {
     void case_update_preedit_clears_both() {
         KeyProcessor engine = newTestEngine({}, false);
         typeKeys(engine, "chao");
-        engine.processKey(lotus::kFcitxSpace, 0);
+        engine.processKey(lotus::kFcitxSpace, {});
         typeKeys(engine, "aw");
         checkU32("state before updatePreedit(\"\") got [ă] expected [ă]", engine.preedit(), U"ă");
         engine.updatePreedit(U"");
@@ -276,7 +276,7 @@ namespace {
     void case_word_break_commit() {
         KeyProcessor engine = newTestEngine({}, false);
         typeKeys(engine, "chao");
-        checkBool("space on [chao] returned [false] expected [true]", engine.processKey(lotus::kFcitxSpace, 0), true);
+        checkBool("space on [chao] returned [false] expected [true]", engine.processKey(lotus::kFcitxSpace, {}), true);
         checkU32("commit got [chao ] expected [chao ]", engine.takeCommit(), U"chao ");
         checkBool("preedit after commit got [empty] expected [empty]", engine.preedit().empty(), true);
     }
@@ -287,14 +287,14 @@ namespace {
         KeyProcessor engine = newTestEngine({"chào"}, true);
         typeKeys(engine, "chaof");
         checkU32("preedit got [chào] expected [chào]", engine.preedit(), U"chào");
-        engine.processKey(lotus::kFcitxSpace, 0);
+        engine.processKey(lotus::kFcitxSpace, {});
         checkU32("dict-hit commit got [chào ] expected [chào ]", engine.takeCommit(), U"chào ");
 
         // Not in dict -> restored to raw keystrokes at word break
         engine = newTestEngine({"chào"}, true);
         typeKeys(engine, "khoawjm");
         checkU32("preedit got [khoặm] expected [khoặm]", engine.preedit(), U"khoặm");
-        engine.processKey(lotus::kFcitxSpace, 0);
+        engine.processKey(lotus::kFcitxSpace, {});
         checkU32("dict-miss commit got [khoawjm ] expected [khoawjm ] (raw restore)", engine.takeCommit(), U"khoawjm ");
     }
 
@@ -312,7 +312,7 @@ namespace {
         engine = newTestEngine({}, false);
         typeKeys(engine, "boawjm");
         checkU32("preedit got [boặm] expected [boặm]", engine.preedit(), U"boặm");
-        engine.processKey(lotus::kFcitxSpace, 0);
+        engine.processKey(lotus::kFcitxSpace, {});
         checkU32("rules-valid commit got [boặm ] expected [boặm ]", engine.takeCommit(), U"boặm ");
     }
 
@@ -330,7 +330,7 @@ namespace {
         KeyProcessor engine               = newTestEngine({}, true);
         engine.options().autoNonVnRestore = false;
         typeKeys(engine, "boawjm");
-        engine.processKey(lotus::kFcitxSpace, 0);
+        engine.processKey(lotus::kFcitxSpace, {});
         checkU32("autoNonVnRestore disabled commit got [boặm ] expected [boặm ] (never restore)", engine.takeCommit(), U"boặm ");
     }
 
@@ -368,7 +368,7 @@ namespace {
         typeKeys(engine, "aw");
         checkU32("preedit got [ă] expected [ă]", engine.preedit(), U"ă");
         engine.setShouldRestoreKeyStrokes(true);
-        engine.processKey(lotus::kFcitxSpace, 0);
+        engine.processKey(lotus::kFcitxSpace, {});
         checkBool("shouldRestoreKeyStrokes not consumed", engine.shouldRestoreKeyStrokes(), false);
         checkU32("preedit after shift+space got [aw] expected [aw] (raw keystrokes)", engine.preedit(), U"aw");
     }
@@ -378,19 +378,19 @@ namespace {
         // single rune -> commit empty and reset
         KeyProcessor engine = newTestEngine({}, false);
         typeKeys(engine, "aw");
-        checkBool("backspace on single rune returned [false] expected [true]", engine.processKey(lotus::kFcitxBackSpace, 0), true);
+        checkBool("backspace on single rune returned [false] expected [true]", engine.processKey(lotus::kFcitxBackSpace, {}), true);
         checkBool("backspace single rune left commit non-empty", engine.takeCommit().empty(), true);
         checkBool("backspace single rune left preedit non-empty", engine.preedit().empty(), true);
 
         // multi rune -> remove last char
         engine = newTestEngine({}, false);
         typeKeys(engine, "chao");
-        engine.processKey(lotus::kFcitxBackSpace, 0);
+        engine.processKey(lotus::kFcitxBackSpace, {});
         checkU32("backspace on [chao] preedit got [cha] expected [cha]", engine.preedit(), U"cha");
 
         // empty engine -> rejected
         engine = newTestEngine({}, false);
-        checkBool("backspace on empty engine returned [true] expected [false]", engine.processKey(lotus::kFcitxBackSpace, 0), false);
+        checkBool("backspace on empty engine returned [true] expected [false]", engine.processKey(lotus::kFcitxBackSpace, {}), false);
     }
 
     // TestTabMacroExpansion.
@@ -401,7 +401,7 @@ namespace {
         table->set("vn", "Việt Nam");
         engine.setMacroTable(std::move(table));
         typeKeys(engine, "vn");
-        checkBool("tab with macro match returned [false] expected [true]", engine.processKey(lotus::kFcitxTab, 0), true);
+        checkBool("tab with macro match returned [false] expected [true]", engine.processKey(lotus::kFcitxTab, {}), true);
         checkU32("tab macro commit got [Việt Nam] expected [Việt Nam]", engine.takeCommit(), U"Việt Nam");
 
         // no macro match -> commit composed text, reject
@@ -411,7 +411,7 @@ namespace {
         table->set("vn", "Việt Nam");
         engine.setMacroTable(std::move(table));
         typeKeys(engine, "xx");
-        checkBool("tab without macro match returned [true] expected [false]", engine.processKey(lotus::kFcitxTab, 0), false);
+        checkBool("tab without macro match returned [true] expected [false]", engine.processKey(lotus::kFcitxTab, {}), false);
         checkU32("tab no-match commit got [xx] expected [xx]", engine.takeCommit(), U"xx");
     }
 
@@ -425,7 +425,7 @@ namespace {
         engine.setMacroTable(std::move(table));
         engine.options().timeFormat = "%H:%M";
         typeKeys(engine, "now");
-        engine.processKey(lotus::kFcitxTab, 0);
+        engine.processKey(lotus::kFcitxTab, {});
         checkBool("tab time macro commit got [HH:MM giờ] expected shape [HH:MM giờ]", hasTimeMacroShape(engine.takeCommit()), true);
     }
 
@@ -444,12 +444,17 @@ namespace {
 
     // TestIsValidState.
     void case_is_valid_state() {
-        checkBool("isValidState(0) got [false] expected [true]", KeyProcessor::isValidState(0), true);
-        checkBool("isValidState(ShiftMask) got [false] expected [true] (shift is allowed)", KeyProcessor::isValidState(lotus::kFcitxShiftMask), true);
-        for (const uint32_t mask :
-             {lotus::kFcitxControlMask, lotus::kFcitxMod1Mask, lotus::kFcitxIgnoredMask, lotus::kFcitxSuperMask, lotus::kFcitxHyperMask, lotus::kFcitxMetaMask}) {
+        checkBool("isValidState(0) got [false] expected [true]", KeyProcessor::isValidState({}), true);
+        checkBool("isValidState(Shift) got [false] expected [true] (shift is allowed)", KeyProcessor::isValidState(lotus::KeyState::Shift), true);
+        for (const lotus::KeyState mask :
+             {lotus::KeyState::Ctrl, lotus::KeyState::Mod1, lotus::KeyState::Ignored, lotus::KeyState::Super, lotus::KeyState::Hyper, lotus::KeyState::Meta}) {
             checkBool("isValidState(mask) got [true] expected [false]", KeyProcessor::isValidState(mask), false);
         }
+
+        // A rejected modifier must let the key through instead of swallowing it into the preedit.
+        KeyProcessor blockedEngine = newTestEngine({}, false);
+        checkBool("a with Meta held got [true] expected [false]", blockedEngine.processKey(U'a', lotus::KeyState::Meta), false);
+        checkBool("preedit after a with Meta held non-empty", blockedEngine.preedit().empty(), true);
     }
 
     // TestEnglishNumberW2UInMacroMode (Go also sets the never-read `w2u` field there).
@@ -478,7 +483,7 @@ namespace {
             typeKeys(engine, "u");
             checkU32("preedit after [ddcu] got [đcu] expected [đcu] (dictionary hit)", engine.preedit(), U"đcu");
 
-            engine.processKey(lotus::kFcitxSpace, 0);
+            engine.processKey(lotus::kFcitxSpace, {});
             checkU32("commit got [đcu ] expected [đcu ]", engine.takeCommit(), U"đcu ");
         }
     }
@@ -489,7 +494,7 @@ namespace {
         engine.options().ddFreeStyle = false;
 
         typeKeys(engine, "ddc");
-        engine.processKey(lotus::kFcitxSpace, 0);
+        engine.processKey(lotus::kFcitxSpace, {});
         checkU32("commit got [ddc ] expected [ddc ] (incomplete word restored)", engine.takeCommit(), U"ddc ");
     }
 
@@ -557,14 +562,14 @@ namespace {
             KeyProcessor engine               = newTestEngine(dict, c.withDicts);
             engine.options().autoNonVnRestore = c.autoRestore;
             typeKeys(engine, "chaof");
-            engine.processKey(lotus::kFcitxSpace, 0);
+            engine.processKey(lotus::kFcitxSpace, {});
             const std::string name = "matrix auto=" + std::string(c.autoRestore ? "true" : "false") + " dict=" + std::string(c.withDicts ? "true" : "false") + ": [chaof] commit";
             checkU32(name.c_str(), engine.takeCommit(), c.wantChaofCommit);
 
             engine                            = newTestEngine(dict, c.withDicts);
             engine.options().autoNonVnRestore = c.autoRestore;
             typeKeys(engine, "boawjm");
-            engine.processKey(lotus::kFcitxSpace, 0);
+            engine.processKey(lotus::kFcitxSpace, {});
             const std::string boawjmName =
                 "matrix auto=" + std::string(c.autoRestore ? "true" : "false") + " dict=" + std::string(c.withDicts ? "true" : "false") + ": [boawjm] commit";
             checkU32(boawjmName.c_str(), engine.takeCommit(), c.wantBoawjm);
@@ -706,7 +711,7 @@ namespace {
             }
             KeyProcessor&     processor     = it->second;
             const uint32_t    key           = hexValue(row.fields[2]);
-            const auto        state         = static_cast<uint32_t>(std::stoul(row.fields[3]));
+            const auto        state         = lotus::keyStatesFromBits(static_cast<uint32_t>(std::stoul(row.fields[3])));
             const bool        accepted      = processor.processKey(key, state);
             const std::string actualPreedit = lotus::utf8::encode(processor.preedit());
             const std::string actualCommit  = lotus::utf8::encode(processor.takeCommit());
@@ -719,7 +724,7 @@ namespace {
                 if (shown < 20) {
                     ++shown;
                     std::printf("FAIL golden %s step %s key U+%04X state %u: accepted=%d/%d preedit=[%s]/[%s] commit=[%s]/[%s]\n", id.c_str(), row.fields[1].c_str(),
-                                static_cast<unsigned>(key), state, accepted ? 1 : 0, wantAccepted ? 1 : 0, toHex(actualPreedit).c_str(), toHex(wantPreedit).c_str(),
+                                static_cast<unsigned>(key), state.bits, accepted ? 1 : 0, wantAccepted ? 1 : 0, toHex(actualPreedit).c_str(), toHex(wantPreedit).c_str(),
                                 toHex(actualCommit).c_str(), toHex(wantCommit).c_str());
                 }
             }

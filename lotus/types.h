@@ -39,6 +39,21 @@ namespace lotus {
     struct FlagSet {
         uint32_t bits = 0U;
 
+        /** @brief An empty set, so callers can pass {} for "no flag". */
+        constexpr FlagSet() = default;
+
+        /**
+         * @brief Wraps one flag, so a single flag converts to a set implicitly.
+         * @param flag Flag to hold.
+         */
+        constexpr FlagSet(Flag flag) : bits(static_cast<uint32_t>(flag)) {} // NOLINT(google-explicit-constructor)
+
+        /**
+         * @brief Wraps a raw mask, for callers that carry the mask as a number.
+         * @param mask Raw mask.
+         */
+        explicit constexpr FlagSet(uint32_t mask) : bits(mask) {}
+
         /**
          * @brief Reports whether a flag is part of the set.
          * @param flag Flag to test.
@@ -66,6 +81,15 @@ namespace lotus {
         constexpr FlagSet& remove(Flag flag) {
             bits &= ~static_cast<uint32_t>(flag);
             return *this;
+        }
+
+        /**
+         * @brief Reports whether any flag of another set is part of this set.
+         * @param other Set to test against.
+         * @return True when both sets share at least one flag.
+         */
+        [[nodiscard]] constexpr bool intersects(FlagSet other) const {
+            return (bits & other.bits) != 0U;
         }
     };
 
@@ -119,6 +143,33 @@ namespace lotus {
 
     /** @brief Default engine flags, the Go EstdFlags set. */
     inline constexpr EngineFlags kEstdFlags = EngineFlag::FreeToneMarking | EngineFlag::StdToneStyle | EngineFlag::AutoCorrectEnabled | EngineFlag::W2uEnabled;
+
+    /** @brief Modifier bits of a key event, the eight bits the processor reads. */
+    enum class KeyState : uint32_t {
+        Shift   = 1U << 0U,  ///< Shift (fcitx5 KeyState::Shift).
+        Lock    = 1U << 1U,  ///< Caps Lock (fcitx5 KeyState::CapsLock).
+        Ctrl    = 1U << 2U,  ///< Control (fcitx5 KeyState::Ctrl).
+        Mod1    = 1U << 3U,  ///< Alt (fcitx5 KeyState::Alt / Mod1).
+        Ignored = 1U << 25U, ///< fcitx5 KeyState::IgnoredMask, the Go forward mask.
+        Super   = 1U << 26U, ///< Gtk virtual Super (fcitx5 KeyState::Super2).
+        Hyper   = 1U << 27U, ///< Gtk virtual Hyper (fcitx5 KeyState::Hyper2).
+        Meta    = 1U << 28U, ///< Meta (fcitx5 KeyState::Meta).
+    };
+
+    /** @brief A set of key state flags. */
+    using KeyStates = FlagSet<KeyState>;
+
+    /** @brief Modifier bits that make the processor reject a key event, like Go's isValidState. */
+    inline constexpr KeyStates kInvalidStates = KeyState::Ctrl | KeyState::Mod1 | KeyState::Ignored | KeyState::Super | KeyState::Hyper | KeyState::Meta;
+
+    /**
+     * @brief Key states of a raw modifier mask, for callers that carry the mask as a number.
+     * @param bits Raw mask; unknown bits are kept, like Go kept them.
+     * @return Key state set holding those bits.
+     */
+    constexpr KeyStates keyStatesFromBits(uint32_t bits) {
+        return KeyStates{bits};
+    }
 
     /**
      * @brief "w" to "ư" mode, shared with the addon configuration.

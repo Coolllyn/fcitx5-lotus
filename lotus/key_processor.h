@@ -39,18 +39,6 @@
 
 namespace lotus {
 
-    /** @brief Modifier masks of a key event, 1:1 with Go's Fcitx*Mask constants. */
-    inline constexpr uint32_t kFcitxShiftMask   = 1U << 0U;
-    inline constexpr uint32_t kFcitxLockMask    = 1U << 1U;
-    inline constexpr uint32_t kFcitxControlMask = 1U << 2U;
-    inline constexpr uint32_t kFcitxMod1Mask    = 1U << 3U;
-    // XKB uses bits 15..23 for further modifiers, so the forward mask jumps to bit 25 (like Go).
-    inline constexpr uint32_t kFcitxForwardMask = 1U << 25U;
-    inline constexpr uint32_t kFcitxIgnoredMask = kFcitxForwardMask;
-    inline constexpr uint32_t kFcitxSuperMask   = 1U << 26U;
-    inline constexpr uint32_t kFcitxHyperMask   = 1U << 27U;
-    inline constexpr uint32_t kFcitxMetaMask    = 1U << 28U;
-
     /** @brief Keysyms of the special keys the processor reacts to, 1:1 with Go's constants. */
     inline constexpr uint32_t kFcitxBackSpace = 0xFF08U;
     inline constexpr uint32_t kFcitxSpace     = 0x020U;
@@ -180,10 +168,10 @@ namespace lotus {
         /**
          * @brief Processes one key event, like Go's preeditProcessKeyEvent.
          * @param keyVal Keysym of the key (kFcitxBackSpace / kFcitxSpace / kFcitxTab / a code point).
-         * @param stateMask Modifier mask of the event.
+         * @param states Modifier states of the event.
          * @return True when the processor handled the key, false when the addon must let it through.
          */
-        bool processKey(uint32_t keyVal, uint32_t stateMask);
+        bool processKey(uint32_t keyVal, KeyStates states);
 
         /**
          * @brief Reports whether the processor wants a key event, like Go's canProcessKey.
@@ -194,10 +182,10 @@ namespace lotus {
 
         /**
          * @brief Reports whether a modifier mask is acceptable, like Go's isValidState.
-         * @param stateMask Modifier mask of the event.
+         * @param states Modifier states of the event.
          * @return False when control, alt, super, hyper, meta or the forward modifier is held.
          */
-        [[nodiscard]] static bool isValidState(uint32_t stateMask);
+        [[nodiscard]] static bool isValidState(KeyStates states);
 
         /**
          * @brief Preedit text to display, like Go's preeditText.
@@ -293,19 +281,19 @@ namespace lotus {
          * @brief Processes one key event without the last-key bookkeeping, like Go's
          *        preeditProcessKeyEvent (processKey adds the deferred updateLastKeyWithShift).
          * @param keyVal Keysym of the key.
-         * @param stateMask Modifier mask of the event.
+         * @param states Modifier states of the event.
          * @return True when the processor handled the key.
          */
-        bool preeditProcessKeyEvent(uint32_t keyVal, uint32_t stateMask);
+        bool preeditProcessKeyEvent(uint32_t keyVal, KeyStates states);
 
         /**
          * @brief Builds the text a key previews or commits, like Go's getCommitText.
          * @param keyVal Keysym of the key.
-         * @param stateMask Modifier mask of the event.
+         * @param states Modifier states of the event.
          * @param oldText Preedit text before the key.
          * @return Text to display or commit, and whether it is a word break commit.
          */
-        [[nodiscard]] std::pair<std::u32string, bool> getCommitText(uint32_t keyVal, uint32_t stateMask, std::u32string_view oldText);
+        [[nodiscard]] std::pair<std::u32string, bool> getCommitText(uint32_t keyVal, KeyStates states, std::u32string_view oldText);
 
         /**
          * @brief Encodes a text with the configured charset, like Go's encodeText.
@@ -355,9 +343,9 @@ namespace lotus {
         /**
          * @brief Remembers whether the last processed key was typed with Shift, like the Go method.
          * @param keyVal Keysym of the key.
-         * @param stateMask Modifier mask of the event.
+         * @param states Modifier states of the event.
          */
-        void updateLastKeyWithShift(uint32_t keyVal, uint32_t stateMask);
+        void updateLastKeyWithShift(uint32_t keyVal, KeyStates states);
 
         /**
          * @brief Reports whether the macro table is missing or empty, like `e.macroTable.Empty()`

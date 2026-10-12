@@ -53,7 +53,7 @@ int main() {
     // Tab terminates the numeric key sequence and triggers macro expansion.
     bool accepted = true;
     for (const uint32_t key : {static_cast<uint32_t>('1'), static_cast<uint32_t>('2'), static_cast<uint32_t>('3'), 0xFF09U}) {
-        accepted = processor.processKey(key, 0) && accepted;
+        accepted = processor.processKey(key, {}) && accepted;
     }
 
     const std::string actual = lotus::utf8::encode(processor.takeCommit());

@@ -114,19 +114,19 @@ namespace lotus {
         dictionary_ = std::move(dictionary);
     }
 
-    bool KeyProcessor::processKey(uint32_t keyVal, uint32_t stateMask) {
+    bool KeyProcessor::processKey(uint32_t keyVal, KeyStates states) {
         // Go defers updateLastKeyWithShift, so the bookkeeping runs on every return path.
-        const bool accepted = preeditProcessKeyEvent(keyVal, stateMask);
-        updateLastKeyWithShift(keyVal, stateMask);
+        const bool accepted = preeditProcessKeyEvent(keyVal, states);
+        updateLastKeyWithShift(keyVal, states);
         return accepted;
     }
 
-    bool KeyProcessor::preeditProcessKeyEvent(uint32_t keyVal, uint32_t stateMask) {
+    bool KeyProcessor::preeditProcessKeyEvent(uint32_t keyVal, KeyStates states) {
         const auto keyRune    = static_cast<char32_t>(keyVal);
         const bool hasPreedit = !preedit_.empty();
 
         // workaround for chrome's address bar and Google SpreadSheets
-        if (!shouldRestoreKeyStrokes_ && (!isValidState(stateMask) || !canProcessKey(keyVal) || (!options_.macroEnabled && !hasPreedit && !engine_.canProcessKey(keyRune)))) {
+        if (!shouldRestoreKeyStrokes_ && (!isValidState(states) || !canProcessKey(keyVal) || (!options_.macroEnabled && !hasPreedit && !engine_.canProcessKey(keyRune)))) {
             if (hasPreedit) {
                 commitPreeditAndReset(getPreeditString());
             }
@@ -158,7 +158,7 @@ namespace lotus {
             return true;
         }
 
-        auto [newText, isWordBreakRune] = getCommitText(keyVal, stateMask, oldText);
+        auto [newText, isWordBreakRune] = getCommitText(keyVal, states, oldText);
         if (isWordBreakRune) {
             commitPreeditAndReset(std::move(newText));
             return true;
@@ -167,7 +167,7 @@ namespace lotus {
         return true;
     }
 
-    std::pair<std::u32string, bool> KeyProcessor::getCommitText(uint32_t keyVal, uint32_t stateMask, std::u32string_view oldText) {
+    std::pair<std::u32string, bool> KeyProcessor::getCommitText(uint32_t keyVal, KeyStates states, std::u32string_view oldText) {
         auto keyRune = static_cast<char32_t>(keyVal);
         // restore key strokes by pressing Shift + Space
         if (shouldRestoreKeyStrokes_) {
@@ -180,7 +180,7 @@ namespace lotus {
             if (!canProcess && shouldFallbackToEnglish(true)) {
                 engine_.restoreLastWord(false);
             }
-            if ((stateMask & kFcitxLockMask) != 0) {
+            if (states.has(KeyState::Lock)) {
                 keyRune = toUpper(keyRune);
             }
             engine_.processKey(keyRune, getBambooInputMode());
@@ -293,9 +293,9 @@ namespace lotus {
         return toMask(Mode::VietnameseMode);
     }
 
-    void KeyProcessor::updateLastKeyWithShift(uint32_t keyVal, uint32_t stateMask) {
+    void KeyProcessor::updateLastKeyWithShift(uint32_t keyVal, KeyStates states) {
         if (engine_.canProcessKey(static_cast<char32_t>(keyVal))) {
-            lastKeyWithShift_ = (stateMask & kFcitxShiftMask) != 0;
+            lastKeyWithShift_ = states.has(KeyState::Shift);
         } else {
             lastKeyWithShift_ = false;
         }
@@ -532,9 +532,8 @@ namespace lotus {
         return engine_.canProcessKey(keyRune);
     }
 
-    bool KeyProcessor::isValidState(uint32_t stateMask) {
-        constexpr uint32_t kInvalidStateMask = kFcitxControlMask | kFcitxMod1Mask | kFcitxIgnoredMask | kFcitxSuperMask | kFcitxHyperMask | kFcitxMetaMask;
-        return (stateMask & kInvalidStateMask) == 0;
+    bool KeyProcessor::isValidState(KeyStates states) {
+        return !states.intersects(kInvalidStates);
     }
 
     char32_t KeyProcessor::toUpper(char32_t keyRune) const {

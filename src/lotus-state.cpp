@@ -195,7 +195,7 @@ namespace fcitx {
     }
 
     void LotusState::handlePreeditMode(KeyEvent& keyEvent, KeySym currentSym) {
-        if (lotusEngine_->processKey(engineKeyValue(currentSym), keyEvent.rawKey().states()))
+        if (lotusEngine_->processKey(engineKeyValue(currentSym), lotus::keyStatesFromBits(static_cast<uint32_t>(keyEvent.rawKey().states()))))
             keyEvent.filterAndAccept();
         const std::u32string commitText = pullCommitString();
         lotus::fcitx_text::commit(ic_, commitText, last_commit_time_);
@@ -599,7 +599,7 @@ namespace fcitx {
         if (isBackspace(currentSym) || currentSym == FcitxKey_Return) {
             if (isBackspace(currentSym)) {
                 hasHistory_ = true;
-                lotusEngine_->processKey(FcitxKey_BackSpace, 0);
+                lotusEngine_->processKey(FcitxKey_BackSpace, {});
                 oldPreBuffer_ = pullPreeditString();
             } else {
                 hasHistory_ = false;
@@ -617,7 +617,7 @@ namespace fcitx {
         }
         const std::u32string keyText(1, static_cast<char32_t>(keyCodePoint));
 
-        bool                 processed = lotusEngine_->processKey(engineKeyValue(currentSym), keyEvent.rawKey().states());
+        bool                 processed = lotusEngine_->processKey(engineKeyValue(currentSym), lotus::keyStatesFromBits(static_cast<uint32_t>(keyEvent.rawKey().states())));
 
         const std::u32string commitStr = pullCommitString();
         if (!commitStr.empty()) {
@@ -774,7 +774,7 @@ namespace fcitx {
 
             lotusEngine_->rebuildFromText(oldWord);
 
-            bool processed = lotusEngine_->processKey(engineKeyValue(currentSym), keyEvent.rawKey().states());
+            bool processed = lotusEngine_->processKey(engineKeyValue(currentSym), lotus::keyStatesFromBits(static_cast<uint32_t>(keyEvent.rawKey().states())));
 
             if (!processed) {
                 keyEvent.forward();
@@ -819,7 +819,7 @@ namespace fcitx {
     void LotusState::processNormalKey(KeyEvent& keyEvent, KeySym currentSym) {
         auto* ic = keyEvent.inputContext();
         (*lotusEngine_).reset();
-        bool processed = lotusEngine_->processKey(engineKeyValue(currentSym), keyEvent.rawKey().states());
+        bool processed = lotusEngine_->processKey(engineKeyValue(currentSym), lotus::keyStatesFromBits(static_cast<uint32_t>(keyEvent.rawKey().states())));
         if (processed) {
             std::u32string out = pullCommitString();
             out += pullPreeditString();
@@ -858,7 +858,7 @@ namespace fcitx {
         }
 
         if (isBackspace(currentSym)) {
-            lotusEngine_->processKey(FcitxKey_BackSpace, 0);
+            lotusEngine_->processKey(FcitxKey_BackSpace, {});
             oldPreBuffer_ = pullPreeditString();
             keyEvent.forward();
             return;
@@ -876,7 +876,7 @@ namespace fcitx {
         const uint32_t       keyCodePoint = Key::keySymToUnicode(currentSym);
         const std::u32string keyText      = keyCodePoint != 0U ? std::u32string(1, static_cast<char32_t>(keyCodePoint)) : std::u32string{};
 
-        bool                 processed = lotusEngine_->processKey(engineKeyValue(currentSym), keyEvent.rawKey().states());
+        bool                 processed = lotusEngine_->processKey(engineKeyValue(currentSym), lotus::keyStatesFromBits(static_cast<uint32_t>(keyEvent.rawKey().states())));
 
         const std::u32string commitStr = pullCommitString();
         if (processed && !commitStr.empty()) {
@@ -1278,7 +1278,7 @@ namespace fcitx {
             }
             const std::u32string keyText(1, static_cast<char32_t>(keyCodePoint));
 
-            bool                 processed = lotusEngine_->processKey(engineKeyValue(sym), state);
+            bool                 processed = lotusEngine_->processKey(engineKeyValue(sym), lotus::keyStatesFromBits(state));
 
             const std::u32string commitStr = pullCommitString();
             if (!commitStr.empty()) {

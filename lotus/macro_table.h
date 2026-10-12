@@ -1,4 +1,5 @@
 /*
+ * SPDX-FileCopyrightText: 2018 Luong Thanh Lam <ltlam93@gmail.com>
  * SPDX-FileCopyrightText: 2026 Nguyen Hoang Ky <nhktmdzhg@gmail.com>
  *
  * SPDX-License-Identifier: GPL-3.0-or-later

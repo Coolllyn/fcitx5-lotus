@@ -28,28 +28,6 @@
 
 std::atomic<bool> g_running{true};
 
-FdGuard::~FdGuard() {
-    reset();
-}
-
-FdGuard::FdGuard(FdGuard&& other) noexcept : fd_(other.fd_) {
-    other.fd_ = -1;
-}
-
-FdGuard& FdGuard::operator=(FdGuard&& other) noexcept {
-    if (this != &other) {
-        reset(other.fd_);
-        other.fd_ = -1;
-    }
-    return *this;
-}
-
-void FdGuard::reset(int new_fd) {
-    if (fd_ >= 0)
-        close(fd_);
-    fd_ = new_fd;
-}
-
 UinputDevice::~UinputDevice() {
     if (guard_.is_valid()) {
         ioctl(guard_.get(), UI_DEV_DESTROY);
@@ -137,10 +115,18 @@ LibinputContext::LibinputContext(const struct libinput_interface* interface) : u
 }
 
 LibinputContext::~LibinputContext() {
-    if (li_ != nullptr)
+    reset();
+}
+
+void LibinputContext::reset() {
+    if (li_ != nullptr) {
         libinput_unref(li_);
-    if (udev_ != nullptr)
+        li_ = nullptr;
+    }
+    if (udev_ != nullptr) {
         udev_unref(udev_);
+        udev_ = nullptr;
+    }
 }
 
 void signal_handler(int sig) {

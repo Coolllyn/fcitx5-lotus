@@ -19,6 +19,8 @@
 #ifndef _LOTUS_SERVER_H_
 #define _LOTUS_SERVER_H_
 
+#include "../src/lotus-fd-guard.h"
+
 #include <atomic>
 #include <fcntl.h>
 #include <libinput.h>
@@ -31,34 +33,6 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/un.h>
-
-/**
- * @brief RAII Wrapper for Unix File Descriptors.
- * Ensures that close() is called when the object goes out of scope.
- * Complies with Rule of Five by disabling copy and implementing move.
- */
-class FdGuard {
-  public:
-    explicit FdGuard(int fd = -1) : fd_(fd) {}
-    ~FdGuard();
-
-    // Rule of Five: Disable copying, allow moving
-    FdGuard(const FdGuard&)            = delete;
-    FdGuard& operator=(const FdGuard&) = delete;
-    FdGuard(FdGuard&& other) noexcept;
-    FdGuard&          operator=(FdGuard&& other) noexcept;
-
-    [[nodiscard]] int get() const {
-        return fd_;
-    }
-    [[nodiscard]] bool is_valid() const {
-        return fd_ >= 0;
-    }
-    void reset(int new_fd = -1);
-
-  private:
-    int fd_;
-};
 
 /**
  * @brief RAII Wrapper for uinput device.
@@ -120,7 +94,7 @@ class LibinputContext {
 
     LibinputContext& operator=(LibinputContext&& other) noexcept {
         if (this != &other) {
-            this->~LibinputContext();
+            reset();
             udev_       = other.udev_;
             li_         = other.li_;
             other.udev_ = nullptr;
@@ -136,10 +110,15 @@ class LibinputContext {
         return li_;
     }
     [[nodiscard]] int get_fd() const {
-        return libinput_get_fd(li_);
+        return li_ == nullptr ? -1 : libinput_get_fd(li_);
     }
 
   private:
+    /**
+     * @brief Releases the libinput and udev contexts, if they were created.
+     */
+    void             reset();
+
     struct udev*     udev_ = nullptr;
     struct libinput* li_   = nullptr;
 };

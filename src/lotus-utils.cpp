@@ -6,6 +6,7 @@
  *
  */
 #include "lotus-utils.h"
+#include "lotus-fd-guard.h"
 #include "lotus-config.h"
 
 #include <cstddef>
@@ -72,10 +73,7 @@ int makeAbstractUnixSocket(std::string_view name, struct sockaddr_un& addr, sock
 }
 
 void closeUinputClient() {
-    int old_fd = uinput_client_fd_.exchange(-1);
-    if (old_fd != -1) {
-        close(old_fd);
-    }
+    FdGuard old_fd(uinput_client_fd_.exchange(-1));
 }
 
 std::string lotusConfigDir() {

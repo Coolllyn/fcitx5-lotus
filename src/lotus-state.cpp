@@ -7,6 +7,7 @@
  *
  */
 #include "lotus-state.h"
+#include "lotus-fd-guard.h"
 #include "lotus-engine.h"
 #include "lotus-candidates.h"
 #include "lotus-fcitx-text.h"
@@ -91,19 +92,18 @@ namespace fcitx {
             return true;
         const std::string  current_path = buildSocketPath("kb_socket");
         struct sockaddr_un addr{};
-        socklen_t          len        = 0;
-        int                current_fd = makeAbstractUnixSocket(current_path, addr, len);
-        if (current_fd < 0) {
+        socklen_t          len = 0;
+        FdGuard            current_fd(makeAbstractUnixSocket(current_path, addr, len));
+        if (!current_fd.is_valid()) {
             LOTUS_ERROR("Failed to create socket: " + std::string(strerror(errno)));
             return false;
         }
 
-        if (connect(current_fd, reinterpret_cast<struct sockaddr*>(&addr), len) == 0) {
-            uinput_client_fd_ = current_fd;
+        if (connect(current_fd.get(), reinterpret_cast<struct sockaddr*>(&addr), len) == 0) {
+            uinput_client_fd_ = current_fd.release();
             return true;
         }
         LOTUS_ERROR("Failed to connect to socket: " + std::string(strerror(errno)));
-        close(current_fd);
         closeUinputClient();
         return false;
     }
@@ -123,10 +123,7 @@ namespace fcitx {
 
         if (n < 0) {
             LOTUS_WARN("Failed to send key request: " + std::string(strerror(errno)));
-            int old_fd = uinput_client_fd_.exchange(-1);
-            if (old_fd != -1) {
-                close(old_fd);
-            }
+            FdGuard old_fd(uinput_client_fd_.exchange(-1));
             if (connect_uinput_server()) {
                 LOTUS_INFO("Reconnected to uinput server successfully");
                 send(uinput_client_fd_, &msg, sizeof(msg), MSG_NOSIGNAL);

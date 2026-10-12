@@ -377,7 +377,7 @@ namespace fcitx {
          * @param option The option to toggle
          * @param textOnOff The text to display when on/off
          */
-        static void updateAction(InputContext* ic, std::unique_ptr<SimpleAction>& action, Option<bool>& option, const std::string& textOnOff);
+        static void updateAction(InputContext* ic, SimpleAction& action, Option<bool>& option, const std::string& textOnOff);
 
         /**
          * @brief Updates the charset action UI.

@@ -423,13 +423,13 @@ namespace lotus {
         constexpr std::string_view kFallbackLayout = "15:04:05 02/01/2006";
         const std::string pattern = (std::string_view(layout) == format && format.find('%') != std::string_view::npos) ? strftimePattern(kFallbackLayout) : strftimePattern(layout);
 
-        const std::time_t now       = std::time(nullptr);
-        const std::tm*    localTime = std::localtime(&now);
-        if (localTime == nullptr) {
+        const std::time_t now = std::time(nullptr);
+        std::tm           localTime{};
+        if (::localtime_r(&now, &localTime) == nullptr) {
             return "";
         }
         std::array<char, 256> buffer{};
-        const std::size_t     written = std::strftime(buffer.data(), buffer.size(), pattern.c_str(), localTime);
+        const std::size_t     written = std::strftime(buffer.data(), buffer.size(), pattern.c_str(), &localTime);
         if (written == 0) {
             return "";
         }

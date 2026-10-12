@@ -16,37 +16,40 @@
 
 #include <cstdint>
 #include <string>
+#include <variant>
 #include <vector>
 
 namespace lotus {
 
     /** @brief One transformation rule, 1:1 with Go's Rule. */
     struct Rule {
-        char32_t          key        = 0;                     // Input key that produced the rule
-        uint8_t           effect     = 0;                     // Tone or mark value, depending on effectType
-        EffectType        effectType = EffectType::Appending; // Kind of transformation
-        char32_t          effectOn   = 0;                     // Character the effect applies to
-        char32_t          result     = 0;                     // Character the rule produces
-        std::vector<Rule> appendedRules;                      // Extra appending rules of the same key
+        char32_t                 key        = 0;                     // Input key that produced the rule
+        std::variant<Mark, Tone> effect     = Mark::None;            // Mark or tone, depending on effectType
+        EffectType               effectType = EffectType::Appending; // Kind of transformation
+        char32_t                 effectOn   = 0;                     // Character the effect applies to
+        char32_t                 result     = 0;                     // Character the rule produces
+        std::vector<Rule>        appendedRules;                      // Extra appending rules of the same key
 
         /** @brief Stores a tone in effect, like Go's Rule.SetTone. */
         constexpr void setTone(Tone tone) {
-            effect = static_cast<uint8_t>(tone);
+            effect = tone;
         }
 
         /** @brief Stores a mark in effect, like Go's Rule.SetMark. */
         constexpr void setMark(Mark mark) {
-            effect = static_cast<uint8_t>(mark);
+            effect = mark;
         }
 
-        /** @brief Reads effect as a tone, like Go's Rule.GetTone. */
-        [[nodiscard]] constexpr Tone getTone() const {
-            return static_cast<Tone>(effect);
+        /** @brief Reads effect as a mark, Mark::None when it holds a tone instead. */
+        [[nodiscard]] constexpr Mark mark() const {
+            const Mark* const value = std::get_if<Mark>(&effect);
+            return value != nullptr ? *value : Mark::None;
         }
 
-        /** @brief Reads effect as a mark, like Go's Rule.GetMark. */
-        [[nodiscard]] constexpr Mark getMark() const {
-            return static_cast<Mark>(effect);
+        /** @brief Reads effect as a tone, Tone::None when it holds a mark instead. */
+        [[nodiscard]] constexpr Tone tone() const {
+            const Tone* const value = std::get_if<Tone>(&effect);
+            return value != nullptr ? *value : Tone::None;
         }
     };
 

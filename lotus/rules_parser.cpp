@@ -112,7 +112,7 @@ namespace lotus {
             Rule rule;
             rule.key        = key;
             rule.effectType = EffectType::ToneTransformation;
-            rule.effect     = static_cast<uint8_t>(tone.value());
+            rule.setTone(tone.value());
             return {rule};
         }
         return parseTonelessRules(key, line);
@@ -129,11 +129,11 @@ namespace lotus {
             const std::u32string effectiveOns = utf8::decode(parts->effectiveOns);
             const std::u32string results      = utf8::decode(parts->results);
             for (std::size_t i = 0; i < effectiveOns.size() && i < results.size(); ++i) {
-                Mark effect = Mark::None;
-                if (!utils::findMarkFromChar(results[i], effect)) {
+                const std::optional<Mark> effect = utils::findMarkFromChar(results[i]);
+                if (!effect.has_value()) {
                     continue;
                 }
-                const auto markRules = parseToneLessRule(key, effectiveOns[i], results[i], effect);
+                const auto markRules = parseToneLessRule(key, effectiveOns[i], results[i], *effect);
                 rules.insert(rules.end(), markRules.begin(), markRules.end());
             }
             if (const auto appending = getAppendingRule(key, parts->appended); appending.has_value()) {
@@ -152,18 +152,18 @@ namespace lotus {
                 Rule rule;
                 rule.key        = key;
                 rule.effectType = EffectType::MarkTransformation;
-                rule.effect     = 0;
-                rule.effectOn   = result;
-                rule.result     = effectiveOn;
+                rule.setMark(Mark::None);
+                rule.effectOn = result;
+                rule.result   = effectiveOn;
                 rules.push_back(rule);
             } else if (utils::isVowel(codePoint)) {
                 for (Tone tone : kToneOrder) {
                     Rule rule;
                     rule.key        = key;
                     rule.effectType = EffectType::MarkTransformation;
-                    rule.effectOn   = utils::addToneToChar(codePoint, static_cast<uint8_t>(tone));
-                    rule.effect     = static_cast<uint8_t>(effect);
-                    rule.result     = utils::addToneToChar(result, static_cast<uint8_t>(tone));
+                    rule.effectOn   = utils::addToneToChar(codePoint, tone);
+                    rule.setMark(effect);
+                    rule.result = utils::addToneToChar(result, tone);
                     rules.push_back(rule);
                 }
             } else {
@@ -171,8 +171,8 @@ namespace lotus {
                 rule.key        = key;
                 rule.effectType = EffectType::MarkTransformation;
                 rule.effectOn   = codePoint;
-                rule.effect     = static_cast<uint8_t>(effect);
-                rule.result     = result;
+                rule.setMark(effect);
+                rule.result = result;
                 rules.push_back(rule);
             }
         }

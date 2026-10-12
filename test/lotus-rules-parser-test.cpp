@@ -35,7 +35,7 @@ namespace {
     }
 
     void checkMarkRule(const char* name, const std::vector<Rule>& rules, std::size_t index, char32_t key, Mark mark, char32_t effectOn) {
-        const bool ok = index < rules.size() && rules[index].key == key && rules[index].effectType == EffectType::MarkTransformation && rules[index].getMark() == mark &&
+        const bool ok = index < rules.size() && rules[index].key == key && rules[index].effectType == EffectType::MarkTransformation && rules[index].mark() == mark &&
             rules[index].effectOn == effectOn;
         if (!ok) {
             std::printf("FAIL %s (index %zu)\n", name, index);
@@ -59,12 +59,12 @@ int main() {
         const auto rules = parseRules(U'z', "XoaDauThanh");
         check("tone rule count", rules.size() == 1U);
         check("tone rule type", !rules.empty() && rules[0].effectType == EffectType::ToneTransformation);
-        check("tone rule none", !rules.empty() && rules[0].getTone() == Tone::None);
+        check("tone rule none", !rules.empty() && rules[0].tone() == Tone::None);
 
         const auto tilde = parseRules(U'x', "DauNga");
         check("tilde rule count", tilde.size() == 1U);
         check("tilde rule type", !tilde.empty() && tilde[0].effectType == EffectType::ToneTransformation);
-        check("tilde rule tone", !tilde.empty() && tilde[0].getTone() == Tone::Tilde);
+        check("tilde rule tone", !tilde.empty() && tilde[0].tone() == Tone::Tilde);
     }
 
     // TestParseTonelessRules

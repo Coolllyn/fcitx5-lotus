@@ -27,7 +27,7 @@ namespace lotus {
                 }
                 bool isMatch = true;
                 for (std::size_t k = 0; k < inputLength; ++k) {
-                    if (input[k] != token[k] && (inputIsComplete || utils::addMarkToTonelessChar(token[k], 0) != input[k])) {
+                    if (input[k] != token[k] && (inputIsComplete || utils::addMarkToTonelessChar(token[k], Mark::None) != input[k])) {
                         isMatch = false;
                         break;
                     }

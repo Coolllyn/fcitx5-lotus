@@ -51,10 +51,10 @@ int main() {
     check("tone of ẻ", findToneFromChar(U'ẻ') == Tone::Hook);
     check("tone of ạ", findToneFromChar(U'ạ') == Tone::Dot);
 
-    check("a + dot", addToneToChar(U'a', static_cast<uint8_t>(Tone::Dot)) == U'ạ');
-    check("y + none", addToneToChar(U'y', 0) == U'y');
-    check("y, no mark", addMarkToChar(U'y', 0) == U'y');
-    check("ạ + breve", addMarkToChar(U'ạ', static_cast<uint8_t>(Mark::Breve)) == U'ặ');
+    check("a + dot", addToneToChar(U'a', Tone::Dot) == U'ạ');
+    check("y + none", addToneToChar(U'y', Tone::None) == U'y');
+    check("y, no mark", addMarkToChar(U'y', Mark::None) == U'y');
+    check("ạ + breve", addMarkToChar(U'ạ', Mark::Breve) == U'ặ');
 
     check("toUpper ơ", toUpper(U'ơ') == U'Ơ');
     check("toLower Ư", toLower(U'Ư') == U'ư');

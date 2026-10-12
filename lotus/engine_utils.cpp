@@ -34,7 +34,7 @@ namespace lotus {
         // Last tone checking.
         for (auto it = composition.rbegin(); it != composition.rend(); ++it) {
             if ((*it)->rule.effectType == EffectType::ToneTransformation) {
-                if (!hasValidTone(composition, (*it)->rule.getTone())) {
+                if (!hasValidTone(composition, (*it)->rule.tone())) {
                     return false;
                 }
                 break;
@@ -115,7 +115,7 @@ namespace lotus {
                 if (rule.effectType != EffectType::MarkTransformation) {
                     continue;
                 }
-                if (trans->rule.result != rule.effectOn || rule.effect == 0) {
+                if (trans->rule.result != rule.effectOn || rule.mark() == Mark::None) {
                     continue;
                 }
                 const TransformationPtr target = findRootTarget(trans);
@@ -144,7 +144,7 @@ namespace lotus {
             }
             TransformationPtr target;
             if ((flags & kEfreeToneMarking) != 0U) {
-                if (hasValidTone(composition, applicableRule.getTone())) {
+                if (hasValidTone(composition, applicableRule.tone())) {
                     target = findToneTarget(composition, (flags & kEstdToneStyle) != 0U);
                 }
             } else {
@@ -164,8 +164,7 @@ namespace lotus {
             if (str == flatten(withEffect, toMask(Mode::VietnameseMode))) {
                 continue;
             }
-            if (applicableRule.getTone() == Tone::None && isFree(composition, target, EffectType::ToneTransformation) &&
-                utils::findToneFromChar(target->rule.result) == Tone::None) {
+            if (applicableRule.tone() == Tone::None && isFree(composition, target, EffectType::ToneTransformation) && utils::findToneFromChar(target->rule.result) == Tone::None) {
                 target = nullptr;
             }
             return {target, applicableRule};
@@ -182,7 +181,7 @@ namespace lotus {
             if (rule.effectType == EffectType::ToneTransformation) {
                 TransformationPtr target;
                 if ((flags & kEfreeToneMarking) != 0U) {
-                    if (hasValidTone(composition, rule.getTone())) {
+                    if (hasValidTone(composition, rule.tone())) {
                         target = findToneTarget(composition, (flags & kEstdToneStyle) != 0U);
                     }
                 } else {
@@ -197,8 +196,8 @@ namespace lotus {
                 auto undo             = std::make_shared<Transformation>();
                 undo->target          = target;
                 undo->rule.effectType = EffectType::ToneTransformation;
-                undo->rule.effect     = 0;
-                undo->rule.key        = 0;
+                undo->rule.setTone(Tone::None);
+                undo->rule.key = 0;
                 transformations.push_back(undo);
             } else if (rule.effectType == EffectType::MarkTransformation) {
                 for (auto it = composition.rbegin(); it != composition.rend(); ++it) {
@@ -206,11 +205,11 @@ namespace lotus {
                     if (trans->rule.result != rule.effectOn) {
                         continue;
                     }
-                    auto undo              = std::make_shared<Transformation>();
-                    undo->target           = findRootTarget(trans);
-                    undo->rule.key         = 0;
-                    undo->rule.effectType  = EffectType::MarkTransformation;
-                    undo->rule.effect      = 0;
+                    auto undo             = std::make_shared<Transformation>();
+                    undo->target          = findRootTarget(trans);
+                    undo->rule.key        = 0;
+                    undo->rule.effectType = EffectType::MarkTransformation;
+                    undo->rule.setMark(Mark::None);
                     Composition withEffect = composition;
                     withEffect.push_back(undo);
                     if (str == flatten(withEffect, flattenMode)) {
@@ -231,9 +230,9 @@ namespace lotus {
             if (lastRule.effectType == EffectType::Appending && lastRule.key == lowerKey && lastRule.key != lastRule.result) {
                 auto raw             = std::make_shared<Transformation>();
                 raw->rule.effectType = EffectType::MarkTransformation;
-                raw->rule.effect     = static_cast<uint8_t>(Mark::Raw);
-                raw->rule.key        = 0;
-                raw->target          = composition.back();
+                raw->rule.setMark(Mark::Raw);
+                raw->rule.key = 0;
+                raw->target   = composition.back();
                 transformations.push_back(raw);
                 return transformations;
             }
@@ -275,8 +274,8 @@ namespace lotus {
                     clearEffect->target          = vowels[0];
                     clearEffect->rule.effectType = EffectType::MarkTransformation;
                     clearEffect->rule.key        = 0;
-                    clearEffect->rule.effect     = static_cast<uint8_t>(Mark::None);
-                    Composition withEffect       = composition;
+                    clearEffect->rule.setMark(Mark::None);
+                    Composition withEffect = composition;
                     withEffect.push_back(clearEffect);
                     const auto [newTarget, newRule] = findTarget(withEffect, applicableRules, flags);
                     if (newTarget != nullptr && !isSame(newTarget, vowels[0])) {
@@ -335,7 +334,7 @@ namespace lotus {
             clearTone->target          = lastToneTrans->target;
             clearTone->rule.key        = 0;
             clearTone->rule.effectType = EffectType::ToneTransformation;
-            clearTone->rule.effect     = static_cast<uint8_t>(Tone::None);
+            clearTone->rule.setTone(Tone::None);
             transformations.push_back(clearTone);
             Rule overrideRule     = lastToneTrans->rule;
             overrideRule.key      = 0;

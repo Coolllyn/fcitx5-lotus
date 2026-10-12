@@ -20,6 +20,7 @@
 #include <cstdio>
 #include <memory>
 #include <string>
+#include <variant>
 #include <string_view>
 #include <utility>
 #include <vector>
@@ -53,7 +54,7 @@ namespace {
         }
     }
 
-    TransformationPtr makeEffect(const TransformationPtr& target, EffectType type, uint8_t effect) {
+    TransformationPtr makeEffect(const TransformationPtr& target, EffectType type, std::variant<Mark, Tone> effect) {
         auto trans             = std::make_shared<Transformation>();
         trans->target          = target;
         trans->rule.effectType = type;
@@ -109,7 +110,7 @@ namespace {
         rule.effectType = EffectType::MarkTransformation;
         rule.effectOn   = effectOn;
         rule.result     = result;
-        rule.effect     = static_cast<uint8_t>(mark);
+        rule.setMark(mark);
         return rule;
     }
 
@@ -128,10 +129,10 @@ int main() {
     // "O_Ô": 13 hat rules for the 'o' family ['o', 'ô', 'ơ'] (see the generated mark families).
     check("telex w rule count", wRules.size() == 33U);
     check("telex o rule count", oRules.size() == 13U);
-    check("telex w horn on u", !wRules.empty() && wRules[0].getMark() == Mark::Horn && wRules[0].effectOn == U'u' && wRules[0].result == U'ư');
-    check("telex w horn on o", wRules.size() > 7U && wRules[7].getMark() == Mark::Horn && wRules[7].effectOn == U'o' && wRules[7].result == U'ơ');
-    check("telex o hat on o", !oRules.empty() && oRules[0].getMark() == Mark::Hat && oRules[0].effectOn == U'o' && oRules[0].result == U'ô');
-    check("telex o hat on ơ", oRules.size() > 7U && oRules[7].getMark() == Mark::Hat && oRules[7].effectOn == U'ơ' && oRules[7].result == U'ô');
+    check("telex w horn on u", !wRules.empty() && wRules[0].mark() == Mark::Horn && wRules[0].effectOn == U'u' && wRules[0].result == U'ư');
+    check("telex w horn on o", wRules.size() > 7U && wRules[7].mark() == Mark::Horn && wRules[7].effectOn == U'o' && wRules[7].result == U'ơ');
+    check("telex o hat on o", !oRules.empty() && oRules[0].mark() == Mark::Hat && oRules[0].effectOn == U'o' && oRules[0].result == U'ô');
+    check("telex o hat on ơ", oRules.size() > 7U && oRules[7].mark() == Mark::Hat && oRules[7].effectOn == U'ơ' && oRules[7].result == U'ô');
 
     // isValid: a plain syllable and the grave tone on a "c" coda, which only accepts an acute or dot.
     {
@@ -140,7 +141,7 @@ int main() {
         check("isValid ba complete", lotus::isValid(ba, true));
 
         const auto        a  = lotus::makeAppendingTrans(U'a', false);
-        const Composition ac = {a, makeEffect(a, EffectType::ToneTransformation, static_cast<uint8_t>(Tone::Grave)), lotus::makeAppendingTrans(U'c', false)};
+        const Composition ac = {a, makeEffect(a, EffectType::ToneTransformation, Tone::Grave), lotus::makeAppendingTrans(U'c', false)};
         check("isValid ac with grave", !lotus::isValid(ac, false));
         check("isValid empty", lotus::isValid({}, false));
     }
@@ -169,8 +170,8 @@ int main() {
         const auto        c      = lotus::makeAppendingTrans(U'c', false);
         const auto        h      = lotus::makeAppendingTrans(U'h', false);
         const auto        n      = lotus::makeAppendingTrans(U'n', false);
-        const auto        grave  = makeEffect(a, EffectType::ToneTransformation, static_cast<uint8_t>(Tone::Grave));
-        const auto        dot    = makeEffect(a, EffectType::ToneTransformation, static_cast<uint8_t>(Tone::Dot));
+        const auto        grave  = makeEffect(a, EffectType::ToneTransformation, Tone::Grave);
+        const auto        dot    = makeEffect(a, EffectType::ToneTransformation, Tone::Dot);
         const Composition aGrave = {a, grave};
         check("hasValidTone acute", lotus::hasValidTone(aGrave, Tone::Acute));
         check("hasValidTone dot with c", lotus::hasValidTone({a, dot, c}, Tone::Dot));
@@ -187,16 +188,16 @@ int main() {
         const Rule tRule                     = toneRule(U'f', Tone::Grave);
         const auto [toneTarget, toneApplied] = lotus::findTarget({a}, {tRule}, kStdFlags);
         check("findTarget tone target", lotus::isSame(toneTarget, a));
-        check("findTarget tone rule", toneApplied.effectType == EffectType::ToneTransformation && toneApplied.getTone() == Tone::Grave && toneApplied.key == U'f');
+        check("findTarget tone rule", toneApplied.effectType == EffectType::ToneTransformation && toneApplied.tone() == Tone::Grave && toneApplied.key == U'f');
 
         const Rule mRule                     = markRule(U'w', U'a', U'ă', Mark::Breve);
         const auto [markTarget, markApplied] = lotus::findTarget({a}, {mRule}, kStdFlags);
         check("findTarget mark target", lotus::isSame(markTarget, a));
-        check("findTarget mark rule", markApplied.effectType == EffectType::MarkTransformation && markApplied.getMark() == Mark::Breve && markApplied.effectOn == U'a');
+        check("findTarget mark rule", markApplied.effectType == EffectType::MarkTransformation && markApplied.mark() == Mark::Breve && markApplied.effectOn == U'a');
 
         const auto [noTarget, noRule] = lotus::findTarget({lotus::makeAppendingTrans(U'b', false)}, {tRule}, 0U);
         check("findTarget nothing target", noTarget == nullptr);
-        check("findTarget nothing rule", noRule.key == 0 && noRule.effect == 0 && noRule.effectType == EffectType::Appending);
+        check("findTarget nothing rule", noRule.key == 0 && noRule.mark() == Mark::None && noRule.effectType == EffectType::Appending);
     }
 
     // generateTransformations: "uo" + "w" (golden curated-10), double typing an effect key, and
@@ -207,15 +208,14 @@ int main() {
         const Composition uo        = {u, o};
         const Composition uoApplied = lotus::generateTransformations(uo, wRules, kStdFlags, U'w', false);
         check("uo+w size", uoApplied.size() == 1U);
-        check("uo+w horn on o",
-              uoApplied.size() == 1U && uoApplied[0]->rule.getMark() == Mark::Horn && uoApplied[0]->rule.effectOn == U'o' && lotus::isSame(uoApplied[0]->target, o));
+        check("uo+w horn on o", uoApplied.size() == 1U && uoApplied[0]->rule.mark() == Mark::Horn && uoApplied[0]->rule.effectOn == U'o' && lotus::isSame(uoApplied[0]->target, o));
         checkCanvas("uo+w", appendAll(uo, uoApplied), kVietnamese, U"uơ");
 
         const auto        doubleKey = makeAppending(U'w', U'ư', false);
         const Composition doubled   = lotus::generateTransformations({doubleKey}, wRules, kStdFlags, U'w', false);
         check("double key size", doubled.size() == 1U);
         check("double key raw",
-              doubled.size() == 1U && doubled[0]->rule.effectType == EffectType::MarkTransformation && doubled[0]->rule.effect == static_cast<uint8_t>(Mark::Raw) &&
+              doubled.size() == 1U && doubled[0]->rule.effectType == EffectType::MarkTransformation && doubled[0]->rule.mark() == Mark::Raw &&
                   lotus::isSame(doubled[0]->target, doubleKey));
         checkCanvas("double key", appendAll({doubleKey}, doubled), kVietnamese, U"w");
 
@@ -226,21 +226,22 @@ int main() {
         check("uwow enters the ưo/ươ shortcut", lotus::matchesUhO(lotus::flatten(uoHorned, kVietnamese | lotus::toMask(Mode::ToneLess) | lotus::toMask(Mode::LowerCase))));
         const Composition uoHatted = lotus::generateTransformations(uoHorned, oRules, kStdFlags, U'o', false);
         check("ươ+o size", uoHatted.size() == 2U);
-        check("ươ+o clears the first vowel", uoHatted.size() == 2U && uoHatted[0]->rule.effect == static_cast<uint8_t>(Mark::None) && lotus::isSame(uoHatted[0]->target, u));
-        check("ươ+o hats the second vowel", uoHatted.size() == 2U && uoHatted[1]->rule.getMark() == Mark::Hat && lotus::isSame(uoHatted[1]->target, o));
+        check("ươ+o clears the first vowel", uoHatted.size() == 2U && uoHatted[0]->rule.mark() == Mark::None && lotus::isSame(uoHatted[0]->target, u));
+        check("ươ+o hats the second vowel", uoHatted.size() == 2U && uoHatted[1]->rule.mark() == Mark::Hat && lotus::isSame(uoHatted[1]->target, o));
         checkCanvas("ươ+o", appendAll(uoHorned, uoHatted), kVietnamese, U"uô");
     }
 
     // generateUndoTransformations: an effect key that cannot be applied undoes its effect.
     {
         const auto        a         = lotus::makeAppendingTrans(U'a', false);
-        const auto        grave     = makeEffect(a, EffectType::ToneTransformation, static_cast<uint8_t>(Tone::Grave));
+        const auto        grave     = makeEffect(a, EffectType::ToneTransformation, Tone::Grave);
         const Composition aGrave    = {a, grave};
         const Rule        graveRule = toneRule(U'f', Tone::Grave);
         const Composition toneUndo  = lotus::generateUndoTransformations(aGrave, {graveRule}, kStdFlags);
         check("undo tone size", toneUndo.size() == 1U);
         check("undo tone node",
-              toneUndo.size() == 1U && toneUndo[0]->rule.effectType == EffectType::ToneTransformation && toneUndo[0]->rule.effect == 0 && lotus::isSame(toneUndo[0]->target, a));
+              toneUndo.size() == 1U && toneUndo[0]->rule.effectType == EffectType::ToneTransformation && toneUndo[0]->rule.tone() == Tone::None &&
+                  lotus::isSame(toneUndo[0]->target, a));
         checkCanvas("undo tone applied", appendAll(aGrave, toneUndo), kVietnamese, U"a");
 
         const auto        hat      = makeRuleEffect(a, markRule(U'a', U'a', U'â', Mark::Hat));
@@ -249,7 +250,8 @@ int main() {
         const Composition markUndo = lotus::generateUndoTransformations(aHat, {hatRule}, kStdFlags);
         check("undo mark size", markUndo.size() == 1U);
         check("undo mark node",
-              markUndo.size() == 1U && markUndo[0]->rule.effectType == EffectType::MarkTransformation && markUndo[0]->rule.effect == 0 && lotus::isSame(markUndo[0]->target, a));
+              markUndo.size() == 1U && markUndo[0]->rule.effectType == EffectType::MarkTransformation && markUndo[0]->rule.mark() == Mark::None &&
+                  lotus::isSame(markUndo[0]->target, a));
         checkCanvas("undo mark applied", appendAll(aHat, markUndo), kVietnamese, U"a");
         check("undo mark nothing", lotus::generateUndoTransformations({a}, {hatRule}, kStdFlags).empty());
     }
@@ -294,12 +296,12 @@ int main() {
         check("right most vowels empty", lotus::getRightMostVowels({}).empty());
         check("right most vowels consonants only", lotus::getRightMostVowels({lotus::makeAppendingTrans(U'b', false)}).empty());
 
-        const auto        graveOnO = makeEffect(o, EffectType::ToneTransformation, static_cast<uint8_t>(Tone::Grave));
-        const auto        graveOnA = makeEffect(a, EffectType::ToneTransformation, static_cast<uint8_t>(Tone::Grave));
+        const auto        graveOnO = makeEffect(o, EffectType::ToneTransformation, Tone::Grave);
+        const auto        graveOnA = makeEffect(a, EffectType::ToneTransformation, Tone::Grave);
         const Composition moved    = lotus::refreshLastToneTarget({o, a, graveOnO}, false);
         check("refresh size", moved.size() == 2U);
-        check("refresh clears the old target", moved.size() == 2U && lotus::isSame(moved[0]->target, o) && moved[0]->rule.effect == 0);
-        check("refresh moves to the new target", moved.size() == 2U && lotus::isSame(moved[1]->target, a) && moved[1]->rule.getTone() == Tone::Grave);
+        check("refresh clears the old target", moved.size() == 2U && lotus::isSame(moved[0]->target, o) && moved[0]->rule.tone() == Tone::None);
+        check("refresh moves to the new target", moved.size() == 2U && lotus::isSame(moved[1]->target, a) && moved[1]->rule.tone() == Tone::Grave);
         checkCanvas("refresh moved", appendAll({o, a, graveOnO}, moved), kVietnamese, U"oà");
         check("refresh keeps the target", lotus::refreshLastToneTarget({o, a, graveOnA}, false).empty());
     }

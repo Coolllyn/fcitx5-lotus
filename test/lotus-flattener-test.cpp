@@ -10,6 +10,7 @@
 #include <cstdio>
 #include <memory>
 #include <string>
+#include <variant>
 
 namespace {
 
@@ -39,7 +40,7 @@ namespace {
         }
     }
 
-    TransformationPtr makeEffect(const TransformationPtr& target, EffectType type, uint8_t effect) {
+    TransformationPtr makeEffect(const TransformationPtr& target, EffectType type, std::variant<Mark, Tone> effect) {
         auto trans             = std::make_shared<Transformation>();
         trans->target          = target;
         trans->rule.effectType = type;
@@ -67,8 +68,8 @@ int main() {
 
     // Mark then tone, in insertion order, turn a into ấ.
     const auto a     = lotus::makeAppendingTrans(U'a', false);
-    const auto hat   = makeEffect(a, EffectType::MarkTransformation, static_cast<uint8_t>(Mark::Hat));
-    const auto acute = makeEffect(a, EffectType::ToneTransformation, static_cast<uint8_t>(Tone::Acute));
+    const auto hat   = makeEffect(a, EffectType::MarkTransformation, Mark::Hat);
+    const auto acute = makeEffect(a, EffectType::ToneTransformation, Tone::Acute);
     checkCanvas("mark", {a, hat}, kVietnamese, U"â");
     checkCanvas("mark and tone", {a, hat, acute}, kVietnamese, U"ấ");
 
@@ -80,10 +81,10 @@ int main() {
 
     // MarkRaw falls back to the key that produced the node.
     const auto horn = makeAppending(U'w', U'ư', false);
-    checkCanvas("raw mark", {horn, makeEffect(horn, EffectType::MarkTransformation, static_cast<uint8_t>(Mark::Raw))}, kVietnamese, U"w");
+    checkCanvas("raw mark", {horn, makeEffect(horn, EffectType::MarkTransformation, Mark::Raw)}, kVietnamese, U"w");
 
     // English mode renders the key, and a virtual key (key == 0) is skipped in both modes.
-    checkCanvas("english mode", {horn, makeEffect(horn, EffectType::MarkTransformation, static_cast<uint8_t>(Mark::Horn))}, kEnglish, U"w");
+    checkCanvas("english mode", {horn, makeEffect(horn, EffectType::MarkTransformation, Mark::Horn)}, kEnglish, U"w");
     checkCanvas("virtual key skipped", {makeAppending(0, U'x', false)}, kVietnamese, U"");
     checkCanvas("virtual key skipped in english", {makeAppending(0, U'x', false)}, kEnglish, U"");
 

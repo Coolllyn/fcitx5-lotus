@@ -43,13 +43,13 @@ namespace lotus::utils {
         return std::nullopt;
     }
 
-    std::vector<char32_t> getMarkFamily(char32_t codePoint) {
-        std::vector<char32_t> result;
-        const auto            family = findMarkFamily(codePoint);
+    std::u32string getMarkFamily(char32_t codePoint) {
+        std::u32string result;
+        const auto     family = findMarkFamily(codePoint);
         if (!family.has_value()) {
             return result;
         }
-        for (char32_t codePointInFamily : *family) {
+        for (const char32_t codePointInFamily : *family) {
             if (codePointInFamily != U'_') {
                 result.push_back(codePointInFamily);
             }
@@ -66,24 +66,24 @@ namespace lotus::utils {
         return it == family->end() ? -1 : static_cast<int>(std::distance(family->begin(), it));
     }
 
-    bool findMarkFromChar(char32_t codePoint, Mark& mark) {
+    std::optional<Mark> findMarkFromChar(char32_t codePoint) {
         const int position = findMarkPosition(codePoint);
         if (position < 0) {
-            return false;
+            return std::nullopt;
         }
-        mark = static_cast<Mark>(position);
-        return true;
+        return static_cast<Mark>(position);
     }
 
-    char32_t addMarkToTonelessChar(char32_t codePoint, uint8_t mark) {
+    char32_t addMarkToTonelessChar(char32_t codePoint, Mark mark) {
         const auto family = findMarkFamily(codePoint);
-        if (!family.has_value() || static_cast<std::size_t>(mark) >= family->size() || (*family)[mark] == U'_') {
+        const auto slot   = static_cast<std::size_t>(mark);
+        if (!family.has_value() || slot >= family->size() || (*family)[slot] == U'_') {
             return codePoint;
         }
-        return (*family)[mark];
+        return (*family)[slot];
     }
 
-    char32_t addToneToChar(char32_t codePoint, uint8_t tone) {
+    char32_t addToneToChar(char32_t codePoint, Tone tone) {
         const int position = findVowelPosition(codePoint);
         if (position < 0) {
             return codePoint;
@@ -98,11 +98,11 @@ namespace lotus::utils {
         return table[target];
     }
 
-    char32_t addMarkToChar(char32_t codePoint, uint8_t mark) {
+    char32_t addMarkToChar(char32_t codePoint, Mark mark) {
         const Tone tone = findToneFromChar(codePoint);
-        char32_t   bare = addToneToChar(codePoint, 0);
+        char32_t   bare = addToneToChar(codePoint, Tone::None);
         bare            = addMarkToTonelessChar(bare, mark);
-        return addToneToChar(bare, static_cast<uint8_t>(tone));
+        return addToneToChar(bare, tone);
     }
 
     Tone findToneFromChar(char32_t codePoint) {
@@ -148,7 +148,7 @@ namespace lotus::utils {
         if (findToneFromChar(lowerKey) != Tone::None) {
             return true;
         }
-        return lowerKey != addMarkToTonelessChar(lowerKey, 0);
+        return lowerKey != addMarkToTonelessChar(lowerKey, Mark::None);
     }
 
     bool hasAnyVietnameseRune(std::u32string_view word) {

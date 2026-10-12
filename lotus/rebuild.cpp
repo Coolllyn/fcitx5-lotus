@@ -83,17 +83,17 @@ namespace lotus {
             const bool     isUpperCase = case_map::isUpper(ch);
 
             // Decompose the character into root + mark + tone.
-            const Tone tone    = utils::findToneFromChar(lowerCh);
-            Mark       mark    = Mark::None;
-            const bool hasMark = utils::findMarkFromChar(lowerCh, mark);
+            const Tone                tone    = utils::findToneFromChar(lowerCh);
+            const std::optional<Mark> mark    = utils::findMarkFromChar(lowerCh);
+            const bool                hasMark = mark.has_value() && *mark != Mark::None;
 
             // Get the root character (no tone, no mark).
             char32_t rootChar = lowerCh;
             if (tone != Tone::None) {
-                rootChar = utils::addToneToChar(rootChar, 0);
+                rootChar = utils::addToneToChar(rootChar, Tone::None);
             }
-            if (hasMark && mark != Mark::None) {
-                rootChar = utils::addMarkToChar(rootChar, 0);
+            if (hasMark) {
+                rootChar = utils::addMarkToChar(rootChar, Mark::None);
             }
 
             // Create the base Appending transformation for the root character.
@@ -105,14 +105,14 @@ namespace lotus {
             appendTrans->rule.result     = rootChar;
             composition.push_back(appendTrans);
 
-            if (hasMark && mark != Mark::None) {
+            if (hasMark) {
                 auto markTrans             = std::make_shared<Transformation>();
                 markTrans->target          = appendTrans;
                 markTrans->rule.key        = 0;
                 markTrans->rule.effectType = EffectType::MarkTransformation;
-                markTrans->rule.effect     = static_cast<uint8_t>(mark);
-                markTrans->rule.effectOn   = rootChar;
-                markTrans->rule.result     = utils::addMarkToTonelessChar(rootChar, static_cast<uint8_t>(mark));
+                markTrans->rule.setMark(*mark);
+                markTrans->rule.effectOn = rootChar;
+                markTrans->rule.result   = utils::addMarkToTonelessChar(rootChar, *mark);
                 composition.push_back(markTrans);
             }
         }
@@ -133,7 +133,7 @@ namespace lotus {
                 toneTrans->target          = toneTarget;
                 toneTrans->rule.key        = 0;
                 toneTrans->rule.effectType = EffectType::ToneTransformation;
-                toneTrans->rule.effect     = static_cast<uint8_t>(lastTone);
+                toneTrans->rule.setTone(lastTone);
                 composition.push_back(toneTrans);
             }
         }

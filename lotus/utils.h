@@ -50,10 +50,12 @@ namespace lotus::utils {
 
     /**
      * @brief Mark family of a code point with the empty slots removed, like Go's getMarkFamily.
+     *
+     * Parse-time only: it allocates, and the key loop never calls it.
      * @param codePoint Input code point.
      * @return Code points of the family, empty when the code point has no family.
      */
-    std::vector<char32_t> getMarkFamily(char32_t codePoint);
+    std::u32string getMarkFamily(char32_t codePoint);
 
     /**
      * @brief Position of a code point inside its mark family row (empty slots included).
@@ -65,34 +67,33 @@ namespace lotus::utils {
     /**
      * @brief Mark that turns a code point into another one, like Go's FindMarkFromChar.
      * @param codePoint Input code point.
-     * @param mark Output mark.
-     * @return True when the code point belongs to a mark family.
+     * @return The mark, or std::nullopt when the code point belongs to no mark family.
      */
-    bool findMarkFromChar(char32_t codePoint, Mark& mark);
+    std::optional<Mark> findMarkFromChar(char32_t codePoint);
 
     /**
      * @brief Applies a mark to a tone-less code point, like Go's AddMarkToTonelessChar.
      * @param codePoint Tone-less code point.
-     * @param mark Mark value.
+     * @param mark Mark to apply.
      * @return Code point with the mark applied (unchanged when the slot is empty).
      */
-    char32_t addMarkToTonelessChar(char32_t codePoint, uint8_t mark);
+    char32_t addMarkToTonelessChar(char32_t codePoint, Mark mark);
 
     /**
      * @brief Applies a mark while preserving the current tone, like Go's AddMarkToChar.
      * @param codePoint Input code point.
-     * @param mark Mark value.
+     * @param mark Mark to apply.
      * @return Code point with the mark applied.
      */
-    char32_t addMarkToChar(char32_t codePoint, uint8_t mark);
+    char32_t addMarkToChar(char32_t codePoint, Mark mark);
 
     /**
      * @brief Applies a tone, like Go's AddToneToChar.
      * @param codePoint Input code point.
-     * @param tone Tone value.
+     * @param tone Tone to apply.
      * @return Code point with the tone applied (unchanged when the code point is not a vowel).
      */
-    char32_t addToneToChar(char32_t codePoint, uint8_t tone);
+    char32_t addToneToChar(char32_t codePoint, Tone tone);
 
     /**
      * @brief Tone of a code point, like Go's FindToneFromChar.

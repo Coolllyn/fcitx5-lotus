@@ -50,13 +50,13 @@ namespace fcitx {
     void LotusState::setEngine() {
         lotusEngine_ = nullptr;
 
-        if (engine_->config().inputMethod.value() == "Custom") {
+        if (engine_->config().inputMethod.value() == lotus::InputMethodId::Custom) {
             std::unordered_map<std::string, std::string> definition;
             for (const auto& keymap : *engine_->customKeymap().customKeymap) {
                 definition.emplace(*keymap.key, *keymap.value);
             }
-            // Go's NewCustomEngine parsed a definition map named "Custom" and left spell checking off.
-            lotusEngine_ = std::make_shared<lotus::KeyProcessor>(lotus::parseInputMethod(definition, "Custom"), false);
+            // Go's NewCustomEngine parsed the custom definition and left spell checking off.
+            lotusEngine_ = std::make_shared<lotus::KeyProcessor>(lotus::parseInputMethod(definition), false);
         } else {
             lotusEngine_ = std::make_shared<lotus::KeyProcessor>(lotus::cachedInputMethod(engine_->config().inputMethod.value()), true);
         }

@@ -260,11 +260,6 @@ namespace fcitx {
         std::string desktop = getEnv("XDG_CURRENT_DESKTOP");
         isGnome_            = (!desktop.empty()) && desktop.find("GNOME") != std::string::npos;
         // emptyCustomKeymap_.customKeymap is implicitly initialized to empty by fcitx::Option default value macro.
-        {
-            imNames_ = lotus::inputMethodNames();
-            imNames_.emplace_back("Custom");
-        }
-        config_.inputMethod.annotation().setList(imNames_);
 
         auto& uiManager = instance_->userInterfaceManager();
 
@@ -275,13 +270,14 @@ namespace fcitx {
         charsetMenu_ = std::make_unique<Menu>();
         charsetAction_->setMenu(charsetMenu_.get());
 
-        const std::vector<std::string>& charsets = lotus::charsetNames();
-        for (const auto& charset : charsets) {
+        for (std::size_t i = 0; i < lotus::kCharsetCount; ++i) {
+            const auto        charset = static_cast<lotus::Charset>(i);
+            const std::string name    = CharsetToString(charset);
             charsetSubAction_.emplace_back(std::make_unique<SimpleAction>());
             auto* action = charsetSubAction_.back().get();
-            action->setShortText(charset);
+            action->setShortText(name);
             action->setCheckable(true);
-            uiManager.registerAction(stringutils::concat(CharsetActionPrefix, charset), action);
+            uiManager.registerAction(stringutils::concat(CharsetActionPrefix, name), action);
             connections_.emplace_back(action->connect<SimpleAction::Activated>([this, charset](InputContext* ic) {
                 if (config_.outputCharset.value() == charset)
                     return;
@@ -294,7 +290,6 @@ namespace fcitx {
             }));
             charsetMenu_->addAction(action);
         }
-        config_.outputCharset.annotation().setList(charsets);
 
         initToggleAction(spellCheckAction_, config_.spellCheck, "lotus-spellcheck", "tools-check-spelling", _("Spell Check"), _("Spell Check"), uiManager);
         initToggleAction(macroAction_, config_.enableMacro, "lotus-macro", "document-edit", _("Macro"), _("Macro"), uiManager);
@@ -493,7 +488,7 @@ namespace fcitx {
     }
 
     std::string LotusEngine::subMode(const InputMethodEntry& /*entry*/, InputContext& /*inputContext*/) {
-        return *config_.inputMethod;
+        return InputMethodIdToString(*config_.inputMethod);
     }
 
     void LotusEngine::activate(const InputMethodEntry& /*entry*/, InputContextEvent& event) {
@@ -888,7 +883,7 @@ namespace fcitx {
     }
 
     void LotusEngine::updateCharsetAction(InputContext* ic) {
-        auto name = stringutils::concat(CharsetActionPrefix, *config_.outputCharset);
+        auto name = stringutils::concat(CharsetActionPrefix, CharsetToString(*config_.outputCharset));
         for (const auto& action : charsetSubAction_) {
             action->setChecked(action->name() == name);
             if (ic != nullptr)

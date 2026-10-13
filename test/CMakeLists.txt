@@ -50,6 +50,8 @@ add_executable(lotus_unit_tests lotus-unit-test-main.cpp)
 target_link_libraries(lotus_unit_tests PRIVATE Lotus::Engine)
 target_compile_definitions(lotus_unit_tests PRIVATE LOTUS_TEST_GOLDEN_DIR="${PROJECT_SOURCE_DIR}/test/golden")
 
+set_target_properties(lotus_unit_tests PROPERTIES UNITY_BUILD OFF)
+
 add_lotus_unit_test(lotus_utf8 utf8 lotus-utf8-test.cpp "unit;lotus")
 add_lotus_unit_test(lotus_data data lotus-data-test.cpp "unit;lotus")
 add_lotus_unit_test(lotus_utils utils lotus-utils-test.cpp "unit;lotus")

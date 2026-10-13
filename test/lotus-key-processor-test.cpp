@@ -736,7 +736,7 @@ namespace {
 
 } // namespace
 
-int main() {
+int run_key_processor() {
     case_determine_macro_case();
     case_get_last_rune();
     case_in_key_list();

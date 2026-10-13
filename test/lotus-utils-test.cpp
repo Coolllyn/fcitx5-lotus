@@ -36,7 +36,7 @@ namespace {
 
 } // namespace
 
-int main() {
+int run_utils() {
     check("a is a vowel", isVowel(U'a'));
     check("á is a vowel", isVowel(U'á'));
     check("b is not a vowel", !isVowel(U'b'));

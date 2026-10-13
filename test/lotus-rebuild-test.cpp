@@ -191,7 +191,7 @@ namespace {
 
 } // namespace
 
-int main() {
+int run_rebuild() {
     case_rebuild_from_text_simple_ascii();
     case_rebuild_from_text_simple_vietnamese();
     case_rebuild_from_text_upper_case();

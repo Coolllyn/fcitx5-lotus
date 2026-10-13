@@ -35,34 +35,35 @@ function(add_lotus_headless_test target source labels)
     set_tests_properties(${target} PROPERTIES LABELS "${labels}" TIMEOUT 20)
 endfunction()
 
-# Helper to compile lightweight unit tests linked with the C++ lotus engine.
-
-# Helper to compile a portable unit test of the C++ engine (lotus/), no fcitx or Go needed.
+# One binary runs every engine unit test group via "--run <fn>"; ctest keeps
+# one entry per group (own process), so labels, timeouts and isolation hold.
 #
 # Usage:
-#   add_lotus_engine_test(<target_name> <source_file> "<labels>")
-function(add_lotus_engine_test target source labels)
-    add_executable(${target} ${source})
-    target_link_libraries(${target} PRIVATE Lotus::Engine)
-    target_compile_definitions(${target} PRIVATE LOTUS_TEST_GOLDEN_DIR="${PROJECT_SOURCE_DIR}/test/golden")
-    add_test(NAME ${target} COMMAND ${target})
-    set_tests_properties(${target} PROPERTIES LABELS "${labels}" TIMEOUT 60)
+#   add_lotus_unit_test(<ctest_name> <run_function> <source_file> "<labels>")
+function(add_lotus_unit_test name fn source labels)
+    target_sources(lotus_unit_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/${source})
+    add_test(NAME ${name} COMMAND lotus_unit_tests --run ${fn})
+    set_tests_properties(${name} PROPERTIES LABELS "${labels}" TIMEOUT 60)
 endfunction()
 
-add_lotus_engine_test(lotus_utf8 lotus-utf8-test.cpp "unit;lotus")
-add_lotus_engine_test(lotus_data lotus-data-test.cpp "unit;lotus")
-add_lotus_engine_test(lotus_utils lotus-utils-test.cpp "unit;lotus")
-add_lotus_engine_test(lotus_encoder lotus-encoder-test.cpp "unit;lotus;charset")
-add_lotus_engine_test(lotus_rules_parser lotus-rules-parser-test.cpp "unit;lotus;rules")
-add_lotus_engine_test(lotus_flattener lotus-flattener-test.cpp "unit;lotus;flattener")
-add_lotus_engine_test(lotus_spelling lotus-spelling-test.cpp "unit;lotus;spelling")
-add_lotus_engine_test(lotus_engine_utils lotus-engine-utils-test.cpp "unit;lotus;engine-utils")
-add_lotus_engine_test(lotus_engine_smoke lotus-engine-smoke.cpp "unit;lotus;engine")
-add_lotus_engine_test(lotus_engine_test lotus-engine-test.cpp "unit;lotus;engine")
-add_lotus_engine_test(lotus_rebuild lotus-rebuild-test.cpp "unit;lotus;rebuild")
-add_lotus_engine_test(lotus_macro_dictionary lotus-macro-dictionary-test.cpp "unit;lotus;macro")
-add_lotus_engine_test(lotus_key_processor lotus-key-processor-test.cpp "unit;lotus;key-processor")
-add_lotus_engine_test(lotus_golden_smoke lotus-golden-smoke.cpp "unit;lotus;golden")
+add_executable(lotus_unit_tests lotus-unit-test-main.cpp)
+target_link_libraries(lotus_unit_tests PRIVATE Lotus::Engine)
+target_compile_definitions(lotus_unit_tests PRIVATE LOTUS_TEST_GOLDEN_DIR="${PROJECT_SOURCE_DIR}/test/golden")
+
+add_lotus_unit_test(lotus_utf8 utf8 lotus-utf8-test.cpp "unit;lotus")
+add_lotus_unit_test(lotus_data data lotus-data-test.cpp "unit;lotus")
+add_lotus_unit_test(lotus_utils utils lotus-utils-test.cpp "unit;lotus")
+add_lotus_unit_test(lotus_encoder encoder lotus-encoder-test.cpp "unit;lotus;charset")
+add_lotus_unit_test(lotus_rules_parser rules_parser lotus-rules-parser-test.cpp "unit;lotus;rules")
+add_lotus_unit_test(lotus_flattener flattener lotus-flattener-test.cpp "unit;lotus;flattener")
+add_lotus_unit_test(lotus_spelling spelling lotus-spelling-test.cpp "unit;lotus;spelling")
+add_lotus_unit_test(lotus_engine_utils engine_utils lotus-engine-utils-test.cpp "unit;lotus;engine-utils")
+add_lotus_unit_test(lotus_engine_smoke engine_smoke lotus-engine-smoke.cpp "unit;lotus;engine")
+add_lotus_unit_test(lotus_engine_test engine lotus-engine-test.cpp "unit;lotus;engine")
+add_lotus_unit_test(lotus_rebuild rebuild lotus-rebuild-test.cpp "unit;lotus;rebuild")
+add_lotus_unit_test(lotus_macro_dictionary macro_dictionary lotus-macro-dictionary-test.cpp "unit;lotus;macro")
+add_lotus_unit_test(lotus_key_processor key_processor lotus-key-processor-test.cpp "unit;lotus;key-processor")
+add_lotus_unit_test(lotus_golden_smoke golden_smoke lotus-golden-smoke.cpp "unit;lotus;golden")
 
 add_lotus_headless_test(preedit_lifecycle preedit-lifecycle.cpp "integration;preedit")
 add_lotus_headless_test(app_rule_reset app-rule-reset.cpp "integration;apprule")
@@ -85,7 +86,7 @@ add_lotus_headless_test(runtime_safety
 set_tests_properties(runtime_safety PROPERTIES RESOURCE_LOCK lotus_kb_socket)
 add_lotus_headless_test(emoji_history_page_navigation
     emoji-history-page-navigation.cpp "integration;emoji")
-add_lotus_engine_test(numeric_macro_case_preservation
+add_lotus_unit_test(numeric_macro_case_preservation numeric_macro_case
     numeric-macro-case-preservation.cpp "unit;macro")
 
 add_executable(executable_path_match

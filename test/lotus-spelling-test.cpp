@@ -45,7 +45,7 @@ namespace {
 
 } // namespace
 
-int main() {
+int run_spelling() {
     // lookup(): a row matches when its token is no longer than the input (or exactly as long, with
     // inputIsFull), comparing tone-less characters unless inputIsComplete is set. Every matching row
     // is reported, so two rows can be valid for the same input ("c" hits the "ch"/"c" rows).

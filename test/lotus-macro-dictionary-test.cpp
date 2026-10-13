@@ -128,7 +128,7 @@ namespace {
 
 } // namespace
 
-int main() {
+int run_macro_dictionary() {
     case_macro_table_empty();
     case_macro_table_get();
     case_dictionary_lookup();

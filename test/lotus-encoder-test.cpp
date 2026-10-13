@@ -26,7 +26,7 @@ namespace {
 
 } // namespace
 
-int main() {
+int run_encoder() {
     const std::vector<GoldenRow> kCharsetGolden = readGolden(std::string(LOTUS_TEST_GOLDEN_DIR) + "/charset.tsv");
 
     // TestGetCharsetNames

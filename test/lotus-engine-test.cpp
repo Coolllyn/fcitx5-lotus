@@ -702,7 +702,7 @@ namespace {
 
 } // namespace
 
-int main() {
+int run_engine() {
     case_process_string();
     case_process_dd_string();
     case_process_muoiwq_string();

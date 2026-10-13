@@ -44,7 +44,7 @@ namespace {
 
 } // namespace
 
-int main() {
+int run_numeric_macro_case() {
     auto macroTable = std::make_shared<MacroTable>();
     macroTable->set("123", "Mixed Case");
 

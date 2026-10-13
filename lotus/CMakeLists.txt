@@ -3,6 +3,10 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 # Portable C++17 Vietnamese input engine, ported from bamboo/bamboo-core (MIT, kept in CREDITS).
+set(CMAKE_UNITY_BUILD_BATCH_SIZE 8)
+if(NOT DEFINED CMAKE_UNITY_BUILD)
+    set(CMAKE_UNITY_BUILD OFF)
+endif()
 add_library(lotus_engine STATIC
     case_map.cpp
     composition.cpp

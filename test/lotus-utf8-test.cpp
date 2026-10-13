@@ -64,7 +64,7 @@ namespace {
 
 } // namespace
 
-int main() {
+int run_utf8() {
     // ASCII.
     expectCodePoints("ascii", "abc", {U'a', U'b', U'c'});
     expectSize("ascii length", lotus::utf8::length("abc"), 3);

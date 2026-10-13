@@ -50,7 +50,7 @@ namespace {
 
 } // namespace
 
-int main() {
+int run_engine_smoke() {
     {
         lotus::Engine engine = newStdEngine();
         check("input method name", engine.inputMethod().name == "Telex");

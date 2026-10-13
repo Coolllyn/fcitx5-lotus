@@ -62,7 +62,7 @@ namespace {
 
 } // namespace
 
-int main() {
+int run_flattener() {
     // A single appending node renders its effectOn.
     checkCanvas("single append", {lotus::makeAppendingTrans(U'a', false)}, kVietnamese, U"a");
 

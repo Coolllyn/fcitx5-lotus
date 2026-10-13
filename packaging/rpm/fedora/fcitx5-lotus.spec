@@ -14,7 +14,6 @@ BuildRequires:  cmake(Fcitx5Core)
 BuildRequires:  libinput-devel
 BuildRequires:  pkgconfig(libudev)
 
-BuildRequires:  golang
 BuildRequires:  python3-devel
 
 %{?systemd_ordering}

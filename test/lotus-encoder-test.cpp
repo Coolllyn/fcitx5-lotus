@@ -8,6 +8,7 @@
 #include "golden-reader.h"
 #include "utf8.h"
 
+#include <algorithm>
 #include <cstdio>
 #include <set>
 #include <string>

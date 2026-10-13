@@ -14,21 +14,30 @@
 #include "utils.h"
 
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace lotus {
 
-    std::u32string flatten(const Composition& composition, ModeSet mode) {
-        Composition effects;
-        Composition appendingList;
+    Canvas renderCanvas(const Composition& composition, ModeSet mode) {
+        Canvas canvas;
+        canvas.text = renderInto(composition, mode, &canvas.nodes);
+        return canvas;
+    }
+
+    std::u32string renderInto(const Composition& composition, ModeSet mode, std::vector<std::size_t>* nodes) {
+        Composition                                            effects;
+        std::vector<std::pair<std::size_t, TransformationPtr>> appendingList;
         appendingList.reserve(composition.size());
         const bool isEnglish = mode.has(Mode::EnglishMode);
-        for (const auto& trans : composition) {
-            const bool isAppending = trans->rule.effectType == EffectType::Appending;
+        for (std::size_t index = 0; index < composition.size(); ++index) {
+            const auto& trans       = composition[index];
+            const bool  isAppending = trans->rule.effectType == EffectType::Appending;
             if (isEnglish || isAppending) {
                 if (trans->rule.key == 0) {
                     continue;
                 }
-                appendingList.push_back(trans);
+                appendingList.emplace_back(index, trans);
             } else if (trans->target != nullptr) {
                 effects.push_back(trans);
             }
@@ -36,8 +45,9 @@ namespace lotus {
 
         std::u32string canvas;
         canvas.reserve(appendingList.size());
-        for (const auto& appendingTrans : appendingList) {
-            char32_t char32 = 0;
+        for (const auto& entry : appendingList) {
+            const auto& [nodeIndex, appendingTrans] = entry;
+            char32_t char32                         = 0;
             if (isEnglish) {
                 char32 = appendingTrans->rule.key;
             } else {
@@ -68,8 +78,15 @@ namespace lotus {
                 char32 = case_map::toUpper(char32);
             }
             canvas.push_back(char32);
+            if (nodes != nullptr) {
+                nodes->push_back(nodeIndex);
+            }
         }
         return canvas;
+    }
+
+    std::u32string flatten(const Composition& composition, ModeSet mode) {
+        return renderInto(composition, mode, nullptr);
     }
 
 } // namespace lotus

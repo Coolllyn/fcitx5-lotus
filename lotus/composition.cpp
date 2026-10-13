@@ -202,15 +202,11 @@ namespace lotus {
     }
 
     WordSplit extractLastWord(const Composition& composition, std::u32string_view effectKeys) {
-        const std::size_t n = composition.size();
-        for (std::size_t index = n; index > 0U; --index) {
-            const std::size_t    i = index - 1U;
-            const std::u32string canvas =
-                flatten(sliceComposition(composition, i, n), toMask(Mode::VietnameseMode) | toMask(Mode::LowerCase) | toMask(Mode::ToneLess) | toMask(Mode::MarkLess));
-            if (canvas.empty()) {
-                continue;
-            }
-            const char32_t codePoint = canvas.front();
+        const std::size_t n      = composition.size();
+        const Canvas      canvas = renderCanvas(composition, toMask(Mode::VietnameseMode) | toMask(Mode::LowerCase) | toMask(Mode::ToneLess) | toMask(Mode::MarkLess));
+        for (std::size_t k = canvas.nodes.size(); k > 0U; --k) {
+            const std::size_t i         = canvas.nodes[k - 1U];
+            const char32_t    codePoint = canvas.text[k - 1U];
             if (!utils::isAlpha(codePoint) && !utils::inKeyList(effectKeys, codePoint)) {
                 if (i == n - 1U) {
                     return WordSplit{composition, Composition{}};
@@ -222,14 +218,11 @@ namespace lotus {
     }
 
     WordSplit extractLastWordWithPunctuationMarks(const Composition& composition) {
-        const std::size_t n = composition.size();
-        for (std::size_t index = n; index > 0U; --index) {
-            const std::size_t    i      = index - 1U;
-            const std::u32string canvas = flatten(sliceComposition(composition, i, n), toMask(Mode::EnglishMode));
-            if (canvas.empty()) {
-                continue;
-            }
-            if (utils::isSpace(canvas.front())) {
+        const std::size_t n      = composition.size();
+        const Canvas      canvas = renderCanvas(composition, toMask(Mode::EnglishMode));
+        for (std::size_t k = canvas.nodes.size(); k > 0U; --k) {
+            const std::size_t i = canvas.nodes[k - 1U];
+            if (utils::isSpace(canvas.text[k - 1U])) {
                 if (i == n - 1U) {
                     return WordSplit{composition, Composition{}};
                 }

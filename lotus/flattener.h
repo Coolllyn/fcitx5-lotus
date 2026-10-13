@@ -14,9 +14,34 @@
 
 #include "composition.h"
 
+#include <cstddef>
 #include <string>
+#include <vector>
 
 namespace lotus {
+
+    /** @brief A rendered composition plus the composition index of every rendered code point. */
+    struct Canvas {
+        std::u32string           text;  ///< One code point per contributing node, in composition order
+        std::vector<std::size_t> nodes; ///< Composition index of each entry of text
+    };
+
+    /**
+     * @brief Renders a composition and reports which node produced each code point, like flatten().
+     * @param composition Composition.
+     * @param mode Flattening mode (English, ToneLess, MarkLess, LowerCase, ...).
+     * @return Rendered code points with the composition index of each of them.
+     */
+    Canvas renderCanvas(const Composition& composition, ModeSet mode);
+
+    /**
+     * @brief Renders a composition, recording the node of every entry when nodes is not null.
+     * @param composition Composition.
+     * @param mode Flattening mode.
+     * @param nodes Destination of the node indexes, or null when the caller does not need them.
+     * @return Rendered code points.
+     */
+    std::u32string renderInto(const Composition& composition, ModeSet mode, std::vector<std::size_t>* nodes);
 
     /**
      * @brief Renders a composition into code points, like Go's getCanvas / Flatten.

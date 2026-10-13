@@ -106,6 +106,26 @@ int run_flattener() {
     check("split single word previous", single.previous.empty());
     check("split single word last", single.last.size() == 3U);
 
+    // A word break at the very end keeps the whole composition in previous (the i == n - 1 branch).
+    const lotus::WordSplit trailing = lotus::extractLastWord({lotus::makeAppendingTrans(U'a', false), lotus::makeAppendingTrans(U'b', false), space}, U"");
+    check("split trailing break previous", trailing.previous.size() == 3U);
+    check("split trailing break last", trailing.last.empty());
+
+    // The first break found while walking backwards wins: the last node here is a space.
+    const lotus::WordSplit twoBreaks = lotus::extractLastWord({lotus::makeAppendingTrans(U'a', false), space, lotus::makeAppendingTrans(U'b', false), space}, U"");
+    check("split two breaks previous", twoBreaks.previous.size() == 4U);
+    check("split two breaks last", twoBreaks.last.empty());
+
+    // An empty composition falls through to the "no break" return.
+    const lotus::WordSplit emptySplit = lotus::extractLastWord({}, U"");
+    check("split empty previous", emptySplit.previous.empty());
+    check("split empty last", emptySplit.last.empty());
+
+    // The punctuation variant splits on a space anywhere in the middle, like the plain one.
+    const lotus::WordSplit marks = lotus::extractLastWordWithPunctuationMarks({lotus::makeAppendingTrans(U'a', false), space, lotus::makeAppendingTrans(U'b', false)});
+    check("split marks previous size", marks.previous.size() == 2U);
+    check("split marks last size", marks.last.size() == 1U);
+
     if (failures != 0) {
         std::printf("%d failure(s)\n", failures);
         return 1;

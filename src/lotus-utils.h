@@ -16,6 +16,7 @@
 
 #include <atomic>
 #include <cstdint>
+#include <string>
 #include <string_view>
 #include <sys/un.h>
 #include <fcitx-utils/log.h>
@@ -29,12 +30,16 @@
 */
 #define UNIX_PATH_MAX sizeof(((struct sockaddr_un*)0)->sun_path)
 
-FCITX_DECLARE_LOG_CATEGORY(lotus);
+// The log category lives inside namespace fcitx: a global "lotus" function would collide with the
+// lotus:: engine namespace, which the addon includes since it drives the C++ engine directly.
+namespace fcitx {
+    FCITX_DECLARE_LOG_CATEGORY(lotusLog);
+}
 
-#define LOTUS_DEBUG(msg) FCITX_LOGC(lotus, Debug) << "[DEBUG] " << msg
-#define LOTUS_INFO(msg)  FCITX_LOGC(lotus, Info) << "[INFO] " << msg
-#define LOTUS_WARN(msg)  FCITX_LOGC(lotus, Warn) << "[WARN] " << msg
-#define LOTUS_ERROR(msg) FCITX_LOGC(lotus, Error) << "[ERROR] " << msg
+#define LOTUS_DEBUG(msg) FCITX_LOGC(fcitx::lotusLog, Debug) << "[DEBUG] " << msg
+#define LOTUS_INFO(msg)  FCITX_LOGC(fcitx::lotusLog, Info) << "[INFO] " << msg
+#define LOTUS_WARN(msg)  FCITX_LOGC(fcitx::lotusLog, Warn) << "[WARN] " << msg
+#define LOTUS_ERROR(msg) FCITX_LOGC(fcitx::lotusLog, Error) << "[ERROR] " << msg
 
 // Forward declaration for fcitx types
 using KeySym = uint32_t;
@@ -57,6 +62,31 @@ extern std::atomic<int>                           mouse_socket_fd;   ///< Mouse 
 std::string LOTUS_EXPORT buildSocketPath(std::string_view base_path_suffix);
 
 /**
+ * @brief Creates a non-blocking abstract-namespace UNIX socket.
+ *
+ * Fills @p addr with the abstract socket name and @p len with the address
+ * length. The caller keeps ownership of the returned descriptor and is
+ * responsible for connect()/bind() and for closing it on failure.
+ *
+ * @param name Socket name inside the abstract namespace.
+ * @param addr Destination address.
+ * @param len Destination address length.
+ * @return Socket descriptor, or -1 when the socket could not be created.
+ */
+int makeAbstractUnixSocket(std::string_view name, struct sockaddr_un& addr, socklen_t& len);
+
+/**
+ * @brief Closes the uinput client socket and marks the client as disconnected.
+ */
+void closeUinputClient();
+
+/**
+ * @brief Returns the fcitx5 configuration directory of the current user.
+ * @return Path of the fcitx5 configuration directory.
+ */
+std::string lotusConfigDir();
+
+/**
  * @brief Gets current time in milliseconds.
  * @return Timestamp in milliseconds.
  */
@@ -70,6 +100,16 @@ int64_t now_ms();
 bool isBackspace(uint32_t sym);
 
 /**
+ * @brief Key value handed to the engine for a key symbol.
+ *
+ * The Go engine took key symbols (BackSpace, Space and Tab are symbols, not code points), so a symbol
+ * with a Unicode mapping is passed as its code point and every other symbol as-is.
+ * @param sym Key symbol of the event.
+ * @return Key value for lotus::KeyProcessor::processKey.
+ */
+uint32_t engineKeyValue(uint32_t sym);
+
+/**
  * @brief Whether a mode delivers text through the uinput (fake backspace) path.
  * @param mode Mode to check.
  * @return True for Uinput, Smooth, SuperSmooth, Minecraft and Select.
@@ -77,32 +117,14 @@ bool isBackspace(uint32_t sym);
 bool isUinputMode(fcitx::LotusMode mode);
 
 /**
- * @brief Erases the last UTF-8 codepoint from a string in place.
- *
- * Walks back past any continuation bytes (10xxxxxx) to find the leading
- * byte, then erases from that position. Correctly handles 2/3/4-byte
- * sequences; no-op on empty input. Used by the emoji-mode backspace
- * handler so the preedit stays valid UTF-8 after each backspace.
- */
-void eraseLastUtf8Codepoint(std::string& buffer);
-
-/**
- * @brief Compares two strings and computes diff.
- * @param A First string.
- * @param B Second string.
+ * @brief Compares two texts and computes diff.
+ * @param A First text.
+ * @param B Second text.
  * @param deletedPart Output deleted portion.
  * @param addedPart Output added portion.
  * @return Comparison result code.
  */
-int compareAndSplitStrings(const std::string& A, const std::string& B, std::string& deletedPart, std::string& addedPart);
-
-/**
- * @brief Checks if string starts with prefix.
- * @param str String to check.
- * @param prefix Prefix to check.
- * @return True if string starts with prefix.
- */
-bool isStartsWith(const std::string& str, const std::string& prefix);
+int compareAndSplitU32(std::u32string_view A, std::u32string_view B, std::u32string& deletedPart, std::u32string& addedPart);
 
 /**
  * @brief Get the frontend name from the input context.

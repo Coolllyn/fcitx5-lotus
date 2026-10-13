@@ -7,6 +7,7 @@
  *
  */
 #include "lotus-engine.h"
+#include "lotus-fd-guard.h"
 #include "fcitx-utils/keysym.h"
 #include "lotus-config.h"
 #include "lotus-state.h"
@@ -15,10 +16,13 @@
 #include "lotus-utils.h"
 #include "lotus-plasma-theme.h"
 
-#include "bamboo-core.h" // generated cgo header; only included where the bridge is called
+#include "dictionary.h"
+#include "input_method.h"
+#include "utf8.h"
 
 #include <optional>
 #include <sys/socket.h>
+#include <unistd.h>
 #include <utility>
 
 #include <fcitx-config/iniparser.h>
@@ -30,9 +34,11 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <cstdio>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
+#include <memory>
 #include <unordered_set>
 
 #include <fcntl.h>
@@ -72,28 +78,87 @@ namespace fcitx {
         }
     }
 
-    // Returns the KeySym that triggers the "Type hotkey char" action in the mode
-    // menu.  If the hotkey itself conflicts with a reserved menu key, falls back
-    // to FcitxKey_f.
-    static bool isAppModeMenuReservedKey(KeySym sym, const lotusConfig& config) {
-        // Not a static local on purpose: these shortcuts can be reassigned at
-        // runtime, and a static table would keep the values from the first call.
-        const std::array<KeySym, 10> modeShortcuts = {
-            Key(*config.shortcutSmooth).sym(),          Key(*config.shortcutSuperSmooth).sym(), Key(*config.shortcutMinecraft).sym(), Key(*config.shortcutSelect).sym(),
-            Key(*config.shortcutSurroundingText).sym(), Key(*config.shortcutPreedit).sym(),     Key(*config.shortcutEmoji).sym(),     Key(*config.shortcutOff).sym(),
-            Key(*config.shortcutDefault).sym(),
+    KeySym shortcutKey(const std::string& shortcut) {
+        return Key(shortcut).sym();
+    }
+
+    bool modeVisible(const lotusConfig& config, LotusMode mode) {
+        switch (mode) {
+            case LotusMode::Smooth: return *config.showModeSmooth;
+            case LotusMode::SuperSmooth: return *config.showModeSuperSmooth;
+            case LotusMode::Minecraft: return *config.showModeMinecraft;
+            case LotusMode::Select: return *config.showModeSelect;
+            case LotusMode::SurroundingText: return *config.showModeSurroundingText;
+            case LotusMode::Preedit: return *config.showModePreedit;
+            case LotusMode::Emoji: return *config.showModeEmoji;
+            case LotusMode::Off: return *config.showModeOff;
+        }
+        return false;
+    }
+
+    KeySym modeShortcut(const lotusConfig& config, LotusMode mode) {
+        switch (mode) {
+            case LotusMode::Smooth: return shortcutKey(*config.shortcutSmooth);
+            case LotusMode::SuperSmooth: return shortcutKey(*config.shortcutSuperSmooth);
+            case LotusMode::Minecraft: return shortcutKey(*config.shortcutMinecraft);
+            case LotusMode::Select: return shortcutKey(*config.shortcutSelect);
+            case LotusMode::SurroundingText: return shortcutKey(*config.shortcutSurroundingText);
+            case LotusMode::Preedit: return shortcutKey(*config.shortcutPreedit);
+            case LotusMode::Emoji: return shortcutKey(*config.shortcutEmoji);
+            case LotusMode::Off: return shortcutKey(*config.shortcutOff);
+        }
+        return FcitxKey_None;
+    }
+
+    std::string modeLabel(const ModeOrderEntry& entry) {
+        return entry.isDefault ? _("Default Typing") : LotusModeI18NAnnotation::toString(entry.mode);
+    }
+
+    std::vector<ModeOrderEntry> modeOrderEntries(const lotusConfig& config) {
+        const auto order = stringutils::split(*config.modeOrder, ",");
+
+        auto       resolve = [&config](const ModeNameEntry& nameEntry) {
+            if (nameEntry.mode.has_value()) {
+                return ModeOrderEntry{.mode = *nameEntry.mode, .key = modeShortcut(config, *nameEntry.mode), .visible = modeVisible(config, *nameEntry.mode), .isDefault = false};
+            }
+            return ModeOrderEntry{.mode = config.mode.value(), .key = shortcutKey(*config.shortcutDefault), .visible = *config.showModeDefault, .isDefault = true};
         };
-        if (std::find(modeShortcuts.begin(), modeShortcuts.end(), sym) != modeShortcuts.end()) {
+
+        std::vector<ModeOrderEntry> entries;
+        for (const auto& name : order) {
+            const auto* const it = std::ranges::find_if(kModeNames, [&name](const ModeNameEntry& entry) { return entry.name == name; });
+            if (it != kModeNames.end()) {
+                entries.push_back(resolve(*it));
+            }
+        }
+        for (const auto& nameEntry : kModeNames) {
+            const bool listed = std::ranges::any_of(order, [&nameEntry](const std::string& name) { return nameEntry.name == name; });
+            if (!listed) {
+                entries.push_back(resolve(nameEntry));
+            }
+        }
+        return entries;
+    }
+
+    bool isAppModeMenuReservedKey(KeySym sym, const lotusConfig& config) {
+        std::array<KeySym, 10> modeShortcuts{};
+        std::ranges::transform(kModeNames, modeShortcuts.begin(), [&config](const ModeNameEntry& nameEntry) {
+            if (nameEntry.mode.has_value()) {
+                return modeShortcut(config, *nameEntry.mode);
+            }
+            return shortcutKey(*config.shortcutDefault);
+        });
+        if (std::ranges::find(modeShortcuts, sym) != modeShortcuts.end()) {
             return true;
         }
 
         static const std::array<KeySym, 7> reservedMenuKeys = {
             FcitxKey_Escape, FcitxKey_Tab, FcitxKey_ISO_Left_Tab, FcitxKey_Return, FcitxKey_space, FcitxKey_Up, FcitxKey_Down,
         };
-        return std::find(reservedMenuKeys.begin(), reservedMenuKeys.end(), sym) != reservedMenuKeys.end();
+        return std::ranges::find(reservedMenuKeys, sym) != reservedMenuKeys.end();
     }
 
-    static KeySym typeKeyForModeMenuHotkey(KeySym hotkeySym, const lotusConfig& config) {
+    KeySym typeKeyForModeMenuHotkey(KeySym hotkeySym, const lotusConfig& config) {
         return isAppModeMenuReservedKey(hotkeySym, config) ? FcitxKey_f : hotkeySym;
     }
 
@@ -123,39 +188,36 @@ namespace fcitx {
         // GTK_THEME is honored by lightweight DEs that lack the settings
         // portal; covers XFCE, openbox, etc. with a dark theme.
         if (std::string theme = getEnv("GTK_THEME"); !theme.empty()) {
-            std::transform(theme.begin(), theme.end(), theme.begin(), ::tolower);
+            std::ranges::transform(theme, theme.begin(), ::tolower);
             if (theme.find("dark") != std::string::npos) {
                 cachedValue = true;
                 return cachedValue;
             }
         }
 
-        FILE* pipe = popen("dbus-send --session --dest=org.freedesktop.portal.Desktop --print-reply /org/freedesktop/portal/desktop org.freedesktop.portal.Settings.ReadOne "
-                           "string:'org.freedesktop.appearance' string:'color-scheme' 2>/dev/null",
-                           "r");
-        if (pipe != nullptr) {
+        const auto openPipe = [](const char* command) { return std::unique_ptr<FILE, int (*)(FILE*)>(popen(command, "r"), pclose); };
+
+        auto pipe = openPipe("dbus-send --session --dest=org.freedesktop.portal.Desktop --print-reply /org/freedesktop/portal/desktop org.freedesktop.portal.Settings.ReadOne "
+                             "string:'org.freedesktop.appearance' string:'color-scheme' 2>/dev/null");
+        if (pipe) {
             std::array<char, 256> buffer{};
-            while (fgets(buffer.data(), buffer.size(), pipe) != nullptr) {
+            while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
                 uint32_t value = 0;
                 // The sscanf return value is checked and the value is only compared against 1.
                 if (sscanf(buffer.data(), "%*[^v]variant uint32 %u", &value) == 1) { //NOLINT(bugprone-unchecked-string-to-number-conversion)
-                    pclose(pipe);
                     cachedValue = value == 1;
                     return cachedValue;
                 }
             }
-            pclose(pipe);
         }
 
-        pipe = popen("gsettings get org.gnome.desktop.interface color-scheme 2>/dev/null", "r");
-        if (pipe != nullptr) {
+        pipe = openPipe("gsettings get org.gnome.desktop.interface color-scheme 2>/dev/null");
+        if (pipe) {
             std::array<char, 256> buffer{};
-            if (fgets(buffer.data(), buffer.size(), pipe) != nullptr) {
-                pclose(pipe);
+            if (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
                 cachedValue = strstr(buffer.data(), "prefer-dark") != nullptr;
                 return cachedValue;
             }
-            pclose(pipe);
         }
 
         // GTK settings file — covers DEs where the dark preference is stored
@@ -177,52 +239,27 @@ namespace fcitx {
         return cachedValue;
     }
 
-    static inline uintptr_t newMacroTable(const lotusMacroTable& macroTable) {
-        const auto&        macros = *macroTable.macros;
-        std::vector<char*> charArray;
-        charArray.reserve((macros.size() * 2) + 1);
+    std::shared_ptr<const lotus::MacroTable> buildMacroTable(const lotusMacroTable& macroTable) {
+        auto        table  = std::make_shared<lotus::MacroTable>();
+        const auto& macros = *macroTable.macros;
         for (const auto& keymap : macros) {
-            // External C API doesn't use const, but doesn't modify data
-            charArray.push_back(const_cast<char*>(keymap.key->data()));   //NOLINT
-            charArray.push_back(const_cast<char*>(keymap.value->data())); //NOLINT
+            table->set(*keymap.key, *keymap.value);
         }
-        charArray.push_back(nullptr);
-        return NewMacroTable(charArray.data());
+        return table;
     }
 
-    static inline std::vector<std::string> convertToStringList(char** list) {
-        std::vector<std::string> result;
-        if (list == nullptr) {
-            return result;
-        }
-        // Go allocates the array and every element with malloc (toCStringArray in bamboo-c.go);
-        // owned here so an allocation failure while building result does not leak them.
-        const std::unique_ptr<char*, decltype(&std::free)> owner(list, &std::free);      //NOLINT
-        for (size_t i = 0; list[i] != nullptr; ++i) {                                    //NOLINT
-            const std::unique_ptr<char, decltype(&std::free)> item(list[i], &std::free); //NOLINT
-            result.emplace_back(item.get());
-        }
-        return result;
+    const std::shared_ptr<const lotus::MacroTable>& LotusEngine::macroTable() const {
+        return macroTable_;
     }
 
-    uintptr_t LotusEngine::macroTable() const {
-        if (config_.inputMethod.value().empty()) {
-            return 0;
-        }
-        return macroTableObject_.handle();
+    const std::shared_ptr<const lotus::Dictionary>& LotusEngine::dictionary() const {
+        return dictionary_;
     }
 
     LotusEngine::LotusEngine(Instance* instance) : instance_(instance), factory_([this](InputContext& ic) { return new LotusState(this, &ic); }) { //NOLINT
         std::string desktop = getEnv("XDG_CURRENT_DESKTOP");
         isGnome_            = (!desktop.empty()) && desktop.find("GNOME") != std::string::npos;
         // emptyCustomKeymap_.customKeymap is implicitly initialized to empty by fcitx::Option default value macro.
-        Init();
-        {
-            auto imNames = convertToStringList(GetInputMethodNames());
-            imNames.emplace_back("Custom");
-            imNames_ = std::move(imNames);
-        }
-        config_.inputMethod.annotation().setList(imNames_);
 
         auto& uiManager = instance_->userInterfaceManager();
 
@@ -233,13 +270,14 @@ namespace fcitx {
         charsetMenu_ = std::make_unique<Menu>();
         charsetAction_->setMenu(charsetMenu_.get());
 
-        auto charsets = convertToStringList(GetCharsetNames());
-        for (const auto& charset : charsets) {
+        for (std::size_t i = 0; i < lotus::kCharsetCount; ++i) {
+            const auto        charset = static_cast<lotus::Charset>(i);
+            const std::string name    = CharsetToString(charset);
             charsetSubAction_.emplace_back(std::make_unique<SimpleAction>());
             auto* action = charsetSubAction_.back().get();
-            action->setShortText(charset);
+            action->setShortText(name);
             action->setCheckable(true);
-            uiManager.registerAction(stringutils::concat(CharsetActionPrefix, charset), action);
+            uiManager.registerAction(stringutils::concat(CharsetActionPrefix, name), action);
             connections_.emplace_back(action->connect<SimpleAction::Activated>([this, charset](InputContext* ic) {
                 if (config_.outputCharset.value() == charset)
                     return;
@@ -252,7 +290,6 @@ namespace fcitx {
             }));
             charsetMenu_->addAction(action);
         }
-        config_.outputCharset.annotation().setList(charsets);
 
         initToggleAction(spellCheckAction_, config_.spellCheck, "lotus-spellcheck", "tools-check-spelling", _("Spell Check"), _("Spell Check"), uiManager);
         initToggleAction(macroAction_, config_.enableMacro, "lotus-macro", "document-edit", _("Macro"), _("Macro"), uiManager);
@@ -269,11 +306,7 @@ namespace fcitx {
         connections_.emplace_back(settingsAction_->connect<SimpleAction::Activated>([](InputContext*) { startProcess({FCITX5_LOTUS_SETTINGS_PATH}); }));
         uiManager.registerAction("lotus-settings", settingsAction_.get());
 
-#if LOTUS_USE_MODERN_FCITX_API
-        std::string configDir = (StandardPaths::global().userDirectory(StandardPathsType::Config) / "fcitx5" / "conf").string();
-#else
-        std::string configDir = StandardPath::global().userDirectory(StandardPath::Type::Config) + "/fcitx5/conf";
-#endif
+        std::string configDir = lotusConfigDir();
 
         if (!std::filesystem::exists(configDir)) {
             std::filesystem::create_directories(configDir);
@@ -295,34 +328,32 @@ namespace fcitx {
         action->setShortText(textLong);
         action->setIcon(iconName);
         action->setCheckable(false);
-        connections_.emplace_back(action->connect<SimpleAction::Activated>([this, &action, &option, textOnOff](InputContext* ic) {
-            option.setValue(!option.value());
+        auto* const actionPtr = action.get();
+        auto* const optionPtr = &option;
+        connections_.emplace_back(action->connect<SimpleAction::Activated>([this, actionPtr, optionPtr, textOnOff](InputContext* ic) {
+            optionPtr->setValue(!optionPtr->value());
             saveConfig();
             refreshOption();
-            updateAction(ic, action, option, textOnOff);
+            updateAction(ic, *actionPtr, *optionPtr, textOnOff);
         }));
         uiManager.registerAction(actionId, action.get());
     }
 
-    void LotusEngine::updateAction(InputContext* ic, std::unique_ptr<SimpleAction>& action, Option<bool>& option, const std::string& textOnOff) {
-        action->setShortText((option.value() ? "✔ " : "✖ ") + textOnOff);
+    void LotusEngine::updateAction(InputContext* ic, SimpleAction& action, Option<bool>& option, const std::string& textOnOff) {
+        action.setShortText((option.value() ? "✔ " : "✖ ") + textOnOff);
         if (ic != nullptr) {
-            action->update(ic);
+            action.update(ic);
         }
     }
 
     LotusEngine::~LotusEngine() {
         stop_flag_monitor.store(true, std::memory_order_release);
         mouseEventSource_.reset();
-        int fd = mouse_socket_fd.exchange(-1, std::memory_order_acq_rel);
-        if (fd >= 0) {
-            shutdown(fd, SHUT_RDWR);
-            close(fd);
+        FdGuard fd(mouse_socket_fd.exchange(-1, std::memory_order_acq_rel));
+        if (fd.is_valid()) {
+            shutdown(fd.get(), SHUT_RDWR);
         }
-        int old_fd = uinput_client_fd_.exchange(-1);
-        if (old_fd != -1) {
-            close(old_fd);
-        }
+        closeUinputClient();
         LOTUS_INFO("Engine destroyed.");
     }
 
@@ -337,13 +368,25 @@ namespace fcitx {
         readAsIni(config_, "conf/lotus.conf");
         readAsIni(customKeymap_, CustomKeymapFile);
         readAsIni(macroTables_, MacroTableFile);
-        macroTableObject_.reset(newMacroTable(macroTables_));
+        macroTable_ = buildMacroTable(macroTables_);
         loadDictionary();
         loadAppRules();
         populateConfig();
     }
 
     void LotusEngine::loadDictionary() {
+        auto dictionary = std::make_shared<lotus::Dictionary>();
+        // Go read the descriptor handed to it; the port reads the same descriptor into the text
+        // Dictionary::loadFromText expects.
+        auto loadFromFd = [&dictionary](int rawFd) {
+            FdGuard                fd(rawFd);
+            std::string            contents;
+            std::array<char, 4096> buffer{};
+            for (ssize_t count = ::read(fd.get(), buffer.data(), buffer.size()); count > 0; count = ::read(fd.get(), buffer.data(), buffer.size())) {
+                contents.append(buffer.data(), static_cast<std::size_t>(count));
+            }
+            dictionary->loadFromText(contents);
+        };
         if (config_.enableDictionary.value()) {
 #if LOTUS_USE_MODERN_FCITX_API
             auto fd = StandardPaths::global().open(StandardPathsType::PkgData, "lotus/vietnamese.cm.dict");
@@ -351,7 +394,7 @@ namespace fcitx {
             auto fd = StandardPath::global().open(StandardPath::Type::PkgData, "lotus/vietnamese.cm.dict", O_RDONLY);
 #endif
             if (fd.isValid()) {
-                dictionary_.reset(NewDictionary(fd.release()));
+                loadFromFd(fd.release());
             }
         } else {
 #if LOTUS_USE_MODERN_FCITX_API
@@ -361,21 +404,22 @@ namespace fcitx {
 #endif
             for (const auto& p : paths) {
 #if LOTUS_USE_MODERN_FCITX_API
-                if (!isStartsWith(p.string(), "/home/")) {
+                if (!p.string().starts_with("/home/")) {
                     auto fd = fcitx::UnixFD(::open(p.c_str(), O_RDONLY));
                     if (fd.isValid()) {
-                        dictionary_.reset(NewDictionary(fd.release()));
+                        loadFromFd(fd.release());
 #else
-                if (!isStartsWith(p, "home/")) {
+                if (!p.starts_with("home/")) {
                     int fd = ::open(p.c_str(), O_RDONLY);
                     if (fd != -1) {
-                        dictionary_.reset(NewDictionary(fd));
+                        loadFromFd(fd);
 #endif
                         break;
                     }
                 }
             }
         }
+        dictionary_ = std::move(dictionary);
     }
 
     const Configuration* LotusEngine::getSubConfig(const std::string& path) const {
@@ -401,11 +445,11 @@ namespace fcitx {
         refreshEngine();
         refreshOption();
         updateCharsetAction(nullptr);
-        updateAction(nullptr, spellCheckAction_, config_.spellCheck, _("Spell Check"));
-        updateAction(nullptr, macroAction_, config_.enableMacro, _("Macro"));
-        updateAction(nullptr, capitalizeMacroAction_, config_.capitalizeMacro, _("Capitalize Macro"));
-        updateAction(nullptr, autoNonVnRestoreAction_, config_.autoNonVnRestore, _("Auto Non-VN Restore"));
-        updateAction(nullptr, enableDictionaryAction_, config_.enableDictionary, _("Custom Dictionary"));
+        updateAction(nullptr, *spellCheckAction_, config_.spellCheck, _("Spell Check"));
+        updateAction(nullptr, *macroAction_, config_.enableMacro, _("Macro"));
+        updateAction(nullptr, *capitalizeMacroAction_, config_.capitalizeMacro, _("Capitalize Macro"));
+        updateAction(nullptr, *autoNonVnRestoreAction_, config_.autoNonVnRestore, _("Auto Non-VN Restore"));
+        updateAction(nullptr, *enableDictionaryAction_, config_.enableDictionary, _("Custom Dictionary"));
     }
 
     void LotusEngine::setSubConfig(const std::string& path, const RawConfig& config) {
@@ -416,21 +460,26 @@ namespace fcitx {
         } else if (path == "lotus-macro") {
             macroTables_.load(config, true);
             safeSaveAsIni(macroTables_, MacroTableFile);
-            macroTableObject_.reset(newMacroTable(macroTables_));
+            macroTable_ = buildMacroTable(macroTables_);
             refreshEngine();
         } else if (path == "app_rules") {
             appRulesTables_.load(config, true);
             {
                 std::scoped_lock lock(appRulesMutex_);
                 for (auto it = appRules_.begin(); it != appRules_.end();) {
-                    if (!isStartsWith(it->first, "ctx_")) {
+                    if (!it->first.starts_with("ctx_")) {
                         it = appRules_.erase(it);
                     } else {
                         ++it;
                     }
                 }
                 for (const auto& rule : *appRulesTables_.rules) {
-                    appRules_[*rule.app] = {intToMode(*rule.mode), *rule.commitInterval, *rule.backspaceInterval, *rule.postDelay};
+                    appRules_[*rule.app] = {
+                        .mode              = intToMode(*rule.mode),
+                        .commitInterval    = *rule.commitInterval,
+                        .backspaceInterval = *rule.backspaceInterval,
+                        .postDelay         = *rule.postDelay,
+                    };
                 }
             }
             saveAppRules();
@@ -439,7 +488,7 @@ namespace fcitx {
     }
 
     std::string LotusEngine::subMode(const InputMethodEntry& /*entry*/, InputContext& /*inputContext*/) {
-        return *config_.inputMethod;
+        return InputMethodIdToString(*config_.inputMethod);
     }
 
     void LotusEngine::activate(const InputMethodEntry& /*entry*/, InputContextEvent& event) {
@@ -499,34 +548,13 @@ namespace fcitx {
         }
     }
 
-    void LotusEngine::keyEvent(const InputMethodEntry& /*entry*/, KeyEvent& keyEvent) {
-        auto* ic = keyEvent.inputContext();
-        if (ic == nullptr) {
-            return;
-        }
-
+    bool LotusEngine::handleAppModeMenu(KeyEvent& keyEvent) {
+        auto* ic    = keyEvent.inputContext();
         auto* state = ic->propertyFor(&factory_);
-
-        if (ic->capabilityFlags().testAny(CapabilityFlag::PasswordOrSensitive)) {
-            if (state != nullptr) {
-                state->reset();
-            }
-            ic->inputPanel().reset();
-            ic->updateUserInterface(UserInterfaceComponent::InputPanel);
-            return;
-        }
-
-        if (isSelectingAppMode_ && g_mouse_clicked.load(std::memory_order_acquire)) {
-            closeAppModeMenu();
-            ic->inputPanel().reset();
-            ic->updateUserInterface(UserInterfaceComponent::InputPanel);
-            state->commitBuffer();
-            state->reset();
-        }
 
         if (isSelectingAppMode_) {
             if (keyEvent.isRelease())
-                return;
+                return true;
 
             auto   baseList = ic->inputPanel().candidateList();
             auto   menuList = std::dynamic_pointer_cast<CommonCandidateList>(baseList);
@@ -568,14 +596,14 @@ namespace fcitx {
                 case FcitxKey_Tab:
                 case FcitxKey_Down: {
                     if (moveCursor(1)) {
-                        return;
+                        return true;
                     }
                     break;
                 }
                 case FcitxKey_ISO_Left_Tab:
                 case FcitxKey_Up: {
                     if (moveCursor(-1)) {
-                        return;
+                        return true;
                     }
                     break;
                 }
@@ -587,7 +615,7 @@ namespace fcitx {
                             selectedIndex = 0;
                         }
                         menuList->candidateFromAll(selectedIndex).select(ic);
-                        return;
+                        return true;
                     }
                     break;
                 }
@@ -612,7 +640,7 @@ namespace fcitx {
                                 state->commitBuffer();
                                 state->reset();
                                 ic->commitString(charStr);
-                                return;
+                                return true;
                             }
                         }
                     }
@@ -627,7 +655,7 @@ namespace fcitx {
                         clearAppRule(currentConfigureApp_);
                     } else {
                         setAppRule(currentConfigureApp_, selectedMode.value());
-                        if (!isStartsWith(currentConfigureApp_, "ctx_")) {
+                        if (!currentConfigureApp_.starts_with("ctx_")) {
                             saveAppRules();
                         }
                     }
@@ -651,67 +679,86 @@ namespace fcitx {
                     }
                 }
             }
+            return true;
+        }
+        return false;
+    }
+
+    void LotusEngine::keyEvent(const InputMethodEntry& /*entry*/, KeyEvent& keyEvent) {
+        auto* ic = keyEvent.inputContext();
+        if (ic == nullptr) {
             return;
         }
 
+        auto* state = ic->propertyFor(&factory_);
+
+        if (ic->capabilityFlags().testAny(CapabilityFlag::PasswordOrSensitive)) {
+            if (state != nullptr) {
+                state->reset();
+            }
+            ic->inputPanel().reset();
+            ic->updateUserInterface(UserInterfaceComponent::InputPanel);
+            return;
+        }
+
+        if (isSelectingAppMode_ && g_mouse_clicked.load(std::memory_order_acquire)) {
+            closeAppModeMenu();
+            ic->inputPanel().reset();
+            ic->updateUserInterface(UserInterfaceComponent::InputPanel);
+            state->commitBuffer();
+            state->reset();
+        }
+
+        if (handleAppModeMenu(keyEvent)) {
+            return;
+        }
+
+        if (handleCycleModeHotkey(ic, keyEvent)) {
+            return;
+        }
+
+        if (handleModeMenuHotkey(ic, keyEvent)) {
+            return;
+        }
+        state->keyEvent(keyEvent);
+        syncRealtextLen(ic);
+    }
+
+    bool LotusEngine::handleModeMenuHotkey(InputContext* ic, KeyEvent& keyEvent) {
+        auto* state = ic->propertyFor(&factory_);
+        if (!keyEvent.isRelease() && !config_.modeMenuKey->empty() && keyEvent.key().checkKeyList(*config_.modeMenuKey)) {
+            LOTUS_INFO("Mode menu key pressed");
+            if (state != nullptr) {
+                state->commitBuffer();
+                state->reset();
+            }
+            currentConfigureApp_ = getProgramName(ic);
+            g_mouse_clicked.store(false, std::memory_order_release);
+            std::string appName = getProgramName(ic);
+            setMode(getAppRule(appName), ic);
+            showAppModeMenu(ic);
+            keyEvent.filterAndAccept();
+            return true;
+        }
+        return false;
+    }
+
+    void LotusEngine::syncRealtextLen(InputContext* ic) {
+        const auto&  s       = ic->surroundingText();
+        const auto&  text    = s.text();
+        const size_t textLen = lotus::utf8::length(text);
+        unsigned int cursor  = s.cursor();
+        if (textLen == static_cast<size_t>(cursor))
+            realtextLen.store(static_cast<unsigned int>(textLen), std::memory_order_release);
+    }
+
+    bool LotusEngine::handleCycleModeHotkey(InputContext* ic, KeyEvent& keyEvent) {
         if (!keyEvent.isRelease() && !config_.cycleModeKey->empty() && keyEvent.key().checkKeyList(*config_.cycleModeKey)) {
             LOTUS_INFO("Cycle mode key pressed");
-            std::string                               appName  = getProgramName(ic);
-            LotusMode                                 realMode = getAppRule(appName);
+            std::string            appName  = getProgramName(ic);
+            LotusMode              realMode = getAppRule(appName);
 
-            auto                                      order      = stringutils::split(*config_.modeOrder, ",");
-            std::vector<std::pair<std::string, bool>> visibility = {
-                {"Smooth", *config_.showModeSmooth},   {"Minecraft", *config_.showModeMinecraft},
-                {"Select", *config_.showModeSelect},   {"SurroundingText", *config_.showModeSurroundingText},
-                {"Preedit", *config_.showModePreedit}, {"Emoji", *config_.showModeEmoji},
-                {"Off", *config_.showModeOff},         {"SuperSmooth", *config_.showModeSuperSmooth},
-                {"Default", *config_.showModeDefault},
-            };
-
-            std::vector<LotusMode> enabledModes;
-            for (const auto& name : order) {
-                bool visible = false;
-                for (const auto& v : visibility) {
-                    if (v.first == name) {
-                        visible = v.second;
-                        break;
-                    }
-                }
-                if (visible) {
-                    std::optional<LotusMode> mode = std::nullopt;
-                    if (name == "Smooth")
-                        mode = LotusMode::Smooth;
-                    else if (name == "Minecraft")
-                        mode = LotusMode::Minecraft;
-                    else if (name == "Select")
-                        mode = LotusMode::Select;
-                    else if (name == "SurroundingText")
-                        mode = LotusMode::SurroundingText;
-                    else if (name == "Preedit")
-                        mode = LotusMode::Preedit;
-                    else if (name == "Emoji")
-                        mode = LotusMode::Emoji;
-                    else if (name == "Off")
-                        mode = LotusMode::Off;
-                    else if (name == "SuperSmooth")
-                        mode = LotusMode::SuperSmooth;
-                    else if (name == "Default")
-                        mode = config().mode.value();
-                    else
-                        continue;
-
-                    bool duplicate = false;
-                    for (auto m : enabledModes) {
-                        if (m == mode) {
-                            duplicate = true;
-                            break;
-                        }
-                    }
-                    if (!duplicate) {
-                        enabledModes.push_back(mode.value());
-                    }
-                }
-            }
+            std::vector<LotusMode> enabledModes = enabledModesInOrder();
 
             if (!enabledModes.empty()) {
                 size_t currentIdx = 0;
@@ -731,30 +778,30 @@ namespace fcitx {
             }
 
             keyEvent.filterAndAccept();
-            return;
+            return true;
         }
+        return false;
+    }
 
-        if (!keyEvent.isRelease() && !config_.modeMenuKey->empty() && keyEvent.key().checkKeyList(*config_.modeMenuKey)) {
-            LOTUS_INFO("Mode menu key pressed");
-            if (state != nullptr) {
-                state->commitBuffer();
-                state->reset();
+    std::vector<LotusMode> LotusEngine::enabledModesInOrder() const {
+        std::vector<LotusMode> enabledModes;
+        for (const auto& entry : modeOrderEntries(config_)) {
+            if (!entry.visible) {
+                continue;
             }
-            currentConfigureApp_ = getProgramName(ic);
-            g_mouse_clicked.store(false, std::memory_order_release);
-            std::string appName = getProgramName(ic);
-            setMode(getAppRule(appName), ic);
-            showAppModeMenu(ic);
-            keyEvent.filterAndAccept();
-            return;
+
+            bool duplicate = false;
+            for (auto m : enabledModes) {
+                if (m == entry.mode) {
+                    duplicate = true;
+                    break;
+                }
+            }
+            if (!duplicate) {
+                enabledModes.push_back(entry.mode);
+            }
         }
-        state->keyEvent(keyEvent);
-        const auto&  s       = ic->surroundingText();
-        const auto&  text    = s.text();
-        size_t       textLen = fcitx_utf8_strlen(text.c_str());
-        unsigned int cursor  = s.cursor();
-        if (textLen == static_cast<size_t>(cursor))
-            realtextLen.store(static_cast<unsigned int>(textLen), std::memory_order_release);
+        return enabledModes;
     }
 
     void LotusEngine::reset(const InputMethodEntry& /*entry*/, InputContextEvent& event) {
@@ -836,7 +883,7 @@ namespace fcitx {
     }
 
     void LotusEngine::updateCharsetAction(InputContext* ic) {
-        auto name = stringutils::concat(CharsetActionPrefix, *config_.outputCharset);
+        auto name = stringutils::concat(CharsetActionPrefix, CharsetToString(*config_.outputCharset));
         for (const auto& action : charsetSubAction_) {
             action->setChecked(action->name() == name);
             if (ic != nullptr)
@@ -849,7 +896,7 @@ namespace fcitx {
             std::scoped_lock                                     lock(appRulesMutex_);
             std::unordered_map<std::string, LotusAppRuleSetting> ctxRules;
             for (const auto& [app, setting] : appRules_) {
-                if (isStartsWith(app, "ctx_")) {
+                if (app.starts_with("ctx_")) {
                     ctxRules[app] = setting;
                 }
             }
@@ -884,7 +931,12 @@ namespace fcitx {
                         int commit     = field(1);
                         int backspace  = field(2);
                         int post       = field(3);
-                        tempRules[app] = {intToMode(mode), commit > 0 ? commit : 0, backspace > 0 ? backspace : 0, post > 0 ? post : 0};
+                        tempRules[app] = {
+                            .mode              = intToMode(mode),
+                            .commitInterval    = commit > 0 ? commit : 0,
+                            .backspaceInterval = backspace > 0 ? backspace : 0,
+                            .postDelay         = post > 0 ? post : 0,
+                        };
                     } catch (const std::exception&) { LOTUS_WARN("Invalid mode value for app: " + app); }
                 }
             }
@@ -900,7 +952,7 @@ namespace fcitx {
         std::scoped_lock          lock(appRulesMutex_);
         std::vector<lotusAppRule> rules;
         for (const auto& pair : appRules_) {
-            if (pair.first.find("ctx_") == 0)
+            if (pair.first.starts_with("ctx_"))
                 continue;
             lotusAppRule rule;
             rule.app.setValue(pair.first);
@@ -925,7 +977,7 @@ namespace fcitx {
         file << "# app=mode[,commit_interval_ms[,backspace_interval_ms[,post_delay_ms]]]   0/omitted = use defaults\n";
         std::scoped_lock lock(appRulesMutex_);
         for (const auto& pair : appRules_) {
-            bool currentIsCtx = isStartsWith(pair.first, "ctx_");
+            bool currentIsCtx = pair.first.starts_with("ctx_");
             if (!currentIsCtx) {
                 const int   commit    = pair.second.commitInterval;
                 const int   backspace = pair.second.backspaceInterval;
@@ -949,7 +1001,7 @@ namespace fcitx {
         if (it != appRules_.end()) {
             return it->second;
         }
-        return {config_.mode.value(), 0, 0, 0};
+        return {.mode = config_.mode.value(), .commitInterval = 0, .backspaceInterval = 0, .postDelay = 0};
     }
 
     LotusMode LotusEngine::getAppRule(const std::string& appName) const {
@@ -1018,7 +1070,7 @@ namespace fcitx {
                         clearAppRule(currentConfigureApp_);
                     } else {
                         setAppRule(currentConfigureApp_, mode);
-                        if (!isStartsWith(currentConfigureApp_, "ctx_")) {
+                        if (!currentConfigureApp_.starts_with("ctx_")) {
                             saveAppRules();
                         }
                     }
@@ -1035,80 +1087,33 @@ namespace fcitx {
             };
         };
 
-        struct ModeInfo {
-            LotusMode   mode;
-            std::string label;
-            KeySym      key;
-            bool        visible;
-        };
+        const std::vector<ModeOrderEntry> allModes = modeOrderEntries(config_);
 
-        auto                                      getShortcut = [](const std::string& shortcut) { return Key(shortcut).sym(); };
-
-        std::unordered_map<std::string, ModeInfo> modeMap = {
-            {"Smooth", {LotusMode::Smooth, _("Uinput (Smooth)"), getShortcut(*config_.shortcutSmooth), *config_.showModeSmooth}},
-            {"Minecraft", {LotusMode::Minecraft, _("Minecraft"), getShortcut(*config_.shortcutMinecraft), *config_.showModeMinecraft}},
-            {"Select", {LotusMode::Select, _("Uinput (Select)"), getShortcut(*config_.shortcutSelect), *config_.showModeSelect}},
-            {"SurroundingText", {LotusMode::SurroundingText, _("Surrounding Text"), getShortcut(*config_.shortcutSurroundingText), *config_.showModeSurroundingText}},
-            {"Preedit", {LotusMode::Preedit, _("Preedit"), getShortcut(*config_.shortcutPreedit), *config_.showModePreedit}},
-            {"Emoji", {LotusMode::Emoji, _("Emoji Picker"), getShortcut(*config_.shortcutEmoji), *config_.showModeEmoji}},
-            {"Off", {LotusMode::Off, _("OFF"), getShortcut(*config_.shortcutOff), *config_.showModeOff}},
-            {"SuperSmooth", {LotusMode::SuperSmooth, _("Uinput (Super Smooth)"), getShortcut(*config_.shortcutSuperSmooth), *config_.showModeSuperSmooth}},
-            {"Default", {config_.mode.value(), _("Default Typing"), getShortcut(*config_.shortcutDefault), *config_.showModeDefault}},
-        };
-
-        std::vector<ModeInfo> allModes;
-        auto                  order = stringutils::split(*config_.modeOrder, ",");
-        for (const auto& name : order) {
-            auto it = modeMap.find(name);
-            if (it != modeMap.end()) {
-                allModes.push_back(it->second);
-            }
-        }
-
-        // Fallback for missing modes
-        for (const auto& [name, info] : modeMap) {
-            bool found = false;
-            for (const auto& orderedName : order) {
-                if (orderedName == name) {
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                allModes.push_back(info);
-            }
-        }
-
-        int                        activeSelectionIdx  = -1;
-        int                        currentCandidateIdx = 0;
-        std::unordered_set<KeySym> usedModeKeys;
+        int                               activeSelectionIdx  = -1;
+        int                               currentCandidateIdx = 0;
+        std::unordered_set<KeySym>        usedModeKeys;
 
         modeMenuMapping_.clear();
         const LotusMode defaultMode = config_.mode.value();
 
-        for (const auto& info : allModes) {
-            if (info.visible) {
-                const bool hasShortcut = info.key != FcitxKey_None && info.key != FcitxKey_VoidSymbol;
-                if (hasShortcut && usedModeKeys.insert(info.key).second) {
-                    modeMenuMapping_[info.key] = info.mode;
+        for (const auto& entry : allModes) {
+            if (entry.visible) {
+                const bool hasShortcut = entry.key != FcitxKey_None && entry.key != FcitxKey_VoidSymbol;
+                if (hasShortcut && usedModeKeys.insert(entry.key).second) {
+                    modeMenuMapping_[entry.key] = entry.mode;
                 }
 
-                const bool        isDefaultItem = (info.label == _("Default Typing"));
-                const std::string keyUtf8       = Key::keySymToUTF8(info.key);
+                const bool        isDefaultItem = entry.isDefault;
+                const std::string keyUtf8       = Key::keySymToUTF8(entry.key);
                 std::string       keyLabel      = keyUtf8.empty() ? "" : "[" + keyUtf8 + "] ";
-                candidateList->append(std::make_unique<AppModeCandidateWord>(getLabel(info.mode, keyLabel + info.label), applyMode(info.mode, isDefaultItem)));
+                candidateList->append(std::make_unique<AppModeCandidateWord>(getLabel(entry.mode, keyLabel + modeLabel(entry)), applyMode(entry.mode, isDefaultItem)));
 
-                if (info.mode == realMode && !isDefaultItem) {
+                const bool selectedByMode    = entry.mode == realMode && !isDefaultItem;
+                const bool selectedByDefault = isDefaultItem && getAppRule(currentConfigureApp_) == defaultMode && !appRules_.contains(currentConfigureApp_);
+                if (selectedByMode || selectedByDefault) {
                     activeSelectionIdx = currentCandidateIdx;
-                } else if (isDefaultItem && getAppRule(currentConfigureApp_) == defaultMode) {
-#if __cplusplus >= 202002L
-                    if (!appRules_.contains(currentConfigureApp_)) {
-#else
-                    if (appRules_.find(currentConfigureApp_) == appRules_.end()) {
-#endif
-                        activeSelectionIdx = currentCandidateIdx;
-                    }
                 }
+
                 currentCandidateIdx++;
             }
         }
@@ -1151,21 +1156,9 @@ namespace fcitx {
             ic->updateUserInterface(UserInterfaceComponent::InputPanel);
         };
 
-        // Map mode to label
-        std::string modeLabel;
-        switch (mode) {
-            case LotusMode::Smooth: modeLabel = _("Uinput (Smooth)"); break;
-            case LotusMode::Minecraft: modeLabel = _("Minecraft"); break;
-            case LotusMode::SurroundingText: modeLabel = _("Surrounding Text"); break;
-            case LotusMode::Preedit: modeLabel = _("Preedit"); break;
-            case LotusMode::Emoji: modeLabel = _("Emoji Picker"); break;
-            case LotusMode::Off: modeLabel = _("OFF"); break;
-            case LotusMode::SuperSmooth: modeLabel = _("Uinput (Super Smooth)"); break;
-            case LotusMode::Select: modeLabel = _("Uinput (Select)"); break;
-            default: modeLabel = _("Unknown Mode"); break;
-        }
+        const std::string modeLabel = LotusModeI18NAnnotation::toString(mode);
 
-        auto setCurrentMode = [cleanup](LotusMode) { return [cleanup](InputContext* ic) { cleanup(ic); }; };
+        auto              setCurrentMode = [cleanup](LotusMode) { return [cleanup](InputContext* ic) { cleanup(ic); }; };
 
         candidateList->append(std::make_unique<AppModeCandidateWord>(Text("✓ " + modeLabel), setCurrentMode(mode)));
 
@@ -1256,9 +1249,9 @@ namespace fcitx {
             appRules_.erase(appName);
         }
         auto rules = *appRulesTables_.rules;
-        rules.erase(std::remove_if(rules.begin(), rules.end(), [&appName](const auto& rule) { return *rule.app == appName; }), rules.end());
+        rules.erase(std::ranges::remove_if(rules, [&appName](const auto& rule) { return *rule.app == appName; }).begin(), rules.end());
         appRulesTables_.rules.setValue(std::move(rules));
-        if (!isStartsWith(appName, "ctx_")) {
+        if (!appName.starts_with("ctx_")) {
             saveAppRules();
         }
     }
@@ -1268,43 +1261,38 @@ namespace fcitx {
             return;
         }
 
-        const std::string mouse_socket_path = buildSocketPath("mouse_socket");
-        int               sock              = socket(AF_UNIX, SOCK_SEQPACKET | SOCK_NONBLOCK, 0);
-        if (sock < 0) {
+        const std::string  mouse_socket_path = buildSocketPath("mouse_socket");
+        struct sockaddr_un addr{};
+        socklen_t          len = 0;
+        FdGuard            sock(makeAbstractUnixSocket(mouse_socket_path, addr, len));
+        if (!sock.is_valid()) {
             LOTUS_ERROR("Failed to create mouse socket: " + std::string(strerror(errno)));
             return;
         }
 
-        struct sockaddr_un addr{};
-        addr.sun_family  = AF_UNIX;
-        addr.sun_path[0] = '\0';
-        memcpy(&addr.sun_path[1], mouse_socket_path.c_str(), mouse_socket_path.length());
-        socklen_t len = offsetof(struct sockaddr_un, sun_path) + mouse_socket_path.length() + 1;
-
-        if (connect(sock, reinterpret_cast<struct sockaddr*>(&addr), len) < 0) {
+        if (connect(sock.get(), reinterpret_cast<struct sockaddr*>(&addr), len) < 0) {
             LOTUS_ERROR("Failed to connect to mouse socket: " + std::string(strerror(errno)));
-            close(sock);
             return;
         }
 
         std::string peer_exe_path;
-        if (!authenticateMouseSocketPeer(sock, peer_exe_path)) {
+        if (!authenticateMouseSocketPeer(sock.get(), peer_exe_path)) {
             LOTUS_WARN("Unauthorized connection attempt from: " + peer_exe_path);
-            close(sock);
             return;
         }
 
-        mouse_socket_fd.store(sock, std::memory_order_release);
+        const int sockFd = sock.get();
+        mouse_socket_fd.store(sock.release(), std::memory_order_release);
         LOTUS_INFO("Mouse socket connected and registered to Fcitx EventLoop.");
 
-        mouseEventSource_ = instance_->eventLoop().addIOEvent(sock, IOEventFlag::In, [this, sock](EventSourceIO*, int, IOEventFlags) {
+        mouseEventSource_ = instance_->eventLoop().addIOEvent(sockFd, IOEventFlag::In, [this, sockFd](EventSourceIO*, int, IOEventFlags) {
             std::array<char, 16> buf{};
-            ssize_t              n = recv(sock, buf.data(), buf.size(), 0);
+            ssize_t              n = recv(sockFd, buf.data(), buf.size(), 0);
             if (n <= 0) {
                 LOTUS_ERROR("Mouse socket recv error or disconnected: " + std::string(strerror(errno)));
                 mouseEventSource_.reset();
                 mouse_socket_fd.store(-1, std::memory_order_release);
-                close(sock);
+                close(sockFd);
                 return true;
             }
 

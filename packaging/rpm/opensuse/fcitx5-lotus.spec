@@ -1,5 +1,5 @@
 Name:           fcitx5-lotus
-Version:        5.0.1
+Version:        5.0.2
 Release:        1
 Summary:        Vietnamese input method for fcitx5
 License:        GPL-3.0-or-later
@@ -14,7 +14,6 @@ BuildRequires:  fcitx5-devel
 BuildRequires:  libinput-devel
 BuildRequires:  systemd-devel
 
-BuildRequires:  go
 BuildRequires:  sysuser-tools
 Requires(pre):  sysuser-shadow >= 3.1
 
@@ -116,10 +115,8 @@ fi
 %service_del_postun fcitx5-lotus-server@.service
 
 %changelog
-* Sun Oct 11 2026 Nguyen Hoang Ky <nhktmdzhg@gmail.com> - 5.0.1-1
-- Bypass ime on password or sensitive fields
-- Fix: do not restore a custom dictionary word while it is still a prefix
-- Reload the custom dictionary on every configuration apply
+* Wed Oct 14 2026 Nguyen Hoang Ky <nhktmdzhg@gmail.com> - 5.0.2-1
+- Rewrite core engine from Go to C++20 for better performance and maintainability
 
 %check
 %ctest

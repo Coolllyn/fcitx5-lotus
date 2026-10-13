@@ -17,9 +17,14 @@
 
 #include "lotus-config.h"
 #include "emoji.h"
-#include "lotus.h"
+#include "dictionary.h"
+#include "macro_table.h"
+#include <array>
 #include <mutex>
 #include <memory>
+#include <optional>
+#include <string_view>
+#include <vector>
 #include <fcitx-config/iniparser.h>
 #include <fcitx/action.h>
 #include <fcitx/addonfactory.h>
@@ -31,8 +36,102 @@
 
 namespace fcitx {
 
-    class CGoObject;
     class LotusState;
+
+    /**
+     * @brief One mode name accepted in Mode Order.
+     */
+    struct ModeNameEntry {
+        std::string_view         name; ///< Name used in Mode Order.
+        std::optional<LotusMode> mode; ///< Mode the name resolves to, or nothing for the synthetic entry.
+    };
+
+    /**
+     * @brief Mode Order names, in the fallback order used when a name is not listed.
+     */
+    inline constexpr std::array<ModeNameEntry, 9> kModeNames{
+        {
+            {.name = "Smooth", .mode = LotusMode::Smooth},
+            {.name = "Minecraft", .mode = LotusMode::Minecraft},
+            {.name = "Select", .mode = LotusMode::Select},
+            {.name = "SurroundingText", .mode = LotusMode::SurroundingText},
+            {.name = "Preedit", .mode = LotusMode::Preedit},
+            {.name = "Emoji", .mode = LotusMode::Emoji},
+            {.name = "Off", .mode = LotusMode::Off},
+            {.name = "SuperSmooth", .mode = LotusMode::SuperSmooth},
+            {.name = "Default", .mode = std::nullopt},
+        },
+    };
+
+    /**
+     * @brief One mode resolved from Mode Order, in menu order.
+     */
+    struct ModeOrderEntry {
+        LotusMode mode;      ///< Mode of the entry.
+        KeySym    key;       ///< Shortcut key that selects the entry.
+        bool      visible;   ///< Whether the entry is shown.
+        bool      isDefault; ///< Whether the entry is the synthetic Default Typing one.
+    };
+
+    /**
+     * @brief Whether a mode is shown in the mode menu and in the cycle list.
+     * @param config Current configuration.
+     * @param mode Mode to query.
+     * @return True when the mode is visible.
+     */
+    bool modeVisible(const lotusConfig& config, LotusMode mode);
+
+    /**
+     * @brief Shortcut key that selects a mode from the mode menu.
+     * @param config Current configuration.
+     * @param mode Mode to query.
+     * @return The shortcut key, or FcitxKey_None when the mode has none.
+     */
+    KeySym modeShortcut(const lotusConfig& config, LotusMode mode);
+
+    /**
+     * @brief Label of a menu entry, taken from the translated enum names.
+     * @param entry Menu entry.
+     * @return Translated label of the entry.
+     */
+    std::string modeLabel(const ModeOrderEntry& entry);
+
+    /**
+     * @brief Resolves the modes in Mode Order order, then the names missing from it.
+     * @param config Current configuration.
+     * @return The menu entries in menu order.
+     */
+    std::vector<ModeOrderEntry> modeOrderEntries(const lotusConfig& config);
+
+    /**
+     * @brief Parses a shortcut string from the configuration into its key symbol.
+     * @param shortcut Shortcut text, as stored in the configuration.
+     * @return Key symbol of the shortcut.
+     */
+    KeySym shortcutKey(const std::string& shortcut);
+
+    /**
+     * @brief Whether a key is reserved by the mode menu.
+     * @param sym Key symbol to test.
+     * @param config Current configuration.
+     * @return True when the key is reserved.
+     */
+    bool isAppModeMenuReservedKey(KeySym sym, const lotusConfig& config);
+
+    /**
+     * @brief Key symbol that triggers the "type the hotkey character" menu entry.
+     * @param hotkeySym Key symbol of the mode menu hotkey.
+     * @param config Current configuration.
+     * @return Key symbol used to type the hotkey character.
+     */
+    KeySym typeKeyForModeMenuHotkey(KeySym hotkeySym, const lotusConfig& config);
+
+    /**
+     * @brief Builds the macro table of the engine from the macro table configuration.
+     * @param macroTable Macro table read from the configuration file.
+     * @return Shared macro table; empty when the configuration has no macro.
+     */
+    std::shared_ptr<const lotus::MacroTable> buildMacroTable(const lotusMacroTable& macroTable);
 
     /**
      * @brief Main engine class for Lotus input method.
@@ -174,18 +273,16 @@ namespace fcitx {
         const lotusCustomKeymap& customKeymap() const;
 
         /**
-         * @brief Gets the dictionary handle.
-         * @return CGo handle for the dictionary.
+         * @brief Gets the dictionary shared with every input context.
+         * @return Shared dictionary (null when no dictionary file was loaded).
          */
-        uintptr_t dictionary() const {
-            return dictionary_.handle();
-        }
+        const std::shared_ptr<const lotus::Dictionary>& dictionary() const;
 
         /**
-         * @brief Gets the macro table handle.
-         * @return CGo handle for the macro table.
+         * @brief Gets the macro table shared with every input context.
+         * @return Shared macro table.
          */
-        uintptr_t macroTable() const;
+        const std::shared_ptr<const lotus::MacroTable>& macroTable() const;
 
         /**
          * @brief Gets the emoji loader.
@@ -205,11 +302,10 @@ namespace fcitx {
         lotusCustomKeymap                                    emptyCustomKeymap_;
 
         lotusMacroTable                                      macroTables_;
-        CGoObject                                            macroTableObject_;
+        std::shared_ptr<const lotus::MacroTable>             macroTable_;
         lotusAppRules                                        appRulesTables_;
 
         FactoryFor<LotusState>                               factory_;
-        std::vector<std::string>                             imNames_;
 
         std::unique_ptr<SimpleAction>                        charsetAction_;
         std::vector<std::unique_ptr<SimpleAction>>           charsetSubAction_;
@@ -223,7 +319,7 @@ namespace fcitx {
         std::unique_ptr<SimpleAction>                        settingsAction_;
         std::vector<SimpleAction*>                           toggleActions_;
         std::vector<ScopedConnection>                        connections_;
-        CGoObject                                            dictionary_;
+        std::shared_ptr<const lotus::Dictionary>             dictionary_;
         std::unordered_map<std::string, LotusAppRuleSetting> appRules_;
         std::string                                          appRulesPath_;
         bool                                                 isSelectingAppMode_ = false;
@@ -280,7 +376,7 @@ namespace fcitx {
          * @param option The option to toggle
          * @param textOnOff The text to display when on/off
          */
-        static void updateAction(InputContext* ic, std::unique_ptr<SimpleAction>& action, Option<bool>& option, const std::string& textOnOff);
+        static void updateAction(InputContext* ic, SimpleAction& action, Option<bool>& option, const std::string& textOnOff);
 
         /**
          * @brief Updates the charset action UI.
@@ -316,6 +412,41 @@ namespace fcitx {
          * @param mode The mode to set
          */
         void setAppRule(const std::string& appName, LotusMode mode);
+
+        /**
+         * @brief Handles the key event while the application mode menu is open.
+         * @param keyEvent The key event.
+         * @return True when the event was consumed by the menu.
+         */
+        bool handleAppModeMenu(KeyEvent& keyEvent);
+
+        /**
+         * @brief Handles the cycle mode hotkey.
+         * @param ic Current input context.
+         * @param keyEvent The key event.
+         * @return True when the event was consumed by the hotkey.
+         */
+        bool handleCycleModeHotkey(InputContext* ic, KeyEvent& keyEvent);
+
+        /**
+         * @brief Handles the mode menu hotkey.
+         * @param ic Current input context.
+         * @param keyEvent The key event.
+         * @return True when the event was consumed by the hotkey.
+         */
+        bool handleModeMenuHotkey(InputContext* ic, KeyEvent& keyEvent);
+
+        /**
+         * @brief Stores the surrounding text length when the cursor sits at the end of the text.
+         * @param ic Current input context.
+         */
+        static void syncRealtextLen(InputContext* ic);
+
+        /**
+         * @brief Collects the visible modes in Mode Order order, skipping duplicates.
+         * @return The enabled modes in the order they are cycled through.
+         */
+        std::vector<LotusMode> enabledModesInOrder() const;
 
         /**
          * @brief Shows the application mode selection menu.

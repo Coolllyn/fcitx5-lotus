@@ -19,6 +19,8 @@
 #ifndef _LOTUS_SERVER_H_
 #define _LOTUS_SERVER_H_
 
+#include "../src/lotus-fd-guard.h"
+
 #include <atomic>
 #include <fcntl.h>
 #include <libinput.h>
@@ -26,38 +28,11 @@
 #include <poll.h>
 #include <pwd.h>
 #include <string>
+#include <string_view>
 #include <sys/resource.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/un.h>
-
-/**
- * @brief RAII Wrapper for Unix File Descriptors.
- * Ensures that close() is called when the object goes out of scope.
- * Complies with Rule of Five by disabling copy and implementing move.
- */
-class FdGuard {
-  public:
-    explicit FdGuard(int fd = -1) : fd_(fd) {}
-    ~FdGuard();
-
-    // Rule of Five: Disable copying, allow moving
-    FdGuard(const FdGuard&)            = delete;
-    FdGuard& operator=(const FdGuard&) = delete;
-    FdGuard(FdGuard&& other) noexcept;
-    FdGuard&          operator=(FdGuard&& other) noexcept;
-
-    [[nodiscard]] int get() const {
-        return fd_;
-    }
-    [[nodiscard]] bool is_valid() const {
-        return fd_ >= 0;
-    }
-    void reset(int new_fd = -1);
-
-  private:
-    int fd_;
-};
 
 /**
  * @brief RAII Wrapper for uinput device.
@@ -119,7 +94,7 @@ class LibinputContext {
 
     LibinputContext& operator=(LibinputContext&& other) noexcept {
         if (this != &other) {
-            this->~LibinputContext();
+            reset();
             udev_       = other.udev_;
             li_         = other.li_;
             other.udev_ = nullptr;
@@ -135,10 +110,15 @@ class LibinputContext {
         return li_;
     }
     [[nodiscard]] int get_fd() const {
-        return libinput_get_fd(li_);
+        return li_ == nullptr ? -1 : libinput_get_fd(li_);
     }
 
   private:
+    /**
+     * @brief Releases the libinput and udev contexts, if they were created.
+     */
+    void             reset();
+
     struct udev*     udev_ = nullptr;
     struct libinput* li_   = nullptr;
 };
@@ -197,6 +177,20 @@ int open_restricted(const char* path, int flags, void* user_data);
  * @param user_data Unused user data.
  */
 void close_restricted(int fd, void* user_data);
+
+/**
+ * @brief Authorizes a new client of one of the server sockets.
+ *
+ * Fetches the peer credentials, verifies the peer UID and that the peer
+ * executable is the fcitx5 binary that is allowed to talk to the server.
+ *
+ * @param fd Accepted client socket.
+ * @param expectedUid UID the server was started for.
+ * @param socketLabel Socket name used in the log messages.
+ * @param peerPid Received peer PID, zero when the credentials could not be read.
+ * @return True when the peer is allowed to use the socket.
+ */
+bool authorizePeer(int fd, uid_t expectedUid, std::string_view socketLabel, pid_t& peerPid);
 
 /**
  * @brief libinput interface callbacks.

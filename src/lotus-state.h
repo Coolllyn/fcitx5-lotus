@@ -15,19 +15,34 @@
 #ifndef _FCITX5_LOTUS_STATE_H_
 #define _FCITX5_LOTUS_STATE_H_
 
-#include "lotus.h"
 #include "emoji-entry.h"
+#include "key_processor.h"
 #include "lotus-protocol.h"
 #include "lotus-utils.h"
 
 #include <chrono>
 #include <cstddef>
 #include <fcitx/inputcontext.h>
+#include <memory>
 
 namespace fcitx {
     class LotusEngine;
     class CommonCandidateList;
     class SurroundingText;
+
+    /**
+     * @brief Clamps a delay read from the configuration to the supported range.
+     * @param value Delay in milliseconds.
+     * @return The delay clamped to the supported range.
+     */
+    int clampDelay(int value);
+
+    /**
+     * @brief Whether a code point breaks a word.
+     * @param ucs4 Code point to test.
+     * @return True when the code point breaks a word.
+     */
+    bool isWordBreak(uint32_t ucs4);
 
     /**
      * @brief Per-input-context state for Lotus input method.
@@ -88,14 +103,14 @@ namespace fcitx {
 
         LotusEngine*                          engine_;
         InputContext*                         ic_;
-        CGoObject                             lotusEngine_;
-        std::string                           oldPreBuffer_;
+        std::shared_ptr<lotus::KeyProcessor>  lotusEngine_;
+        std::u32string                        oldPreBuffer_;
         bool                                  hasHistory_              = false;
         size_t                                expected_backspaces_     = 0;
         size_t                                current_backspace_count_ = 0;
-        std::string                           pending_commit_string_;
+        std::u32string                        pending_commit_string_;
         LotusAppRuleSetting                   appRuleSetting_; ///< Per-app rule (mode + delay overrides) pushed by the engine
-        std::string                           emojiBuffer_;
+        std::u32string                        emojiBuffer_;
         std::vector<EmojiEntry>               emojiCandidates_;
         std::vector<KeyEntry>                 buffered_keys_; ///< Keystrokes buffered during replacement
         bool                                  isPrevSpace_           = false;
@@ -149,6 +164,62 @@ namespace fcitx {
         static void send_select_uinput(size_t count, uint32_t pre_delay, uint32_t interval, uint32_t post_delay);
 
         /**
+         * @brief Handles the pre-dispatch guards of a key event (engine presence, shift in
+         * preedit mode, modifier taps and key releases).
+         * @param keyEvent The key event to inspect.
+         * @return True when the event must not be processed any further.
+         */
+        bool handleKeyEventGuards(KeyEvent& keyEvent);
+
+        /**
+         * @brief Reconnects to the uinput server when the client socket is not open.
+         */
+        static void ensureUinputConnection();
+
+        /**
+         * @brief Finishes an in-flight replacement once every echoed backspace arrived.
+         */
+        void completePendingReplacement();
+
+        /**
+         * @brief Applies auto-capitalization state to the pressed key.
+         * @param keyEvent The key event, which may be rewritten with an upper case key.
+         * @param currentSym The current key symbol, replaced by its upper case variant.
+         */
+        void applyAutoCapitalize(KeyEvent& keyEvent, KeySym& currentSym);
+
+        /**
+         * @brief Handles keys received while a replacement is still deleting text.
+         * @param keyEvent The key event.
+         * @param currentSym The current key symbol.
+         * @return True when the event was consumed.
+         */
+        bool handleKeyWhileDeleting(KeyEvent& keyEvent, KeySym currentSym);
+
+        /**
+         * @brief Handles the double space to period shortcut.
+         * @param keyEvent The key event.
+         * @param currentSym The current key symbol.
+         * @return True when the shortcut fired and the event was consumed.
+         */
+        bool handleDoubleSpaceToPeriod(KeyEvent& keyEvent, KeySym currentSym);
+
+        /**
+         * @brief Handles the double hyphen to em-dash shortcut.
+         * @param keyEvent The key event.
+         * @param currentSym The current key symbol.
+         * @return True when the shortcut fired and the event was consumed.
+         */
+        bool handleDoubleHyphenToEmDash(KeyEvent& keyEvent, KeySym currentSym);
+
+        /**
+         * @brief Dispatches the key event to the handler of the active mode.
+         * @param keyEvent The key event.
+         * @param currentSym The current key symbol.
+         */
+        void handleActiveMode(KeyEvent& keyEvent, KeySym currentSym);
+
+        /**
          * @brief Checks if autofill is certain for surrounding text.
          * @param s The surrounding text.
          * @return True if autofill should proceed.
@@ -200,10 +271,39 @@ namespace fcitx {
 
         /**
          * @brief Performs text replacement via uinput.
-         * @param deletedPart Text to delete.
-         * @param addedPart Text to insert.
+         * @param deletedPart UTF-32 text to delete.
+         * @param addedPart UTF-32 text to insert.
          */
-        void performReplacement(const std::string& deletedPart, const std::string& addedPart);
+        void performReplacement(const std::u32string& deletedPart, const std::u32string& addedPart);
+
+        /**
+         * @brief Replaces the last character, either through surrounding text or through uinput.
+         * @param deleted UTF-32 text to delete.
+         * @param added UTF-32 text to insert.
+         * @param logMsg Message to log once the replacement is issued.
+         */
+        void commitOrReplace(const std::u32string& deleted, const std::u32string& added, const std::string& logMsg);
+
+        /**
+         * @brief Forwards special keys (cursor move, Tab, Escape, modifiers) and reports
+         * whether the event is consumed.
+         * @param keyEvent The key event.
+         * @param currentSym The current key symbol.
+         * @return True when the event was forwarded.
+         */
+        bool forwardSpecialKey(KeyEvent& keyEvent, KeySym& currentSym);
+
+        /**
+         * @brief Reads the text the engine wants to commit.
+         * @return The pending commit text, empty when there is none.
+         */
+        std::u32string pullCommitString();
+
+        /**
+         * @brief Reads the current engine preedit.
+         * @return The preedit text, empty when there is none.
+         */
+        std::u32string pullPreeditString();
 
         /**
          * @brief Handles the double space to period replacement.
@@ -294,11 +394,6 @@ namespace fcitx {
          * @return The unshifted key symbol
          */
         static KeySym unshiftKeySym(KeySym sym);
-
-        /**
-         * @brief update last commit time.
-         */
-        void updateLastCommitTime();
     };
 
 } // namespace fcitx

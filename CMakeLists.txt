@@ -1,7 +1,6 @@
-# $<TARGET_OBJECTS:> in non-OBJECT target sources requires CMake 3.12.
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.16)
 
-project(fcitx5-lotus VERSION 5.0.1)
+project(fcitx5-lotus VERSION 5.0.2)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(BUILD_TESTING "Build Lotus tests" OFF)
 
@@ -10,6 +9,7 @@ option(BUILD_TESTING "Build Lotus tests" OFF)
 # module build itself.
 set(fcitx_lotus_core_sources
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lotus-engine.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/lotus-fcitx-text.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lotus-state.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lotus-candidates.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lotus-utils.cpp
@@ -31,6 +31,11 @@ find_package(Pthread REQUIRED)
 find_package(Gettext REQUIRED)
 
 include("${FCITX_INSTALL_CMAKECONFIG_DIR}/Fcitx5Utils/Fcitx5CompilerSettings.cmake")
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 add_definitions(-DFCITX_GETTEXT_DOMAIN=\"fcitx5-lotus\") 
 
 if (Fcitx5Utils_VERSION VERSION_GREATER_EQUAL "5.1.13")
@@ -56,7 +61,7 @@ set_target_properties(lotus_executable_path PROPERTIES POSITION_INDEPENDENT_CODE
 target_include_directories(lotus_executable_path PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 add_subdirectory(po)
-add_subdirectory(bamboo)
+add_subdirectory(lotus)
 add_subdirectory(src)
 add_subdirectory(data)
 add_subdirectory(server)

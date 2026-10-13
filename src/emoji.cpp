@@ -6,6 +6,7 @@
  */
 
 #include "emoji.h"
+#include "lotus-utils.h"
 #include <algorithm>
 #include <emoji_public.h>
 #include <fcitx-utils/standardpath.h>
@@ -15,11 +16,7 @@ EmojiLoader::EmojiLoader(fcitx::AddonManager* addonManager) {
     if (addonManager != nullptr) {
         emojiAddon_ = addonManager->addon("emoji", true);
     }
-#if LOTUS_USE_MODERN_FCITX_API
-    historyPath_ = (fcitx::StandardPaths::global().userDirectory(fcitx::StandardPathsType::Config) / "fcitx5" / "conf" / "lotus-emoji-history.conf").string();
-#else
-    historyPath_ = fcitx::StandardPath::global().userDirectory(fcitx::StandardPath::Type::Config) + "/fcitx5/conf/lotus-emoji-history.conf";
-#endif
+    historyPath_ = lotusConfigDir() + "/lotus-emoji-history.conf";
     loadFromFcitx5("en");
     loadHistory();
 }
@@ -43,7 +40,7 @@ void EmojiLoader::loadFromFcitx5(const std::string& language) {
 
 void EmojiLoader::recordHistory(const EmojiEntry& entry) {
     // Remove if already exists to move to top
-    historyList.erase(std::remove_if(historyList.begin(), historyList.end(), [&](const auto& e) { return e.output == entry.output; }), historyList.end());
+    historyList.erase(std::ranges::remove_if(historyList, [&](const auto& e) { return e.output == entry.output; }).begin(), historyList.end());
 
     historyList.insert(historyList.begin(), entry);
 
@@ -134,11 +131,11 @@ std::vector<EmojiEntry> EmojiLoader::search(const std::string& prefix) {
 
             score -= (lastMatchIndex - firstMatchIndex);
 
-            results.push_back({entry, score});
+            results.push_back({.entry = entry, .score = score});
         }
     }
 
-    std::sort(results.begin(), results.end(), [](const auto& a, const auto& b) {
+    std::ranges::sort(results, [](const auto& a, const auto& b) {
         if (a.score != b.score)
             return a.score > b.score;
         return a.entry.trigger.size() < b.entry.trigger.size();

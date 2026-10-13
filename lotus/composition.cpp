@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <memory>
+#include <ranges>
 
 namespace lotus {
 
@@ -47,9 +48,9 @@ namespace lotus {
     }
 
     TransformationPtr findLastAppendingTrans(const Composition& composition) {
-        for (auto it = composition.rbegin(); it != composition.rend(); ++it) {
-            if ((*it)->rule.effectType == EffectType::Appending) {
-                return *it;
+        for (const auto& it : std::views::reverse(composition)) {
+            if (it->rule.effectType == EffectType::Appending) {
+                return it;
             }
         }
         return nullptr;
@@ -77,21 +78,21 @@ namespace lotus {
     }
 
     TransformationPtr getLastToneTransformation(const Composition& composition) {
-        for (auto it = composition.rbegin(); it != composition.rend(); ++it) {
-            if ((*it)->rule.effectType == EffectType::ToneTransformation && (*it)->target != nullptr) {
-                return *it;
+        for (const auto& it : std::views::reverse(composition)) {
+            if (it->rule.effectType == EffectType::ToneTransformation && it->target != nullptr) {
+                return it;
             }
         }
         return nullptr;
     }
 
     bool isFree(const Composition& composition, const TransformationPtr& trans, EffectType effectType) {
-        return std::none_of(composition.begin(), composition.end(),
-                            [&trans, effectType](const TransformationPtr& node) { return isSame(node->target, trans) && node->rule.effectType == effectType; });
+        return std::ranges::none_of(composition,
+                                    [&trans, effectType](const TransformationPtr& node) { return isSame(node->target, trans) && node->rule.effectType == effectType; });
     }
 
     bool isIn(const TransformationPtr& target, const Composition& list) {
-        return std::any_of(list.begin(), list.end(), [&target](const TransformationPtr& node) { return isSame(node, target); });
+        return std::ranges::any_of(list, [&target](const TransformationPtr& node) { return isSame(node, target); });
     }
 
     Composition breakComposition(const Composition& composition) {
@@ -161,7 +162,7 @@ namespace lotus {
             firstConsonant = sliceComposition(composition, 0U, voStart + 1U);
             vowel          = sliceComposition(composition, voStart + 1U, lcStart);
         }
-        return CvcParts{firstConsonant, vowel, lastConsonant};
+        return CvcParts{.firstConsonant = firstConsonant, .vowel = vowel, .lastConsonant = lastConsonant};
     }
 
     CvcParts extractCvcTrans(const Composition& composition) {
@@ -198,7 +199,7 @@ namespace lotus {
                 lc.push_back(trans);
             }
         }
-        return CvcParts{fc, vo, lc};
+        return CvcParts{.firstConsonant = fc, .vowel = vo, .lastConsonant = lc};
     }
 
     WordSplit extractLastWord(const Composition& composition, std::u32string_view effectKeys) {
@@ -209,12 +210,12 @@ namespace lotus {
             const char32_t    codePoint = canvas.text[k - 1U];
             if (!utils::isAlpha(codePoint) && !utils::inKeyList(effectKeys, codePoint)) {
                 if (i == n - 1U) {
-                    return WordSplit{composition, Composition{}};
+                    return WordSplit{.previous = composition, .last = Composition{}};
                 }
-                return WordSplit{sliceComposition(composition, 0U, i + 1U), sliceComposition(composition, i + 1U, n)};
+                return WordSplit{.previous = sliceComposition(composition, 0U, i + 1U), .last = sliceComposition(composition, i + 1U, n)};
             }
         }
-        return WordSplit{Composition{}, composition};
+        return WordSplit{.previous = Composition{}, .last = composition};
     }
 
     WordSplit extractLastWordWithPunctuationMarks(const Composition& composition) {
@@ -224,12 +225,12 @@ namespace lotus {
             const std::size_t i = canvas.nodes[k - 1U];
             if (utils::isSpace(canvas.text[k - 1U])) {
                 if (i == n - 1U) {
-                    return WordSplit{composition, Composition{}};
+                    return WordSplit{.previous = composition, .last = Composition{}};
                 }
-                return WordSplit{sliceComposition(composition, 0U, i + 1U), sliceComposition(composition, i + 1U, n)};
+                return WordSplit{.previous = sliceComposition(composition, 0U, i + 1U), .last = sliceComposition(composition, i + 1U, n)};
             }
         }
-        return WordSplit{Composition{}, composition};
+        return WordSplit{.previous = Composition{}, .last = composition};
     }
 
 } // namespace lotus

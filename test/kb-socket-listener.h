@@ -19,6 +19,7 @@
 #include <cstring>
 #include <iostream>
 #include <string>
+#include <utility>
 
 #include <poll.h>
 #include <sys/socket.h>
@@ -72,7 +73,7 @@ class KbSocketListener {
                     return false;
                 }
 
-                pollfd     pfd{fd_, POLLIN, 0};
+                pollfd     pfd{.fd = fd_, .events = POLLIN, .revents = 0};
                 const auto pollResult = poll(&pfd, 1, remainingTimeout);
                 if (pollResult == 0) {
                     reportFailure("wait for replacement socket connection", "connection request within timeout", "poll timed out", meaning);
@@ -97,7 +98,7 @@ class KbSocketListener {
                 }
             }
 
-            pollfd     pfd{client_, POLLIN | POLLHUP | POLLRDHUP, 0};
+            pollfd     pfd{.fd = client_, .events = POLLIN | POLLHUP | POLLRDHUP, .revents = 0};
             const auto pollResult = poll(&pfd, 1, remainingTimeout);
             if (pollResult == 0) {
                 reportFailure("wait for replacement request", requestTimeoutExpected, "poll timed out", meaning);
@@ -127,7 +128,7 @@ class KbSocketListener {
                 closeClient();
                 continue;
             }
-            if (received != static_cast<ssize_t>(sizeof(msg))) {
+            if (std::cmp_not_equal(received, sizeof(msg))) {
                 reportFailure("receive replacement request", std::to_string(sizeof(msg)) + " bytes", "recv returned " + std::to_string(received) + " bytes", meaning);
                 return false;
             }

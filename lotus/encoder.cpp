@@ -23,7 +23,7 @@ namespace lotus {
         for (const auto& table : data::charsetDefinitions()) {
             others.emplace_back(table.first);
         }
-        std::sort(others.begin(), others.end());
+        std::ranges::sort(others);
 
         std::vector<std::string> names;
         names.reserve(others.size() + 1U);

@@ -30,8 +30,8 @@ int run_encoder() {
     const std::vector<GoldenRow> kCharsetGolden = readGolden(std::string(LOTUS_TEST_GOLDEN_DIR) + "/charset.tsv");
 
     // TestGetCharsetNames
-    const std::vector<std::string> names1 = lotus::charsetNames();
-    const std::vector<std::string> names2 = lotus::charsetNames();
+    const std::vector<std::string>& names1 = lotus::charsetNames();
+    const std::vector<std::string>& names2 = lotus::charsetNames();
     check("charset names not empty", !names1.empty());
     check("first charset is Unicode", !names1.empty() && names1[0] == lotus::kUnicodeCharset);
     check("charset names deterministic", names1 == names2);

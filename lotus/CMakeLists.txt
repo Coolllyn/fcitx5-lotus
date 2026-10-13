@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
-# Portable C++17 Vietnamese input engine, ported from bamboo/bamboo-core (MIT, kept in CREDITS).
+# Portable Vietnamese input engine, ported from bamboo/bamboo-core (MIT, kept in CREDITS).
 set(CMAKE_UNITY_BUILD_BATCH_SIZE 8)
 if(NOT DEFINED CMAKE_UNITY_BUILD)
     set(CMAKE_UNITY_BUILD OFF)
@@ -30,9 +30,6 @@ add_library(lotus_engine STATIC
     data/vowel_data.cpp
 )
 set_target_properties(lotus_engine PROPERTIES
-    CXX_STANDARD 17
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF
     POSITION_INDEPENDENT_CODE ON
 )
 target_compile_options(lotus_engine PRIVATE -Wall -Wextra)

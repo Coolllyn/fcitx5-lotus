@@ -20,11 +20,11 @@
 namespace lotus {
 
     void Dictionary::assignWords(std::vector<std::u32string> words) {
-        words.erase(std::remove_if(words.begin(), words.end(), [](const std::u32string& word) { return word.empty(); }), words.end());
+        words.erase(std::ranges::remove_if(words, [](const std::u32string& word) { return word.empty(); }).begin(), words.end());
         // Go sorts and compares strings byte-wise (sort.Strings). UTF-8 keeps code point order in
         // byte order, so ordering the code points yields the same list and the same binary searches.
-        std::sort(words.begin(), words.end());
-        words.erase(std::unique(words.begin(), words.end()), words.end());
+        std::ranges::sort(words);
+        words.erase(std::ranges::unique(words).begin(), words.end());
         words_ = std::move(words);
     }
 
@@ -57,15 +57,11 @@ namespace lotus {
         assignWords(std::move(words));
     }
 
-    bool Dictionary::sortsBefore(const std::u32string& stored, std::u32string_view candidate) {
-        return std::u32string_view(stored) < candidate;
-    }
-
     bool Dictionary::hasWord(std::u32string_view word) const {
         if (word.empty()) {
             return false;
         }
-        const auto found = std::lower_bound(words_.begin(), words_.end(), word, sortsBefore);
+        const auto found = std::ranges::lower_bound(words_, word, std::less{}, [](const std::u32string& stored) { return std::u32string_view(stored); });
         return found != words_.end() && std::u32string_view(*found) == word;
     }
 
@@ -73,10 +69,10 @@ namespace lotus {
         if (word.empty()) {
             return false;
         }
-        const auto found = std::lower_bound(words_.begin(), words_.end(), word, sortsBefore);
+        const auto found = std::ranges::lower_bound(words_, word, std::less{}, [](const std::u32string& stored) { return std::u32string_view(stored); });
         // substr() clamps to the stored word, so a longer candidate is not a prefix (Go's
         // strings.HasPrefix).
-        return found != words_.end() && std::u32string_view(*found).substr(0, word.size()) == word;
+        return found != words_.end() && std::u32string_view(*found).starts_with(word);
     }
 
     const std::vector<std::u32string>& Dictionary::words() const {

@@ -176,7 +176,7 @@ namespace fcitx {
             if (list.empty()) {
                 return true;
             }
-            return std::find(list.begin(), list.end(), name) != list.end();
+            return std::ranges::find(list, name) != list.end();
         }
 
         /**

@@ -25,12 +25,12 @@ namespace lotus::utils {
 
     bool isVowel(char32_t codePoint) {
         const std::u32string_view table = data::vowels();
-        return std::find(table.begin(), table.end(), codePoint) != table.end();
+        return std::ranges::find(table, codePoint) != table.end();
     }
 
     int findVowelPosition(char32_t codePoint) {
         const std::u32string_view table = data::vowels();
-        const auto* const         it    = std::find(table.begin(), table.end(), codePoint);
+        const auto* const         it    = std::ranges::find(table, codePoint);
         return it == table.end() ? -1 : static_cast<int>(std::distance(table.begin(), it));
     }
 
@@ -115,7 +115,7 @@ namespace lotus::utils {
 
     bool isPunctuationMark(char32_t codePoint) {
         const std::vector<char32_t>& marks = data::punctuationMarks();
-        return std::find(marks.begin(), marks.end(), codePoint) != marks.end();
+        return std::ranges::find(marks, codePoint) != marks.end();
     }
 
     bool isWordBreakSymbol(char32_t codePoint) {
@@ -131,7 +131,7 @@ namespace lotus::utils {
     }
 
     bool inKeyList(std::u32string_view keys, char32_t key) {
-        return std::find(keys.begin(), keys.end(), key) != keys.end();
+        return std::ranges::find(keys, key) != keys.end();
     }
 
     bool canProcessKey(char32_t lowerKey, std::u32string_view effectKeys) {
@@ -152,11 +152,11 @@ namespace lotus::utils {
     }
 
     bool hasAnyVietnameseRune(std::u32string_view word) {
-        return std::any_of(word.begin(), word.end(), [](char32_t codePoint) { return isVietnameseRune(case_map::toLower(codePoint)); });
+        return std::ranges::any_of(word, [](char32_t codePoint) { return isVietnameseRune(case_map::toLower(codePoint)); });
     }
 
     bool hasAnyVietnameseVower(std::u32string_view word) {
-        return std::any_of(word.begin(), word.end(), [](char32_t codePoint) { return isVowel(case_map::toLower(codePoint)); });
+        return std::ranges::any_of(word, [](char32_t codePoint) { return isVowel(case_map::toLower(codePoint)); });
     }
 
 } // namespace lotus::utils

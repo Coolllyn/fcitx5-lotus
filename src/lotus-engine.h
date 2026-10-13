@@ -51,15 +51,15 @@ namespace fcitx {
      */
     inline constexpr std::array<ModeNameEntry, 9> kModeNames{
         {
-            {"Smooth", LotusMode::Smooth},
-            {"Minecraft", LotusMode::Minecraft},
-            {"Select", LotusMode::Select},
-            {"SurroundingText", LotusMode::SurroundingText},
-            {"Preedit", LotusMode::Preedit},
-            {"Emoji", LotusMode::Emoji},
-            {"Off", LotusMode::Off},
-            {"SuperSmooth", LotusMode::SuperSmooth},
-            {"Default", std::nullopt},
+            {.name = "Smooth", .mode = LotusMode::Smooth},
+            {.name = "Minecraft", .mode = LotusMode::Minecraft},
+            {.name = "Select", .mode = LotusMode::Select},
+            {.name = "SurroundingText", .mode = LotusMode::SurroundingText},
+            {.name = "Preedit", .mode = LotusMode::Preedit},
+            {.name = "Emoji", .mode = LotusMode::Emoji},
+            {.name = "Off", .mode = LotusMode::Off},
+            {.name = "SuperSmooth", .mode = LotusMode::SuperSmooth},
+            {.name = "Default", .mode = std::nullopt},
         },
     };
 

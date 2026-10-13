@@ -31,6 +31,11 @@ find_package(Pthread REQUIRED)
 find_package(Gettext REQUIRED)
 
 include("${FCITX_INSTALL_CMAKECONFIG_DIR}/Fcitx5Utils/Fcitx5CompilerSettings.cmake")
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 add_definitions(-DFCITX_GETTEXT_DOMAIN=\"fcitx5-lotus\") 
 
 if (Fcitx5Utils_VERSION VERSION_GREATER_EQUAL "5.1.13")

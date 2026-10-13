@@ -106,7 +106,7 @@ bool isUinputMode(fcitx::LotusMode mode) {
         fcitx::LotusMode::Minecraft,
         fcitx::LotusMode::Select,
     };
-    return std::find(modes.begin(), modes.end(), mode) != modes.end();
+    return std::ranges::find(modes, mode) != modes.end();
 }
 
 int compareAndSplitU32(std::u32string_view A, std::u32string_view B, std::u32string& deletedPart, std::u32string& addedPart) {
@@ -120,14 +120,6 @@ int compareAndSplitU32(std::u32string_view A, std::u32string_view B, std::u32str
     deletedPart.assign(A, i, std::u32string_view::npos);
     addedPart.assign(B, j, std::u32string_view::npos);
     return (deletedPart.empty() && addedPart.empty()) ? 1 : 2;
-}
-
-bool isStartsWith(const std::string& str, const std::string& prefix) {
-#if __cplusplus >= 202002L
-    return str.starts_with(prefix);
-#else
-    return str.size() >= prefix.size() && str.compare(0, prefix.size(), prefix) == 0;
-#endif
 }
 
 std::string getFrontendName(fcitx::InputContext* ic) {

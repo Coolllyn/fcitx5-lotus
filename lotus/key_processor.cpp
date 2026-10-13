@@ -50,7 +50,7 @@ namespace lotus {
     }
 
     bool inKeyList(const std::vector<char32_t>& list, char32_t key) {
-        return std::find(list.begin(), list.end(), key) != list.end();
+        return std::ranges::find(list, key) != list.end();
     }
 
     KeyProcessor::KeyProcessor(InputMethod inputMethod, bool spellCheckWithDictsDefault) : engine_(std::move(inputMethod), kEstdFlags) {

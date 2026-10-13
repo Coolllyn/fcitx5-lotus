@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <cstring>
 #include <thread>
+#include <utility>
 #include <vector>
 #include <csignal>
 #include <cstddef>
@@ -237,7 +238,7 @@ int main(int argc, char* argv[]) {
     LotusLogger::instance().info("Target user: " + target_user);
 
     uid_t expected_uid = get_uid_for_user(target_user);
-    if (expected_uid == static_cast<uid_t>(-1)) {
+    if (expected_uid == static_cast<uid_t>(-1)) { // NOLINT(modernize-use-integer-sign-comparison)
         LotusLogger::instance().error("Failed to find UID for target user: " + target_user);
         return 1;
     }
@@ -307,10 +308,10 @@ int main(int argc, char* argv[]) {
 
     std::vector<struct pollfd> fds;
     const int                  KB_CLIENT_INDEX = 3;
-    fds.push_back({server_fd.get(), POLLIN, 0});
-    fds.push_back({li_ctx.get_fd(), POLLIN, 0});
-    fds.push_back({mouse_server_fd.get(), POLLIN, 0});
-    fds.push_back({-1, POLLIN, 0}); // Keyboard socket client
+    fds.push_back({.fd = server_fd.get(), .events = POLLIN, .revents = 0});
+    fds.push_back({.fd = li_ctx.get_fd(), .events = POLLIN, .revents = 0});
+    fds.push_back({.fd = mouse_server_fd.get(), .events = POLLIN, .revents = 0});
+    fds.push_back({.fd = -1, .events = POLLIN, .revents = 0}); // Keyboard socket client
 
     FdGuard          addon_fd;
     FdGuard          kb_client_fd;
@@ -402,7 +403,7 @@ int main(int argc, char* argv[]) {
                 pending_selects = 0;
                 kb_client_fd.reset(-1);
                 fds[KB_CLIENT_INDEX].fd = -1;
-            } else if (n != static_cast<ssize_t>(sizeof(KbMsg)) && n != static_cast<ssize_t>(sizeof(int32_t))) {
+            } else if (std::cmp_not_equal(n, sizeof(KbMsg)) && std::cmp_not_equal(n, sizeof(int32_t))) {
                 LotusLogger::instance().warn("Malformed keyboard message (" + std::to_string(n) + " bytes)");
             } else {
                 current_interval = msg.interval > 0 ? std::min<uint32_t>(msg.interval, 1000) : 5;

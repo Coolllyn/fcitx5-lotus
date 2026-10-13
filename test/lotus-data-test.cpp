@@ -54,7 +54,7 @@ int run_data() {
 
     // Vowels, punctuation and mark families.
     check("vowel count", vowels().size() == 72);
-    check("vowel head", vowels().substr(0, 6) == U"aàáảãạ");
+    check("vowel head", vowels().starts_with(U"aàáảãạ"));
     check("vowel index 6", vowels()[6] == U'ă');
     check("vowel tail", vowels().substr(66, 6) == U"yỳýỷỹỵ");
     check("punctuation count", punctuationMarks().size() == 33);

@@ -119,20 +119,20 @@ namespace fcitx {
 
         auto       resolve = [&config](const ModeNameEntry& nameEntry) {
             if (nameEntry.mode.has_value()) {
-                return ModeOrderEntry{*nameEntry.mode, modeShortcut(config, *nameEntry.mode), modeVisible(config, *nameEntry.mode), false};
+                return ModeOrderEntry{.mode = *nameEntry.mode, .key = modeShortcut(config, *nameEntry.mode), .visible = modeVisible(config, *nameEntry.mode), .isDefault = false};
             }
-            return ModeOrderEntry{config.mode.value(), shortcutKey(*config.shortcutDefault), *config.showModeDefault, true};
+            return ModeOrderEntry{.mode = config.mode.value(), .key = shortcutKey(*config.shortcutDefault), .visible = *config.showModeDefault, .isDefault = true};
         };
 
         std::vector<ModeOrderEntry> entries;
         for (const auto& name : order) {
-            const auto* const it = std::find_if(kModeNames.begin(), kModeNames.end(), [&name](const ModeNameEntry& entry) { return entry.name == name; });
+            const auto* const it = std::ranges::find_if(kModeNames, [&name](const ModeNameEntry& entry) { return entry.name == name; });
             if (it != kModeNames.end()) {
                 entries.push_back(resolve(*it));
             }
         }
         for (const auto& nameEntry : kModeNames) {
-            const bool listed = std::any_of(order.begin(), order.end(), [&nameEntry](const std::string& name) { return nameEntry.name == name; });
+            const bool listed = std::ranges::any_of(order, [&nameEntry](const std::string& name) { return nameEntry.name == name; });
             if (!listed) {
                 entries.push_back(resolve(nameEntry));
             }
@@ -142,20 +142,20 @@ namespace fcitx {
 
     bool isAppModeMenuReservedKey(KeySym sym, const lotusConfig& config) {
         std::array<KeySym, 10> modeShortcuts{};
-        std::transform(kModeNames.begin(), kModeNames.end(), modeShortcuts.begin(), [&config](const ModeNameEntry& nameEntry) {
+        std::ranges::transform(kModeNames, modeShortcuts.begin(), [&config](const ModeNameEntry& nameEntry) {
             if (nameEntry.mode.has_value()) {
                 return modeShortcut(config, *nameEntry.mode);
             }
             return shortcutKey(*config.shortcutDefault);
         });
-        if (std::find(modeShortcuts.begin(), modeShortcuts.end(), sym) != modeShortcuts.end()) {
+        if (std::ranges::find(modeShortcuts, sym) != modeShortcuts.end()) {
             return true;
         }
 
         static const std::array<KeySym, 7> reservedMenuKeys = {
             FcitxKey_Escape, FcitxKey_Tab, FcitxKey_ISO_Left_Tab, FcitxKey_Return, FcitxKey_space, FcitxKey_Up, FcitxKey_Down,
         };
-        return std::find(reservedMenuKeys.begin(), reservedMenuKeys.end(), sym) != reservedMenuKeys.end();
+        return std::ranges::find(reservedMenuKeys, sym) != reservedMenuKeys.end();
     }
 
     KeySym typeKeyForModeMenuHotkey(KeySym hotkeySym, const lotusConfig& config) {
@@ -188,7 +188,7 @@ namespace fcitx {
         // GTK_THEME is honored by lightweight DEs that lack the settings
         // portal; covers XFCE, openbox, etc. with a dark theme.
         if (std::string theme = getEnv("GTK_THEME"); !theme.empty()) {
-            std::transform(theme.begin(), theme.end(), theme.begin(), ::tolower);
+            std::ranges::transform(theme, theme.begin(), ::tolower);
             if (theme.find("dark") != std::string::npos) {
                 cachedValue = true;
                 return cachedValue;
@@ -409,12 +409,12 @@ namespace fcitx {
 #endif
             for (const auto& p : paths) {
 #if LOTUS_USE_MODERN_FCITX_API
-                if (!isStartsWith(p.string(), "/home/")) {
+                if (!p.string().starts_with("/home/")) {
                     auto fd = fcitx::UnixFD(::open(p.c_str(), O_RDONLY));
                     if (fd.isValid()) {
                         loadFromFd(fd.release());
 #else
-                if (!isStartsWith(p, "home/")) {
+                if (!p.starts_with("home/")) {
                     int fd = ::open(p.c_str(), O_RDONLY);
                     if (fd != -1) {
                         loadFromFd(fd);
@@ -472,14 +472,19 @@ namespace fcitx {
             {
                 std::scoped_lock lock(appRulesMutex_);
                 for (auto it = appRules_.begin(); it != appRules_.end();) {
-                    if (!isStartsWith(it->first, "ctx_")) {
+                    if (!it->first.starts_with("ctx_")) {
                         it = appRules_.erase(it);
                     } else {
                         ++it;
                     }
                 }
                 for (const auto& rule : *appRulesTables_.rules) {
-                    appRules_[*rule.app] = {intToMode(*rule.mode), *rule.commitInterval, *rule.backspaceInterval, *rule.postDelay};
+                    appRules_[*rule.app] = {
+                        .mode              = intToMode(*rule.mode),
+                        .commitInterval    = *rule.commitInterval,
+                        .backspaceInterval = *rule.backspaceInterval,
+                        .postDelay         = *rule.postDelay,
+                    };
                 }
             }
             saveAppRules();
@@ -655,7 +660,7 @@ namespace fcitx {
                         clearAppRule(currentConfigureApp_);
                     } else {
                         setAppRule(currentConfigureApp_, selectedMode.value());
-                        if (!isStartsWith(currentConfigureApp_, "ctx_")) {
+                        if (!currentConfigureApp_.starts_with("ctx_")) {
                             saveAppRules();
                         }
                     }
@@ -896,7 +901,7 @@ namespace fcitx {
             std::scoped_lock                                     lock(appRulesMutex_);
             std::unordered_map<std::string, LotusAppRuleSetting> ctxRules;
             for (const auto& [app, setting] : appRules_) {
-                if (isStartsWith(app, "ctx_")) {
+                if (app.starts_with("ctx_")) {
                     ctxRules[app] = setting;
                 }
             }
@@ -931,7 +936,12 @@ namespace fcitx {
                         int commit     = field(1);
                         int backspace  = field(2);
                         int post       = field(3);
-                        tempRules[app] = {intToMode(mode), commit > 0 ? commit : 0, backspace > 0 ? backspace : 0, post > 0 ? post : 0};
+                        tempRules[app] = {
+                            .mode              = intToMode(mode),
+                            .commitInterval    = commit > 0 ? commit : 0,
+                            .backspaceInterval = backspace > 0 ? backspace : 0,
+                            .postDelay         = post > 0 ? post : 0,
+                        };
                     } catch (const std::exception&) { LOTUS_WARN("Invalid mode value for app: " + app); }
                 }
             }
@@ -947,7 +957,7 @@ namespace fcitx {
         std::scoped_lock          lock(appRulesMutex_);
         std::vector<lotusAppRule> rules;
         for (const auto& pair : appRules_) {
-            if (pair.first.find("ctx_") == 0)
+            if (pair.first.starts_with("ctx_"))
                 continue;
             lotusAppRule rule;
             rule.app.setValue(pair.first);
@@ -972,7 +982,7 @@ namespace fcitx {
         file << "# app=mode[,commit_interval_ms[,backspace_interval_ms[,post_delay_ms]]]   0/omitted = use defaults\n";
         std::scoped_lock lock(appRulesMutex_);
         for (const auto& pair : appRules_) {
-            bool currentIsCtx = isStartsWith(pair.first, "ctx_");
+            bool currentIsCtx = pair.first.starts_with("ctx_");
             if (!currentIsCtx) {
                 const int   commit    = pair.second.commitInterval;
                 const int   backspace = pair.second.backspaceInterval;
@@ -996,7 +1006,7 @@ namespace fcitx {
         if (it != appRules_.end()) {
             return it->second;
         }
-        return {config_.mode.value(), 0, 0, 0};
+        return {.mode = config_.mode.value(), .commitInterval = 0, .backspaceInterval = 0, .postDelay = 0};
     }
 
     LotusMode LotusEngine::getAppRule(const std::string& appName) const {
@@ -1065,7 +1075,7 @@ namespace fcitx {
                         clearAppRule(currentConfigureApp_);
                     } else {
                         setAppRule(currentConfigureApp_, mode);
-                        if (!isStartsWith(currentConfigureApp_, "ctx_")) {
+                        if (!currentConfigureApp_.starts_with("ctx_")) {
                             saveAppRules();
                         }
                     }
@@ -1103,17 +1113,12 @@ namespace fcitx {
                 std::string       keyLabel      = keyUtf8.empty() ? "" : "[" + keyUtf8 + "] ";
                 candidateList->append(std::make_unique<AppModeCandidateWord>(getLabel(entry.mode, keyLabel + modeLabel(entry)), applyMode(entry.mode, isDefaultItem)));
 
-                if (entry.mode == realMode && !isDefaultItem) {
+                const bool selectedByMode    = entry.mode == realMode && !isDefaultItem;
+                const bool selectedByDefault = isDefaultItem && getAppRule(currentConfigureApp_) == defaultMode && !appRules_.contains(currentConfigureApp_);
+                if (selectedByMode || selectedByDefault) {
                     activeSelectionIdx = currentCandidateIdx;
-                } else if (isDefaultItem && getAppRule(currentConfigureApp_) == defaultMode) {
-#if __cplusplus >= 202002L
-                    if (!appRules_.contains(currentConfigureApp_)) {
-#else
-                    if (appRules_.find(currentConfigureApp_) == appRules_.end()) {
-#endif
-                        activeSelectionIdx = currentCandidateIdx;
-                    }
                 }
+
                 currentCandidateIdx++;
             }
         }
@@ -1249,9 +1254,9 @@ namespace fcitx {
             appRules_.erase(appName);
         }
         auto rules = *appRulesTables_.rules;
-        rules.erase(std::remove_if(rules.begin(), rules.end(), [&appName](const auto& rule) { return *rule.app == appName; }), rules.end());
+        rules.erase(std::ranges::remove_if(rules, [&appName](const auto& rule) { return *rule.app == appName; }).begin(), rules.end());
         appRulesTables_.rules.setValue(std::move(rules));
-        if (!isStartsWith(appName, "ctx_")) {
+        if (!appName.starts_with("ctx_")) {
             saveAppRules();
         }
     }

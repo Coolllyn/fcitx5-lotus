@@ -155,7 +155,7 @@ namespace {
 
     // \d
     bool containsDigit(std::u32string_view text) {
-        return std::any_of(text.begin(), text.end(), isDigit);
+        return std::ranges::any_of(text, isDigit);
     }
 
     // ^\d{2}:\d{2} giờ$
@@ -170,8 +170,9 @@ namespace {
             MacroCase           want;
         };
         const std::vector<Case> cases = {
-            {U"abc", MacroCase::AllSmall}, {U"ABC", MacroCase::AllCapital}, {U"aBc", MacroCase::NoChange},  {U"123", MacroCase::NoChange},
-            {U"", MacroCase::NoChange},    {U"áộ", MacroCase::AllSmall},    {U"ÁỘ", MacroCase::AllCapital},
+            {.in = U"abc", .want = MacroCase::AllSmall},  {.in = U"ABC", .want = MacroCase::AllCapital}, {.in = U"aBc", .want = MacroCase::NoChange},
+            {.in = U"123", .want = MacroCase::NoChange},  {.in = U"", .want = MacroCase::NoChange},      {.in = U"áộ", .want = MacroCase::AllSmall},
+            {.in = U"ÁỘ", .want = MacroCase::AllCapital},
         };
         for (const Case& c : cases) {
             const MacroCase got = lotus::determineMacroCase(c.in);
@@ -277,10 +278,10 @@ namespace {
             std::u32string_view want;
         };
         const std::vector<Case> cases = {
-            {"aw", U"ă"},
-            {"dd", U"đ"},
-            {"tooi", U"tôi"},
-            {"chaof", U"chào"},
+            {.keys = "aw", .want = U"ă"},
+            {.keys = "dd", .want = U"đ"},
+            {.keys = "tooi", .want = U"tôi"},
+            {.keys = "chaof", .want = U"chào"},
         };
         for (const Case& c : cases) {
             KeyProcessor engine = newTestEngine({}, false);
@@ -365,10 +366,10 @@ namespace {
             char32_t want;
         };
         const std::vector<Case> cases = {
-            {U'[', U'{'},
-            {U']', U'}'},
-            {U'{', U'['},
-            {U'}', U']'},
+            {.in = U'[', .want = U'{'},
+            {.in = U']', .want = U'}'},
+            {.in = U'{', .want = U'['},
+            {.in = U'}', .want = U']'},
         };
         for (const Case& c : cases) {
             const char32_t got = engine.toUpper(c.in);
@@ -539,14 +540,14 @@ namespace {
             std::u32string_view           want;
         };
         const std::vector<Case> cases = {
-            {"default", lotus::kEstdFlags, std::nullopt, "w", U"ư"},
-            {"default-bw", lotus::kEstdFlags, std::nullopt, "bw", U"bư"},
-            {"flag-off", withoutW2u(), std::nullopt, "w", U"w"},
-            {"flag-off-bw", withoutW2u(), std::nullopt, "bw", U"bw"},
-            {"disabled", lotus::kEstdFlags, lotus::W2uMode::Disabled, "w", U"w"},
-            {"nonstart", lotus::kEstdFlags, lotus::W2uMode::NonStart, "w", U"w"},
-            {"nonstart-bw", lotus::kEstdFlags, lotus::W2uMode::NonStart, "bw", U"bư"},
-            {"everywhere", lotus::kEstdFlags, lotus::W2uMode::Everywhere, "w", U"ư"},
+            {.name = "default", .flags = lotus::kEstdFlags, .mode = std::nullopt, .keys = "w", .want = U"ư"},
+            {.name = "default-bw", .flags = lotus::kEstdFlags, .mode = std::nullopt, .keys = "bw", .want = U"bư"},
+            {.name = "flag-off", .flags = withoutW2u(), .mode = std::nullopt, .keys = "w", .want = U"w"},
+            {.name = "flag-off-bw", .flags = withoutW2u(), .mode = std::nullopt, .keys = "bw", .want = U"bw"},
+            {.name = "disabled", .flags = lotus::kEstdFlags, .mode = lotus::W2uMode::Disabled, .keys = "w", .want = U"w"},
+            {.name = "nonstart", .flags = lotus::kEstdFlags, .mode = lotus::W2uMode::NonStart, .keys = "w", .want = U"w"},
+            {.name = "nonstart-bw", .flags = lotus::kEstdFlags, .mode = lotus::W2uMode::NonStart, .keys = "bw", .want = U"bư"},
+            {.name = "everywhere", .flags = lotus::kEstdFlags, .mode = lotus::W2uMode::Everywhere, .keys = "w", .want = U"ư"},
         };
         for (const Case& c : cases) {
             KeyProcessor engine = newOptEngine(c.flags, {}, false);
@@ -571,10 +572,10 @@ namespace {
             std::u32string_view wantBoawjm;
         };
         const std::vector<Combo> matrix = {
-            {true, true, U"chào ", U"boawjm "},
-            {true, false, U"chào ", U"boặm "},
-            {false, true, U"chào ", U"boặm "},
-            {false, false, U"chào ", U"boặm "},
+            {.autoRestore = true, .withDicts = true, .wantChaofCommit = U"chào ", .wantBoawjm = U"boawjm "},
+            {.autoRestore = true, .withDicts = false, .wantChaofCommit = U"chào ", .wantBoawjm = U"boặm "},
+            {.autoRestore = false, .withDicts = true, .wantChaofCommit = U"chào ", .wantBoawjm = U"boặm "},
+            {.autoRestore = false, .withDicts = false, .wantChaofCommit = U"chào ", .wantBoawjm = U"boặm "},
         };
         for (const Combo& c : matrix) {
             KeyProcessor engine               = newTestEngine(dict, c.withDicts);
@@ -638,10 +639,10 @@ namespace {
             std::u32string_view want;
         };
         const std::vector<Case> cases = {
-            {"[", U"ơ"},
-            {"t[", U"tơ"},
-            {"]", U"ư"},
-            {"t]", U"tư"},
+            {.keys = "[", .want = U"ơ"},
+            {.keys = "t[", .want = U"tơ"},
+            {.keys = "]", .want = U"ư"},
+            {.keys = "t]", .want = U"tư"},
         };
         for (const Case& c : cases) {
             KeyProcessor engine = newTestEngine({}, false);

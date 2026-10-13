@@ -127,14 +127,6 @@ bool isUinputMode(fcitx::LotusMode mode);
 int compareAndSplitU32(std::u32string_view A, std::u32string_view B, std::u32string& deletedPart, std::u32string& addedPart);
 
 /**
- * @brief Checks if string starts with prefix.
- * @param str String to check.
- * @param prefix Prefix to check.
- * @return True if string starts with prefix.
- */
-bool isStartsWith(const std::string& str, const std::string& prefix);
-
-/**
  * @brief Get the frontend name from the input context.
  * @param ic Input context.
  * @return Frontend name.

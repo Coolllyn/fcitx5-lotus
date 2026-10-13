@@ -30,12 +30,12 @@ namespace lotus {
         std::vector<Rule>        appendedRules;                      // Extra appending rules of the same key
 
         /** @brief Stores a tone in effect, like Go's Rule.SetTone. */
-        void setTone(Tone tone) {
+        constexpr void setTone(Tone tone) {
             effect = tone;
         }
 
         /** @brief Stores a mark in effect, like Go's Rule.SetMark. */
-        void setMark(Mark mark) {
+        constexpr void setMark(Mark mark) {
             effect = mark;
         }
 

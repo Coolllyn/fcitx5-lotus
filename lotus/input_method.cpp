@@ -31,7 +31,7 @@ namespace lotus {
         // key -> rules association matters, and the keys/toneKeys/appendingKeys lists are used
         // for membership tests. Sort the keys to keep the result deterministic.
         std::vector<std::pair<std::string, std::string>> entries(definition.begin(), definition.end());
-        std::sort(entries.begin(), entries.end());
+        std::ranges::sort(entries);
 
         for (const auto& entry : entries) {
             const std::u32string keys = utf8::decode(entry.first);

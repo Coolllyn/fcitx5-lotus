@@ -84,8 +84,10 @@ namespace {
 
     void case_rebuild_from_text_simple_vietnamese() {
         const std::array<RebuildCase, 10> tests = {
-            RebuildCase{U"chào", U"chào"}, RebuildCase{U"việt", U"việt"}, RebuildCase{U"google", U"google"}, RebuildCase{U"đường", U"đường"}, RebuildCase{U"người", U"người"},
-            RebuildCase{U"as", U"as"},     RebuildCase{U"được", U"được"}, RebuildCase{U"những", U"những"},   RebuildCase{U"ước", U"ước"},     RebuildCase{U"ươi", U"ươi"},
+            RebuildCase{.input = U"chào", .want = U"chào"},   RebuildCase{.input = U"việt", .want = U"việt"},   RebuildCase{.input = U"google", .want = U"google"},
+            RebuildCase{.input = U"đường", .want = U"đường"}, RebuildCase{.input = U"người", .want = U"người"}, RebuildCase{.input = U"as", .want = U"as"},
+            RebuildCase{.input = U"được", .want = U"được"},   RebuildCase{.input = U"những", .want = U"những"}, RebuildCase{.input = U"ước", .want = U"ước"},
+            RebuildCase{.input = U"ươi", .want = U"ươi"},
         };
 
         for (const RebuildCase& test : tests) {
@@ -97,10 +99,10 @@ namespace {
 
     void case_rebuild_from_text_upper_case() {
         const std::array<RebuildCase, 4> tests = {
-            RebuildCase{U"Việt", U"Việt"},
-            RebuildCase{U"OO", U"OO"},
-            RebuildCase{U"DD", U"DD"},
-            RebuildCase{U"Nội", U"Nội"},
+            RebuildCase{.input = U"Việt", .want = U"Việt"},
+            RebuildCase{.input = U"OO", .want = U"OO"},
+            RebuildCase{.input = U"DD", .want = U"DD"},
+            RebuildCase{.input = U"Nội", .want = U"Nội"},
         };
 
         for (const RebuildCase& test : tests) {
@@ -140,13 +142,13 @@ namespace {
 
     void case_rebuild_from_text_with_punctuation_and_space() {
         const std::array<NamedRebuildCase, 13> tests = {
-            NamedRebuildCase{"vãi", U"vãi", U"vãi"},          NamedRebuildCase{"vãi.", U"vãi.", U"vãi."},
-            NamedRebuildCase{"vãi ", U"vãi ", U"vãi "},       NamedRebuildCase{"vãi. ", U"vãi. ", U"vãi. "},
-            NamedRebuildCase{"chào.", U"chào.", U"chào."},    NamedRebuildCase{"chào. ", U"chào. ", U"chào. "},
-            NamedRebuildCase{"chào, ", U"chào, ", U"chào, "}, NamedRebuildCase{"chào. Xin", U"chào. Xin", U"chào. Xin"},
-            NamedRebuildCase{"vãi, ", U"vãi, ", U"vãi, "},    NamedRebuildCase{"vãi! ", U"vãi! ", U"vãi! "},
-            NamedRebuildCase{"vãi? ", U"vãi? ", U"vãi? "},    NamedRebuildCase{"vãi; ", U"vãi; ", U"vãi; "},
-            NamedRebuildCase{"vãi: ", U"vãi: ", U"vãi: "},
+            NamedRebuildCase{.name = "vãi", .input = U"vãi", .want = U"vãi"},          NamedRebuildCase{.name = "vãi.", .input = U"vãi.", .want = U"vãi."},
+            NamedRebuildCase{.name = "vãi ", .input = U"vãi ", .want = U"vãi "},       NamedRebuildCase{.name = "vãi. ", .input = U"vãi. ", .want = U"vãi. "},
+            NamedRebuildCase{.name = "chào.", .input = U"chào.", .want = U"chào."},    NamedRebuildCase{.name = "chào. ", .input = U"chào. ", .want = U"chào. "},
+            NamedRebuildCase{.name = "chào, ", .input = U"chào, ", .want = U"chào, "}, NamedRebuildCase{.name = "chào. Xin", .input = U"chào. Xin", .want = U"chào. Xin"},
+            NamedRebuildCase{.name = "vãi, ", .input = U"vãi, ", .want = U"vãi, "},    NamedRebuildCase{.name = "vãi! ", .input = U"vãi! ", .want = U"vãi! "},
+            NamedRebuildCase{.name = "vãi? ", .input = U"vãi? ", .want = U"vãi? "},    NamedRebuildCase{.name = "vãi; ", .input = U"vãi; ", .want = U"vãi; "},
+            NamedRebuildCase{.name = "vãi: ", .input = U"vãi: ", .want = U"vãi: "},
         };
 
         for (const NamedRebuildCase& test : tests) {
@@ -160,8 +162,9 @@ namespace {
         Engine                                engine = newTelexEngine();
 
         const std::array<NamedRebuildCase, 6> tests = {
-            NamedRebuildCase{"vãi", U"vãi", U"vãi"},       NamedRebuildCase{"vãi.", U"vãi.", U"vãi."},    NamedRebuildCase{"vãi ", U"vãi ", U"vãi "},
-            NamedRebuildCase{"vãi. ", U"vãi. ", U"vãi. "}, NamedRebuildCase{"chào.", U"chào.", U"chào."}, NamedRebuildCase{"chào. ", U"chào. ", U"chào. "},
+            NamedRebuildCase{.name = "vãi", .input = U"vãi", .want = U"vãi"},       NamedRebuildCase{.name = "vãi.", .input = U"vãi.", .want = U"vãi."},
+            NamedRebuildCase{.name = "vãi ", .input = U"vãi ", .want = U"vãi "},    NamedRebuildCase{.name = "vãi. ", .input = U"vãi. ", .want = U"vãi. "},
+            NamedRebuildCase{.name = "chào.", .input = U"chào.", .want = U"chào."}, NamedRebuildCase{.name = "chào. ", .input = U"chào. ", .want = U"chào. "},
         };
 
         for (const NamedRebuildCase& test : tests) {

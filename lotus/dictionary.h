@@ -74,14 +74,6 @@ namespace lotus {
          */
         void assignWords(std::vector<std::u32string> words);
 
-        /**
-         * @brief Orders a stored word against a lookup key by code point, like Go's string ordering.
-         * @param stored Stored word.
-         * @param candidate Word being looked up.
-         * @return True when stored sorts before candidate.
-         */
-        static bool sortsBefore(const std::u32string& stored, std::u32string_view candidate);
-
         // Go: []string, kept sorted so the lookups can binary search.
         std::vector<std::u32string> words_;
     };

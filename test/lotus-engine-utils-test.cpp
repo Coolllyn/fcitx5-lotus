@@ -120,7 +120,7 @@ namespace {
 } // namespace
 
 int run_engine_utils() {
-    const InputMethod       telex  = lotus::parseInputMethod("Telex");
+    const InputMethod       telex  = lotus::cachedInputMethod("Telex");
     const std::vector<Rule> wRules = rulesForKey(telex, U'w');
     const std::vector<Rule> oRules = rulesForKey(telex, U'o');
 

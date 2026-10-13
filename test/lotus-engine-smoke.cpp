@@ -45,7 +45,7 @@ namespace {
     }
 
     lotus::Engine newStdEngine() {
-        return {lotus::parseInputMethod("Telex"), lotus::kEstdFlags};
+        return {lotus::cachedInputMethod("Telex"), lotus::kEstdFlags};
     }
 
 } // namespace

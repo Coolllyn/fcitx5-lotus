@@ -38,6 +38,14 @@ namespace lotus {
     InputMethod parseInputMethod(std::string_view name);
 
     /**
+     * @brief Input method named by name, parsed once and shared by every caller.
+     * @param name Definition name ("Telex", "VNI", "VIQR", ...).
+     * @return Parsed input method, the same object for repeated calls; a reference to a default
+     *         (empty name, no rules) InputMethod when the name is unknown.
+     */
+    const InputMethod& cachedInputMethod(std::string_view name);
+
+    /**
      * @brief Names of every generated input method, in the order the addon menu shows them.
      *
      * Go sorts the definition names with an explicit order table (bamboo-c.go:279-287) because

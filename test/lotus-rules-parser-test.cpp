@@ -149,6 +149,28 @@ int run_rules_parser() {
         check("telex rules", !telex.rules.empty());
     }
 
+    // cachedInputMethod: the parsed definitions are shared between callers (the addon parses the
+    // configured input method for every input context and on every configuration refresh), so the
+    // result must equal parseInputMethod() and stay the same object.
+    {
+        const lotus::InputMethod& first  = lotus::cachedInputMethod("Telex");
+        const lotus::InputMethod& second = lotus::cachedInputMethod("Telex");
+        check("cachedInputMethod reuses one object", &first == &second);
+
+        const lotus::InputMethod parsed = lotus::parseInputMethod("Telex");
+        bool                     same   = first.name == parsed.name && first.keys == parsed.keys && first.superKeys == parsed.superKeys && first.toneKeys == parsed.toneKeys &&
+            first.appendingKeys == parsed.appendingKeys && first.rules.size() == parsed.rules.size();
+        for (std::size_t i = 0; same && i < parsed.rules.size(); ++i) {
+            same = first.rules[i].key == parsed.rules[i].key && first.rules[i].effectType == parsed.rules[i].effectType && first.rules[i].effectOn == parsed.rules[i].effectOn &&
+                first.rules[i].result == parsed.rules[i].result && first.rules[i].appendedRules.size() == parsed.rules[i].appendedRules.size();
+        }
+        check("cachedInputMethod matches parseInputMethod", same);
+
+        const lotus::InputMethod& unknown = lotus::cachedInputMethod("NonExistent");
+        check("cachedInputMethod unknown name", unknown.name.empty() && unknown.rules.empty() && unknown.keys.empty());
+        check("cachedInputMethod unknown is stable", &unknown == &lotus::cachedInputMethod("NonExistent"));
+    }
+
     if (failures != 0) {
         std::printf("%d failure(s)\n", failures);
         return 1;

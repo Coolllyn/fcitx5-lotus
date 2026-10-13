@@ -58,7 +58,7 @@ namespace fcitx {
             // Go's NewCustomEngine parsed a definition map named "Custom" and left spell checking off.
             lotusEngine_ = std::make_shared<lotus::KeyProcessor>(lotus::parseInputMethod(definition, "Custom"), false);
         } else {
-            lotusEngine_ = std::make_shared<lotus::KeyProcessor>(lotus::parseInputMethod(engine_->config().inputMethod.value()), true);
+            lotusEngine_ = std::make_shared<lotus::KeyProcessor>(lotus::cachedInputMethod(engine_->config().inputMethod.value()), true);
         }
         lotusEngine_->setMacroTable(engine_->macroTable());
         lotusEngine_->setDictionary(engine_->dictionary());

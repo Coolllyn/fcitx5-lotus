@@ -21,7 +21,7 @@ namespace {
 
     /** @brief Builds a processor with the option set the regression was reported with. */
     KeyProcessor newProcessor(const std::shared_ptr<const MacroTable>& macroTable) {
-        KeyProcessor processor(lotus::parseInputMethod("Telex"), true);
+        KeyProcessor processor(lotus::cachedInputMethod("Telex"), true);
         Options      options;
         options.autoNonVnRestore = true;
         options.ddFreeStyle      = true;

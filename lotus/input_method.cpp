@@ -67,6 +67,19 @@ namespace lotus {
         return parseInputMethod(definition->second, name);
     }
 
+    const InputMethod& cachedInputMethod(std::string_view name) {
+        static const std::unordered_map<std::string, InputMethod> kCache = [] {
+            std::unordered_map<std::string, InputMethod> cache;
+            for (const auto& entry : data::inputMethodDefinitions()) {
+                cache.emplace(entry.first, parseInputMethod(entry.first));
+            }
+            return cache;
+        }();
+        static const InputMethod kUnknown;
+        const auto               found = kCache.find(std::string(name));
+        return found != kCache.end() ? found->second : kUnknown;
+    }
+
     const std::vector<std::string>& inputMethodNames() {
         // Go's order table (bamboo-c.go:279-287): the definitions live in a map, so the menu order
         // has to be spelled out instead of derived from the data.

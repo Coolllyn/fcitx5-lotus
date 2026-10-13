@@ -113,7 +113,7 @@ namespace {
 
     // Go's newTestEngine(dict, spellCheckWithDicts).
     KeyProcessor newTestEngine(const std::vector<std::string>& dict, bool spellCheckWithDicts) {
-        KeyProcessor engine(lotus::parseInputMethod("Telex"), spellCheckWithDicts);
+        KeyProcessor engine(lotus::cachedInputMethod("Telex"), spellCheckWithDicts);
         auto         table = std::make_shared<lotus::MacroTable>();
         engine.setMacroTable(std::move(table));
         auto dictionary = std::make_shared<lotus::Dictionary>();
@@ -709,7 +709,7 @@ namespace {
             auto               it = processors.find(id);
             if (it == processors.end()) {
                 const auto   opts = static_cast<uint32_t>(std::stoul(row.fields[4]));
-                KeyProcessor processor(lotus::parseInputMethod("Telex"), (opts & kOptSpellCheckWithDicts) != 0);
+                KeyProcessor processor(lotus::cachedInputMethod("Telex"), (opts & kOptSpellCheckWithDicts) != 0);
                 auto         dictionary = std::make_shared<lotus::Dictionary>();
                 dictionary->loadFromWords({"vietnam", "nguoi", "duong"});
                 processor.setDictionary(std::move(dictionary));

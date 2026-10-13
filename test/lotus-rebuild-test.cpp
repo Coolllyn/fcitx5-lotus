@@ -69,7 +69,7 @@ namespace {
 
     // Go's NewEngine(ParseInputMethod(GetInputMethodDefinitions(), "Telex"), EstdFlags).
     Engine newTelexEngine() {
-        return {lotus::parseInputMethod("Telex"), lotus::kEstdFlags};
+        return {lotus::cachedInputMethod("Telex"), lotus::kEstdFlags};
     }
 
     // Go's t.Run(tt.input, ...) subtest name, kept as "RebuildFromText('<input>')".

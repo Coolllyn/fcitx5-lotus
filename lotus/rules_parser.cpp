@@ -11,7 +11,6 @@
 #include "rules_parser.h"
 
 #include "case_map.h"
-#include "utf8.h"
 #include "utils.h"
 
 #include <array>
@@ -35,21 +34,20 @@ namespace lotus {
         {"DauHoi", Tone::Hook},
     };
 
-    std::optional<DslMatch> matchDsl(std::string_view line) {
-        const std::u32string text = utf8::decode(line);
-        for (std::size_t start = 0; start < text.size(); ++start) {
+    std::optional<DslMatch> matchDsl(std::u32string_view line) {
+        for (std::size_t start = 0; start < line.size(); ++start) {
             std::size_t       index      = start;
             const std::size_t asciiStart = index;
-            while (index < text.size() && utils::isAlpha(text[index])) {
+            while (index < line.size() && utils::isAlpha(line[index])) {
                 ++index;
             }
             const std::size_t asciiEnd = index;
-            if (asciiEnd == asciiStart || index >= text.size() || text[index] != U'_') {
+            if (asciiEnd == asciiStart || index >= line.size() || line[index] != U'_') {
                 continue;
             }
             ++index;
             const std::size_t lettersStart = index;
-            while (index < text.size() && case_map::isLetter(text[index])) {
+            while (index < line.size() && case_map::isLetter(line[index])) {
                 ++index;
             }
             const std::size_t lettersEnd = index;
@@ -57,57 +55,66 @@ namespace lotus {
                 continue;
             }
             const std::size_t appendedStart = index;
-            while (index < text.size() && (text[index] == U'_' || case_map::isLetter(text[index]))) {
+            while (index < line.size() && (line[index] == U'_' || case_map::isLetter(line[index]))) {
                 ++index;
             }
             DslMatch match;
-            match.effectiveOns = utf8::encode(text.substr(asciiStart, asciiEnd - asciiStart));
-            match.results      = utf8::encode(text.substr(lettersStart, lettersEnd - lettersStart));
-            match.appended     = utf8::encode(text.substr(appendedStart, index - appendedStart));
+            match.effectiveOns = std::u32string(line.substr(asciiStart, asciiEnd - asciiStart));
+            match.results      = std::u32string(line.substr(lettersStart, lettersEnd - lettersStart));
+            match.appended     = std::u32string(line.substr(appendedStart, index - appendedStart));
             return match;
         }
         return std::nullopt;
     }
 
-    std::optional<std::string> matchAppendingLetters(std::string_view value) {
-        const std::u32string text = utf8::decode(value);
-        for (std::size_t start = 0; start < text.size(); ++start) {
+    std::optional<std::u32string> matchAppendingLetters(std::u32string_view value) {
+        for (std::size_t start = 0; start < value.size(); ++start) {
             // `_?` is greedy: the one underscore alternative is tried first, like RE2.
             for (int optionalUnderscore = 1; optionalUnderscore >= 0; --optionalUnderscore) {
                 std::size_t index = start;
                 if (optionalUnderscore == 1) {
-                    if (index >= text.size() || text[index] != U'_') {
+                    if (index >= value.size() || value[index] != U'_') {
                         continue;
                     }
                     ++index;
                 }
-                if (index >= text.size() || text[index] != U'_') {
+                if (index >= value.size() || value[index] != U'_') {
                     continue;
                 }
                 ++index;
                 const std::size_t lettersStart = index;
-                while (index < text.size() && case_map::isLetter(text[index])) {
+                while (index < value.size() && case_map::isLetter(value[index])) {
                     ++index;
                 }
                 if (index == lettersStart) {
                     continue;
                 }
-                return utf8::encode(text.substr(lettersStart, index - lettersStart));
+                return std::u32string(value.substr(lettersStart, index - lettersStart));
             }
         }
         return std::nullopt;
     }
 
-    std::optional<Tone> toneFromName(std::string_view name) {
+    std::optional<Tone> toneFromName(std::u32string_view name) {
         for (const auto& entry : kToneNames) {
-            if (entry.first == name) {
+            if (name.size() != entry.first.size()) {
+                continue;
+            }
+            bool equal = true;
+            for (std::size_t i = 0; i < name.size(); ++i) {
+                if (name[i] != static_cast<char32_t>(static_cast<unsigned char>(entry.first[i]))) {
+                    equal = false;
+                    break;
+                }
+            }
+            if (equal) {
                 return entry.second;
             }
         }
         return std::nullopt;
     }
 
-    std::vector<Rule> parseRules(char32_t key, std::string_view line) {
+    std::vector<Rule> parseRules(char32_t key, std::u32string_view line) {
         if (const auto tone = toneFromName(line); tone.has_value()) {
             Rule rule;
             rule.key        = key;
@@ -118,22 +125,20 @@ namespace lotus {
         return parseTonelessRules(key, line);
     }
 
-    std::vector<Rule> parseTonelessRules(char32_t key, std::string_view line) {
+    std::vector<Rule> parseTonelessRules(char32_t key, std::u32string_view line) {
         std::vector<Rule> rules;
         if (matchDsl(line).has_value()) {
             // Go matches the original line but captures the groups from the lowercased one.
-            const auto parts = matchDsl(case_map::toLowerUtf8(line));
+            const auto parts = matchDsl(case_map::toLower(line));
             if (!parts.has_value()) {
                 return rules;
             }
-            const std::u32string effectiveOns = utf8::decode(parts->effectiveOns);
-            const std::u32string results      = utf8::decode(parts->results);
-            for (std::size_t i = 0; i < effectiveOns.size() && i < results.size(); ++i) {
-                const std::optional<Mark> effect = utils::findMarkFromChar(results[i]);
+            for (std::size_t i = 0; i < parts->effectiveOns.size() && i < parts->results.size(); ++i) {
+                const std::optional<Mark> effect = utils::findMarkFromChar(parts->results[i]);
                 if (!effect.has_value()) {
                     continue;
                 }
-                const auto markRules = parseToneLessRule(key, effectiveOns[i], results[i], *effect);
+                const auto markRules = parseToneLessRule(key, parts->effectiveOns[i], parts->results[i], *effect);
                 rules.insert(rules.end(), markRules.begin(), markRules.end());
             }
             if (const auto appending = getAppendingRule(key, parts->appended); appending.has_value()) {
@@ -179,12 +184,12 @@ namespace lotus {
         return rules;
     }
 
-    std::optional<Rule> getAppendingRule(char32_t key, std::string_view value) {
+    std::optional<Rule> getAppendingRule(char32_t key, std::u32string_view value) {
         const auto letters = matchAppendingLetters(value);
         if (!letters.has_value()) {
             return std::nullopt;
         }
-        const std::u32string chars = utf8::decode(letters.value());
+        const std::u32string& chars = *letters;
         if (chars.empty()) {
             return std::nullopt;
         }

@@ -38,9 +38,10 @@ namespace lotus {
             if (keys.empty()) {
                 continue;
             }
-            const auto parsed = parseRules(keys.front(), entry.second);
+            const std::u32string line   = utf8::decode(entry.second);
+            const auto           parsed = parseRules(keys.front(), line);
             method.rules.insert(method.rules.end(), parsed.begin(), parsed.end());
-            if (case_map::toLowerUtf8(entry.second).find("uo") != std::string::npos) {
+            if (case_map::toLower(line).find(U"uo") != std::u32string::npos) {
                 method.superKeys.push_back(keys.front());
             }
             method.keys.push_back(keys.front());

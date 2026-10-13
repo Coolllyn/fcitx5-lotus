@@ -85,6 +85,16 @@ namespace lotus::utf8 {
      */
     std::string encode(std::u32string_view in);
 
+    /**
+     * @brief Replaces the code points a UTF-8 round trip cannot carry with kReplacement.
+     *
+     * The result is the exact effect of `decode(encode(text))`: every surrogate half and every code
+     * point above U+10FFFF becomes kReplacement, like Go's string(rune), and everything else is kept.
+     * @param text Code points.
+     * @return Sanitized code points.
+     */
+    std::u32string sanitize(std::u32string_view text);
+
 } // namespace lotus::utf8
 
 #endif // _LOTUS_UTF8_H_

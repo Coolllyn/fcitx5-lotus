@@ -28,48 +28,48 @@ namespace lotus {
 
     /** @brief Groups captured by the DSL pattern `([a-zA-Z]+)_(\p{L}+)([_\p{L}]*)`. */
     struct DslMatch {
-        std::string effectiveOns; ///< Group 1: one or more ASCII letters
-        std::string results;      ///< Group 2: one or more letters
-        std::string appended;     ///< Group 3: zero or more '_' or letters
+        std::u32string effectiveOns; ///< Group 1: one or more ASCII letters
+        std::u32string results;      ///< Group 2: one or more letters
+        std::u32string appended;     ///< Group 3: zero or more '_' or letters
     };
 
     /**
      * @brief Matches the DSL pattern `([a-zA-Z]+)_(\p{L}+)([_\p{L}]*)`, like Go's regDsl.
-     * @param line Definition line.
+     * @param line Definition line in code points.
      * @return Captured groups, or std::nullopt when the line does not match.
      */
-    std::optional<DslMatch> matchDsl(std::string_view line);
+    std::optional<DslMatch> matchDsl(std::u32string_view line);
 
     /**
      * @brief Matches the appending pattern `(_?)_(\p{L}+)` and returns its second group, like Go's
      *        regDslAppending with FindStringSubmatch(value)[2].
-     * @param value Definition line.
+     * @param value Definition line in code points.
      * @return The letters after the underscore, or std::nullopt when the line does not match.
      */
-    std::optional<std::string> matchAppendingLetters(std::string_view value);
+    std::optional<std::u32string> matchAppendingLetters(std::u32string_view value);
 
     /**
      * @brief Tone of a definition line, like Go's tones table lookup.
-     * @param name Definition line.
+     * @param name Definition line in code points; the names are ASCII.
      * @return Tone, or std::nullopt when the line names no tone.
      */
-    std::optional<Tone> toneFromName(std::string_view name);
+    std::optional<Tone> toneFromName(std::u32string_view name);
 
     /**
      * @brief Parses one definition line into rules, like Go's ParseRules.
      * @param key Input key.
-     * @param line Definition line.
+     * @param line Definition line in code points.
      * @return Parsed rules.
      */
-    std::vector<Rule> parseRules(char32_t key, std::string_view line);
+    std::vector<Rule> parseRules(char32_t key, std::u32string_view line);
 
     /**
      * @brief Parses a mark/appending definition line, like Go's ParseTonelessRules.
      * @param key Input key.
-     * @param line Definition line.
+     * @param line Definition line in code points.
      * @return Parsed rules.
      */
-    std::vector<Rule> parseTonelessRules(char32_t key, std::string_view line);
+    std::vector<Rule> parseTonelessRules(char32_t key, std::u32string_view line);
 
     /**
      * @brief Expands one mark rule over the family of effectiveOn, like Go's ParseToneLessRule.
@@ -84,10 +84,10 @@ namespace lotus {
     /**
      * @brief Builds the appending rule of a definition line, like Go's getAppendingRule.
      * @param key Input key.
-     * @param value Definition line.
+     * @param value Definition line in code points.
      * @return The rule, or std::nullopt when the line has no appending part.
      */
-    std::optional<Rule> getAppendingRule(char32_t key, std::string_view value);
+    std::optional<Rule> getAppendingRule(char32_t key, std::u32string_view value);
 
 } // namespace lotus
 

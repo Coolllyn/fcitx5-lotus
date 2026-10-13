@@ -11,7 +11,6 @@
 #include "case_map.h"
 
 #include "data/case_data.h"
-#include "utf8.h"
 
 #include <algorithm>
 #include <utility>
@@ -60,20 +59,20 @@ namespace lotus::case_map {
         return std::binary_search(letters.begin(), letters.end(), codePoint);
     }
 
-    std::string toLowerUtf8(std::string_view utf8) {
-        std::u32string text = lotus::utf8::decode(utf8);
-        for (char32_t& codePoint : text) {
+    std::u32string toLower(std::u32string_view text) {
+        std::u32string out(text);
+        for (char32_t& codePoint : out) {
             codePoint = toLower(codePoint);
         }
-        return lotus::utf8::encode(text);
+        return out;
     }
 
-    std::string toUpperUtf8(std::string_view utf8) {
-        std::u32string text = lotus::utf8::decode(utf8);
-        for (char32_t& codePoint : text) {
+    std::u32string toUpper(std::u32string_view text) {
+        std::u32string out(text);
+        for (char32_t& codePoint : out) {
             codePoint = toUpper(codePoint);
         }
-        return lotus::utf8::encode(text);
+        return out;
     }
 
 } // namespace lotus::case_map

@@ -14,8 +14,9 @@
  * port keeps that logic in one class with no fcitx dependency so it can be tested headless. Key
  * values stay in the fcitx keysym domain because Go compares the raw keyVal with
  * FcitxBackSpace/FcitxSpace/FcitxTab, and the texts kept by the processor are UTF-32 like the rest
- * of the engine; UTF-8 only appears when a macro key or a dictionary word is looked up, because
- * both tables are keyed by UTF-8 strings.
+ * of the engine. UTF-8 only appears at the addon boundary and while loading data: MacroTable::set and
+ * Dictionary::loadFromWords/loadFromText decode the configuration strings once, lotus::encode writes
+ * the legacy charsets and formatTime renders the layout of the time macros.
  */
 
 #ifndef _LOTUS_KEY_PROCESSOR_H_
@@ -361,7 +362,7 @@ namespace lotus {
          * @param replacement Replacement text.
          * @return Text with every occurrence replaced.
          */
-        [[nodiscard]] static std::string replaceAllText(std::string_view text, std::string_view needle, std::string_view replacement);
+        [[nodiscard]] static std::u32string replaceAllText(std::u32string_view text, std::u32string_view needle, std::u32string_view replacement);
 
         /**
          * @brief Applies Go's strftimeReplacer table to a format, like the Go variable.

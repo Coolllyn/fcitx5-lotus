@@ -67,18 +67,18 @@ namespace lotus::case_map {
     bool isLetter(char32_t codePoint);
 
     /**
-     * @brief Lowercases every code point of a UTF-8 string, like Go's strings.ToLower.
-     * @param utf8 Input UTF-8 text.
-     * @return Lowercased UTF-8 text.
+     * @brief Lowercases every code point of a text, like Go's strings.ToLower.
+     * @param text Input code points.
+     * @return Lowercased code points.
      */
-    std::string toLowerUtf8(std::string_view utf8);
+    std::u32string toLower(std::u32string_view text);
 
     /**
-     * @brief Uppercases every code point of a UTF-8 string, like Go's strings.ToUpper.
-     * @param utf8 Input UTF-8 text.
-     * @return Uppercased UTF-8 text.
+     * @brief Uppercases every code point of a text, like Go's strings.ToUpper.
+     * @param text Input code points.
+     * @return Uppercased code points.
      */
-    std::string toUpperUtf8(std::string_view utf8);
+    std::u32string toUpper(std::u32string_view text);
 
 } // namespace lotus::case_map
 

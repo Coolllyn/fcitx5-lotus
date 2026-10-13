@@ -11,6 +11,7 @@
 #include "macro_table.h"
 
 #include "case_map.h"
+#include "utf8.h"
 
 namespace lotus {
 
@@ -18,11 +19,15 @@ namespace lotus {
         return table_.empty();
     }
 
-    std::optional<std::string_view> MacroTable::get(std::string_view keyUtf8) const {
-        if (keyUtf8.empty() || empty()) {
+    std::optional<std::u32string_view> MacroTable::get(std::u32string_view key) const {
+        if (key.empty() || empty()) {
             return std::nullopt;
         }
-        const auto found = table_.find(case_map::toLowerUtf8(keyUtf8));
+        std::u32string lowered(key);
+        for (char32_t& codePoint : lowered) {
+            codePoint = case_map::toLower(codePoint);
+        }
+        const auto found = table_.find(lowered);
         if (found == table_.end()) {
             return std::nullopt;
         }
@@ -30,7 +35,7 @@ namespace lotus {
     }
 
     void MacroTable::set(std::string_view keyUtf8, std::string_view valueUtf8) {
-        table_.insert_or_assign(std::string(keyUtf8), std::string(valueUtf8));
+        table_.insert_or_assign(utf8::decode(keyUtf8), utf8::decode(valueUtf8));
     }
 
 } // namespace lotus

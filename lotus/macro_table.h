@@ -38,11 +38,12 @@ namespace lotus {
 
         /**
          * @brief Looks a key up case-insensitively, like Go's MacroTable.Get.
-         * @param keyUtf8 Text to expand; an empty key never matches.
+         * @param key Text to expand; an empty key never matches. The query is lowercased code point
+         *            by code point, like Go lowercases the string.
          * @return The replacement text, or std::nullopt on a miss (what Go returns as ("", false)
-         *         there).
+         *         there). The view points into the table and stays valid while the table is unchanged.
          */
-        [[nodiscard]] std::optional<std::string_view> get(std::string_view keyUtf8) const;
+        [[nodiscard]] std::optional<std::u32string_view> get(std::u32string_view key) const;
 
         /**
          * @brief Stores a replacement text under a key, like the map literal and NewMacroTable of Go.
@@ -53,8 +54,8 @@ namespace lotus {
         void set(std::string_view keyUtf8, std::string_view valueUtf8);
 
       private:
-        // Go: map[string]string.
-        std::unordered_map<std::string, std::string> table_;
+        // Go: map[string]string, keyed by code points.
+        std::unordered_map<std::u32string, std::u32string> table_;
     };
 
 } // namespace lotus

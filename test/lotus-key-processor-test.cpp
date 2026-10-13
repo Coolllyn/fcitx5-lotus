@@ -252,6 +252,24 @@ namespace {
         }
     }
 
+    // The charset step of updatePreedit/takeCommit: the Unicode charset keeps the code points, a
+    // legacy charset still decodes the bytes it produces back to code points (Go keeps the encoded
+    // bytes in a string). test/golden/charset.tsv maps U+0111 to c2ae for "TCVN3 (ABC)", i.e. '®'.
+    void case_encode_text_charset() {
+        KeyProcessor unicodeEngine = newTestEngine({}, false);
+        typeKeys(unicodeEngine, "dd");
+        checkU32("Unicode preedit got [đ] expected [đ]", unicodeEngine.preedit(), U"đ");
+        unicodeEngine.commitPreedit();
+        checkU32("Unicode commit got [đ] expected [đ]", unicodeEngine.takeCommit(), U"đ");
+
+        KeyProcessor legacyEngine            = newTestEngine({}, false);
+        legacyEngine.options().outputCharset = "TCVN3 (ABC)";
+        typeKeys(legacyEngine, "dd");
+        checkU32("TCVN3 (ABC) preedit got [®] expected [®]", legacyEngine.preedit(), U"®");
+        legacyEngine.commitPreedit();
+        checkU32("TCVN3 (ABC) commit got [®] expected [®]", legacyEngine.takeCommit(), U"®");
+    }
+
     // TestPreeditTelexComposition.
     void case_preedit_telex_composition() {
         struct Case {
@@ -744,6 +762,7 @@ int run_key_processor() {
     case_expand_macro();
     case_update_preedit_clears_both();
     case_encode_charsets();
+    case_encode_text_charset();
     case_preedit_telex_composition();
     case_word_break_commit();
     case_auto_restore_dict_mode();
@@ -774,6 +793,6 @@ int run_key_processor() {
         std::printf("%d failure(s)\n", failures);
         return 1;
     }
-    std::printf("lotus key processor: all checks passed (31 cases + golden %ld rows)\n", goldenRows);
+    std::printf("lotus key processor: all checks passed (32 cases + golden %ld rows)\n", goldenRows);
     return 0;
 }

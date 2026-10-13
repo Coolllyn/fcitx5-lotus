@@ -9,6 +9,7 @@
 // missing table or dictionary is a null pointer the caller checks before calling them.
 #include "dictionary.h"
 #include "macro_table.h"
+#include "utf8.h"
 
 #include <cstdio>
 #include <string>
@@ -26,9 +27,9 @@ namespace {
         }
     }
 
-    void checkStr(const char* name, std::string_view actual, std::string_view expected) {
+    void checkU32(const char* name, std::u32string_view actual, std::u32string_view expected) {
         if (actual != expected) {
-            std::printf("FAIL %s: got [%s] expected [%s]\n", name, std::string(actual).c_str(), std::string(expected).c_str());
+            std::printf("FAIL %s: got [%s] expected [%s]\n", name, lotus::utf8::encode(actual).c_str(), lotus::utf8::encode(expected).c_str());
             ++failures;
         }
     }
@@ -51,20 +52,20 @@ namespace {
         lotus::MacroTable table;
         table.set("vn", "Việt Nam");
 
-        const auto vnValue = table.get("VN");
+        const auto vnValue = table.get(U"VN");
         check("Get(VN) got [missing] expected [found] (case-insensitive)", vnValue.has_value());
-        checkStr("Get(VN) got [Việt Nam] expected [Việt Nam] (case-insensitive)", vnValue.value_or(""), "Việt Nam");
+        checkU32("Get(VN) got [Việt Nam] expected [Việt Nam] (case-insensitive)", vnValue.value_or(U""), U"Việt Nam");
 
-        const auto vnLower = table.get("vn");
+        const auto vnLower = table.get(U"vn");
         check("Get(vn) got [missing] expected [found]", vnLower.has_value());
-        checkStr("Get(vn) got [Việt Nam] expected [Việt Nam]", vnLower.value_or(""), "Việt Nam");
+        checkU32("Get(vn) got [Việt Nam] expected [Việt Nam]", vnLower.value_or(U""), U"Việt Nam");
 
-        check("Get(empty key) got [found] expected [missing]", !table.get("").has_value());
+        check("Get(empty key) got [found] expected [missing]", !table.get(U"").has_value());
 
-        check("Get(xyz) got [found] expected [missing]", !table.get("xyz").has_value());
+        check("Get(xyz) got [found] expected [missing]", !table.get(U"xyz").has_value());
 
         const lotus::MacroTable emptyTable;
-        check("Get on empty table got [found] expected [missing]", !emptyTable.get("vn").has_value());
+        check("Get on empty table got [found] expected [missing]", !emptyTable.get(U"vn").has_value());
     }
 
     // TestDictionaryLookup.
@@ -72,24 +73,24 @@ namespace {
         lotus::Dictionary dictionary;
         dictionary.loadFromWords({"đcu", "chào", ""});
 
-        check("hasWord missed a dictionary word: [chào đcu]", dictionary.hasWord("đcu") && dictionary.hasWord("chào"));
-        check("hasWord([đc]) got [true] expected [false] (prefix is not a word)", !dictionary.hasWord("đc"));
+        check("hasWord missed a dictionary word: [chào đcu]", dictionary.hasWord(U"đcu") && dictionary.hasWord(U"chào"));
+        check("hasWord([đc]) got [true] expected [false] (prefix is not a word)", !dictionary.hasWord(U"đc"));
 
-        for (const std::string_view prefix : {"đ", "đc", "c", "ch", "chà"}) {
-            const std::string name = "hasWordOrPrefix([" + std::string(prefix) + "]) got [false] expected [true]";
+        for (const std::u32string_view prefix : {U"đ", U"đc", U"c", U"ch", U"chà"}) {
+            const std::string name = "hasWordOrPrefix([" + lotus::utf8::encode(prefix) + "]) got [false] expected [true]";
             check(name.c_str(), dictionary.hasWordOrPrefix(prefix));
         }
-        for (const std::string_view miss : {"đct", "khoawjm", ""}) {
-            const std::string name = "hasWordOrPrefix([" + std::string(miss) + "]) got [true] expected [false]";
+        for (const std::u32string_view miss : {U"đct", U"khoawjm", U""}) {
+            const std::string name = "hasWordOrPrefix([" + lotus::utf8::encode(miss) + "]) got [true] expected [false]";
             check(name.c_str(), !dictionary.hasWordOrPrefix(miss));
         }
 
         // Go prints d.words when it reports a miss: the empty word is dropped and the rest is sorted
-        // byte-wise ("chào" before "đcu").
-        check("dictionary words got [chào đcu] expected [chào đcu]", dictionary.words() == std::vector<std::string>{"chào", "đcu"});
+        // by code point ("chào" before "đcu", the same order as the byte-wise sort of Go).
+        check("dictionary words got [chào đcu] expected [chào đcu]", dictionary.words() == std::vector<std::u32string>{U"chào", U"đcu"});
 
         const lotus::Dictionary nilDictionary;
-        check("nil dictionary must not report a hit", !nilDictionary.hasWord("đcu") && !nilDictionary.hasWordOrPrefix("đ"));
+        check("nil dictionary must not report a hit", !nilDictionary.hasWord(U"đcu") && !nilDictionary.hasWordOrPrefix(U"đ"));
     }
 
     // loadFromText lowercases every line (Go's NewDictionary reads the file and applies
@@ -98,13 +99,13 @@ namespace {
         lotus::Dictionary dictionary;
         dictionary.loadFromText("Đường\n");
 
-        check("loadFromText([Đường]) got [missing] expected [found]", dictionary.hasWord("đường"));
-        check("loadFromText([Đường]) got [missing] expected [found] as a prefix", dictionary.hasWordOrPrefix("đườ"));
-        check("loadFromText([Đường]) stores [đường]", dictionary.words() == std::vector<std::string>{"đường"});
-        const std::vector<std::string>& stored    = dictionary.words();
-        const std::string_view          firstWord = stored.empty() ? std::string_view() : std::string_view(stored.front());
-        checkStr("loadFromText([Đường]) stores the lowercased word", firstWord, "đường");
-        check("the uppercase spelling is not stored", !dictionary.hasWord("Đường"));
+        check("loadFromText([Đường]) got [missing] expected [found]", dictionary.hasWord(U"đường"));
+        check("loadFromText([Đường]) got [missing] expected [found] as a prefix", dictionary.hasWordOrPrefix(U"đườ"));
+        check("loadFromText([Đường]) stores [đường]", dictionary.words() == std::vector<std::u32string>{U"đường"});
+        const std::vector<std::u32string>& stored    = dictionary.words();
+        const std::u32string_view          firstWord = stored.empty() ? std::u32string_view() : std::u32string_view(stored.front());
+        checkU32("loadFromText([Đường]) stores the lowercased word", firstWord, U"đường");
+        check("the uppercase spelling is not stored", !dictionary.hasWord(U"Đường"));
     }
 
     // Empty lines are skipped, like Go's `if len(line) == 0 { continue }`, so they never reach the
@@ -113,9 +114,9 @@ namespace {
         lotus::Dictionary dictionary;
         dictionary.loadFromText("\n\nĐường\n\nCHÀO\n\n\n");
 
-        check("empty lines are dropped", dictionary.words() == std::vector<std::string>{"chào", "đường"});
-        check("hasWord(chào) after skipping empty lines", dictionary.hasWord("chào"));
-        check("hasWord(đường) after skipping empty lines", dictionary.hasWord("đường"));
+        check("empty lines are dropped", dictionary.words() == std::vector<std::u32string>{U"chào", U"đường"});
+        check("hasWord(chào) after skipping empty lines", dictionary.hasWord(U"chào"));
+        check("hasWord(đường) after skipping empty lines", dictionary.hasWord(U"đường"));
 
         lotus::Dictionary emptyFile;
         emptyFile.loadFromText("");
@@ -123,7 +124,7 @@ namespace {
 
         lotus::Dictionary noTrailingNewline;
         noTrailingNewline.loadFromText("BÒ");
-        check("a last line without a newline is loaded", noTrailingNewline.hasWord("bò"));
+        check("a last line without a newline is loaded", noTrailingNewline.hasWord(U"bò"));
     }
 
 } // namespace

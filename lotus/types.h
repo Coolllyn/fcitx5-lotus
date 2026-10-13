@@ -46,7 +46,7 @@ namespace lotus {
          * @brief Wraps one flag, so a single flag converts to a set implicitly.
          * @param flag Flag to hold.
          */
-        constexpr FlagSet(Flag flag) : bits(static_cast<uint32_t>(flag)) {} // NOLINT(google-explicit-constructor)
+        constexpr FlagSet(Flag flag) : bits(static_cast<uint32_t>(flag)) {} // NOLINT(google-explicit-constructor, cppcoreguidelines-explicit-constructor)
 
         /**
          * @brief Wraps a raw mask, for callers that carry the mask as a number.

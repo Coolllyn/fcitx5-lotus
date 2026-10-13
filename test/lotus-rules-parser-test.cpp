@@ -56,12 +56,12 @@ namespace {
 int run_rules_parser() {
     // TestParseToneRules
     {
-        const auto rules = parseRules(U'z', "XoaDauThanh");
+        const auto rules = parseRules(U'z', U"XoaDauThanh");
         check("tone rule count", rules.size() == 1U);
         check("tone rule type", !rules.empty() && rules[0].effectType == EffectType::ToneTransformation);
         check("tone rule none", !rules.empty() && rules[0].tone() == Tone::None);
 
-        const auto tilde = parseRules(U'x', "DauNga");
+        const auto tilde = parseRules(U'x', U"DauNga");
         check("tilde rule count", tilde.size() == 1U);
         check("tilde rule type", !tilde.empty() && tilde[0].effectType == EffectType::ToneTransformation);
         check("tilde rule tone", !tilde.empty() && tilde[0].tone() == Tone::Tilde);
@@ -69,21 +69,21 @@ int run_rules_parser() {
 
     // TestParseTonelessRules
     {
-        const auto dash = parseTonelessRules(U'd', "D_Đ");
+        const auto dash = parseTonelessRules(U'd', U"D_Đ");
         check("D_Đ rule count", dash.size() == 2U);
         checkMarkRule("D_Đ first rule", dash, 0U, U'd', Mark::Dash, U'd');
 
-        const auto appending = parseTonelessRules(U'{', "_Ư");
+        const auto appending = parseTonelessRules(U'{', U"_Ư");
         check("_Ư rule count", appending.size() == 1U);
         check("_Ư appending rule", !appending.empty() && appending[0].effectType == EffectType::Appending && appending[0].effectOn == U'Ư');
 
-        const auto word = parseTonelessRules(U'w', "UOA_ƯƠĂ");
+        const auto word = parseTonelessRules(U'w', U"UOA_ƯƠĂ");
         check("UOA_ƯƠĂ rule count", word.size() == 33U);
         checkMarkRule("UOA_ƯƠĂ index 0", word, 0U, U'w', Mark::Horn, U'u');
         checkMarkRule("UOA_ƯƠĂ index 7", word, 7U, U'w', Mark::Horn, U'o');
         checkMarkRule("UOA_ƯƠĂ index 20", word, 20U, U'w', Mark::Breve, U'a');
 
-        const auto withAppending = parseTonelessRules(U'w', "UOA_ƯƠĂ__Ư");
+        const auto withAppending = parseTonelessRules(U'w', U"UOA_ƯƠĂ__Ư");
         check("UOA_ƯƠĂ__Ư rule count", withAppending.size() == 34U);
         checkMarkRule("UOA_ƯƠĂ__Ư index 20", withAppending, 20U, U'w', Mark::Breve, U'a');
         if (withAppending.size() > 33U) {
@@ -95,14 +95,14 @@ int run_rules_parser() {
 
     // TestAppendRule
     {
-        const auto lower = parseTonelessRules(U'[', "__ươ");
+        const auto lower = parseTonelessRules(U'[', U"__ươ");
         check("__ươ rule count", lower.size() == 1U);
         check("__ươ appended count", !lower.empty() && lower[0].appendedRules.size() == 1U);
         if (!lower.empty() && lower[0].appendedRules.size() == 1U) {
             checkAppendRule("__ươ appended rule", lower[0].appendedRules[0], U'[', U'ơ');
         }
 
-        const auto upper = parseTonelessRules(U'{', "__ƯƠ");
+        const auto upper = parseTonelessRules(U'{', U"__ƯƠ");
         check("__ƯƠ rule count", upper.size() == 1U);
         check("__ƯƠ appended count", !upper.empty() && upper[0].appendedRules.size() == 1U);
         if (!upper.empty() && upper[0].appendedRules.size() == 1U) {
@@ -112,30 +112,30 @@ int run_rules_parser() {
 
     // Hand written DSL matchers (replacements for the two Go regular expressions).
     {
-        const auto simple = matchDsl("a_â");
-        check("matchDsl a_â", simple.has_value() && simple->effectiveOns == "a" && simple->results == "â" && simple->appended.empty());
+        const auto simple = matchDsl(U"a_â");
+        check("matchDsl a_â", simple.has_value() && simple->effectiveOns == U"a" && simple->results == U"â" && simple->appended.empty());
 
-        const auto upper = matchDsl("UOA_ƯƠĂ");
-        check("matchDsl UOA_ƯƠĂ", upper.has_value() && upper->effectiveOns == "UOA" && upper->results == "ƯƠĂ" && upper->appended.empty());
+        const auto upper = matchDsl(U"UOA_ƯƠĂ");
+        check("matchDsl UOA_ƯƠĂ", upper.has_value() && upper->effectiveOns == U"UOA" && upper->results == U"ƯƠĂ" && upper->appended.empty());
 
-        const auto withAppended = matchDsl("uoa_ươă__ư");
-        check("matchDsl with appended", withAppended.has_value() && withAppended->results == "ươă" && withAppended->appended == "__ư");
+        const auto withAppended = matchDsl(U"uoa_ươă__ư");
+        check("matchDsl with appended", withAppended.has_value() && withAppended->results == U"ươă" && withAppended->appended == U"__ư");
 
-        const auto aeO = matchDsl("AEO_ÂÊÔ");
-        check("matchDsl AEO_ÂÊÔ", aeO.has_value() && aeO->effectiveOns == "AEO" && aeO->results == "ÂÊÔ");
+        const auto aeO = matchDsl(U"AEO_ÂÊÔ");
+        check("matchDsl AEO_ÂÊÔ", aeO.has_value() && aeO->effectiveOns == U"AEO" && aeO->results == U"ÂÊÔ");
 
-        const auto d = matchDsl("D_Đ");
-        check("matchDsl D_Đ", d.has_value() && d->effectiveOns == "D" && d->results == "Đ");
+        const auto d = matchDsl(U"D_Đ");
+        check("matchDsl D_Đ", d.has_value() && d->effectiveOns == U"D" && d->results == U"Đ");
 
-        check("matchDsl __ă", !matchDsl("__ă").has_value());
-        check("matchDsl empty", !matchDsl("").has_value());
-        check("matchDsl no underscore", !matchDsl("abc").has_value());
+        check("matchDsl __ă", !matchDsl(U"__ă").has_value());
+        check("matchDsl empty", !matchDsl(U"").has_value());
+        check("matchDsl no underscore", !matchDsl(U"abc").has_value());
 
-        const auto appended = matchAppendingLetters("__ă");
-        check("matchAppendingLetters __ă", appended.has_value() && *appended == "ă");
-        const auto single = matchAppendingLetters("_ă");
-        check("matchAppendingLetters _ă", single.has_value() && *single == "ă");
-        check("matchAppendingLetters abc", !matchAppendingLetters("abc").has_value());
+        const auto appended = matchAppendingLetters(U"__ă");
+        check("matchAppendingLetters __ă", appended.has_value() && *appended == U"ă");
+        const auto single = matchAppendingLetters(U"_ă");
+        check("matchAppendingLetters _ă", single.has_value() && *single == U"ă");
+        check("matchAppendingLetters abc", !matchAppendingLetters(U"abc").has_value());
     }
 
     // parseInputMethod: an unknown name yields the default input method, like Go's ParseInputMethod.

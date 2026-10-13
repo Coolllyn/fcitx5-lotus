@@ -224,9 +224,9 @@ namespace lotus {
         if (utils::isWordBreakSymbol(keyRune)) {
             // macro processing
             if (options_.macroEnabled && macroTable_ != nullptr) {
-                if (const auto macroVal = macroTable_->get(utf8::encode(oldText))) {
+                if (const auto macroVal = macroTable_->get(oldText)) {
                     engine_.reset();
-                    std::u32string text = expandMacro(oldText, utf8::decode(*macroVal));
+                    std::u32string text = expandMacro(oldText, *macroVal);
                     text.push_back(keyRune);
                     return {std::move(text), true};
                 }
@@ -248,7 +248,12 @@ namespace lotus {
 
     std::u32string KeyProcessor::encodeText(std::u32string_view text) const {
         // Go keeps the encoded bytes in a string; the boundary of the port is UTF-32, so the bytes
-        // are decoded back to code points (the identity for the Unicode charset).
+        // are decoded back to code points. The Unicode charset is the identity apart from the code
+        // points a UTF-8 round trip cannot carry, which utf8::sanitize replaces the same way, so the
+        // round trip is skipped.
+        if (std::string_view(options_.outputCharset) == kUnicodeCharset) {
+            return utf8::sanitize(text);
+        }
         return utf8::decode(encode(options_.outputCharset, text));
     }
 
@@ -257,11 +262,11 @@ namespace lotus {
             return std::nullopt;
         }
         const std::u32string text     = getProcessedString(toMask(Mode::PunctuationMode));
-        const auto           macroVal = macroTable_->get(utf8::encode(text));
+        const auto           macroVal = macroTable_->get(text);
         if (!macroVal.has_value()) {
             return std::nullopt;
         }
-        return expandMacro(text, utf8::decode(*macroVal));
+        return expandMacro(text, *macroVal);
     }
 
     std::u32string KeyProcessor::getProcessedString(ModeSet mode) const {
@@ -305,11 +310,11 @@ namespace lotus {
         return macroTable_ == nullptr || macroTable_->empty();
     }
 
-    std::string KeyProcessor::replaceAllText(std::string_view text, std::string_view needle, std::string_view replacement) {
+    std::u32string KeyProcessor::replaceAllText(std::u32string_view text, std::u32string_view needle, std::u32string_view replacement) {
         if (needle.empty()) {
-            return std::string(text);
+            return std::u32string(text);
         }
-        std::string out;
+        std::u32string out;
         out.reserve(text.size());
         std::size_t index = 0;
         while (index < text.size()) {
@@ -437,23 +442,23 @@ namespace lotus {
     }
 
     std::u32string KeyProcessor::expandMacro(std::u32string_view str, std::u32string_view macroText) const {
-        constexpr std::string_view kTimeMacro = "$TIME";
-        constexpr std::string_view kDateMacro = "$DATE";
-        std::string                text       = utf8::encode(macroText);
-        if (!options_.timeFormat.empty() && text.find(kTimeMacro) != std::string::npos) {
-            text = replaceAllText(text, kTimeMacro, formatTime(options_.timeFormat));
+        constexpr std::u32string_view kTimeMacro = U"$TIME";
+        constexpr std::u32string_view kDateMacro = U"$DATE";
+        std::u32string                text(macroText);
+        if (!options_.timeFormat.empty() && text.find(kTimeMacro) != std::u32string::npos) {
+            text = replaceAllText(text, kTimeMacro, utf8::decode(formatTime(options_.timeFormat)));
         }
-        if (!options_.dateFormat.empty() && text.find(kDateMacro) != std::string::npos) {
-            text = replaceAllText(text, kDateMacro, formatTime(options_.dateFormat));
+        if (!options_.dateFormat.empty() && text.find(kDateMacro) != std::u32string::npos) {
+            text = replaceAllText(text, kDateMacro, utf8::decode(formatTime(options_.dateFormat)));
         }
         if (options_.autoCapitalizeMacro) {
             switch (determineMacroCase(str)) {
-                case MacroCase::AllSmall: return utf8::decode(case_map::toLowerUtf8(text));
-                case MacroCase::AllCapital: return utf8::decode(case_map::toUpperUtf8(text));
+                case MacroCase::AllSmall: return case_map::toLower(text);
+                case MacroCase::AllCapital: return case_map::toUpper(text);
                 case MacroCase::NoChange: break;
             }
         }
-        return utf8::decode(text);
+        return text;
     }
 
     void KeyProcessor::updatePreedit(std::u32string_view processedStr) {
@@ -485,7 +490,7 @@ namespace lotus {
             return false;
         }
         if (options_.spellCheckWithDicts) {
-            return dictionary_ == nullptr || !dictionary_->hasWord(utf8::encode(vnSeq));
+            return dictionary_ == nullptr || !dictionary_->hasWord(vnSeq);
         }
         return !engine_.isValid(true);
     }
@@ -499,7 +504,7 @@ namespace lotus {
             return false;
         }
         if (options_.macroEnabled && !macroTableEmpty()) {
-            if (macroTable_->get(utf8::encode(getProcessedString(toMask(Mode::PunctuationMode)))).has_value()) {
+            if (macroTable_->get(getProcessedString(toMask(Mode::PunctuationMode))).has_value()) {
                 return false;
             }
         }
@@ -513,7 +518,7 @@ namespace lotus {
         // A dictionary word (or the beginning of one) must not be restored to the raw key strokes
         // while it is still being typed; an incomplete word is still rejected at the word break by
         // mustFallbackToEnglish.
-        if (options_.spellCheckWithDicts && dictionary_ != nullptr && dictionary_->hasWordOrPrefix(utf8::encode(vnSeq))) {
+        if (options_.spellCheckWithDicts && dictionary_ != nullptr && dictionary_->hasWordOrPrefix(vnSeq)) {
             return false;
         }
         return !engine_.isValid(false);
@@ -525,7 +530,7 @@ namespace lotus {
             return true;
         }
         if (keyVal == kFcitxTab && options_.macroEnabled && !macroTableEmpty() && !preedit_.empty()) {
-            if (macroTable_->get(utf8::encode(getProcessedString(toMask(Mode::PunctuationMode)))).has_value()) {
+            if (macroTable_->get(getProcessedString(toMask(Mode::PunctuationMode))).has_value()) {
                 return true;
             }
         }

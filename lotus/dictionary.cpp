@@ -11,6 +11,7 @@
 #include "dictionary.h"
 
 #include "case_map.h"
+#include "utf8.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -18,18 +19,27 @@
 
 namespace lotus {
 
-    void Dictionary::loadFromWords(std::vector<std::string> words) {
-        words.erase(std::remove_if(words.begin(), words.end(), [](const std::string& word) { return word.empty(); }), words.end());
-        // Go sorts and compares strings byte-wise (sort.Strings); std::string ordering uses the same
-        // byte-wise comparison, so the sort and the later binary searches stay interchangeable.
+    void Dictionary::assignWords(std::vector<std::u32string> words) {
+        words.erase(std::remove_if(words.begin(), words.end(), [](const std::u32string& word) { return word.empty(); }), words.end());
+        // Go sorts and compares strings byte-wise (sort.Strings). UTF-8 keeps code point order in
+        // byte order, so ordering the code points yields the same list and the same binary searches.
         std::sort(words.begin(), words.end());
         words.erase(std::unique(words.begin(), words.end()), words.end());
         words_ = std::move(words);
     }
 
+    void Dictionary::loadFromWords(const std::vector<std::string>& words) {
+        std::vector<std::u32string> decoded;
+        decoded.reserve(words.size());
+        for (const std::string& word : words) {
+            decoded.push_back(utf8::decode(word));
+        }
+        assignWords(std::move(decoded));
+    }
+
     void Dictionary::loadFromText(std::string_view wholeFile) {
-        std::vector<std::string> words;
-        std::size_t              lineStart = 0;
+        std::vector<std::u32string> words;
+        std::size_t                 lineStart = 0;
         while (lineStart <= wholeFile.size()) {
             const std::size_t lineEnd = wholeFile.find('\n', lineStart);
             std::string_view  line    = wholeFile.substr(lineStart, lineEnd == std::string_view::npos ? std::string_view::npos : lineEnd - lineStart);
@@ -37,39 +47,39 @@ namespace lotus {
                 line.remove_suffix(1);
             }
             if (!line.empty()) {
-                words.push_back(case_map::toLowerUtf8(line));
+                words.push_back(case_map::toLower(utf8::decode(line)));
             }
             if (lineEnd == std::string_view::npos) {
                 break;
             }
             lineStart = lineEnd + 1;
         }
-        loadFromWords(std::move(words));
+        assignWords(std::move(words));
     }
 
-    bool Dictionary::sortsBefore(const std::string& stored, std::string_view candidate) {
-        return std::string_view(stored) < candidate;
+    bool Dictionary::sortsBefore(const std::u32string& stored, std::u32string_view candidate) {
+        return std::u32string_view(stored) < candidate;
     }
 
-    bool Dictionary::hasWord(std::string_view word) const {
+    bool Dictionary::hasWord(std::u32string_view word) const {
         if (word.empty()) {
             return false;
         }
         const auto found = std::lower_bound(words_.begin(), words_.end(), word, sortsBefore);
-        return found != words_.end() && std::string_view(*found) == word;
+        return found != words_.end() && std::u32string_view(*found) == word;
     }
 
-    bool Dictionary::hasWordOrPrefix(std::string_view word) const {
+    bool Dictionary::hasWordOrPrefix(std::u32string_view word) const {
         if (word.empty()) {
             return false;
         }
         const auto found = std::lower_bound(words_.begin(), words_.end(), word, sortsBefore);
         // substr() clamps to the stored word, so a longer candidate is not a prefix (Go's
         // strings.HasPrefix).
-        return found != words_.end() && std::string_view(*found).substr(0, word.size()) == word;
+        return found != words_.end() && std::u32string_view(*found).substr(0, word.size()) == word;
     }
 
-    const std::vector<std::string>& Dictionary::words() const {
+    const std::vector<std::u32string>& Dictionary::words() const {
         return words_;
     }
 

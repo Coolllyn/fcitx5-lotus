@@ -15,9 +15,7 @@ namespace {
     using lotus::case_map::isLetter;
     using lotus::case_map::isUpper;
     using lotus::case_map::toLower;
-    using lotus::case_map::toLowerUtf8;
     using lotus::case_map::toUpper;
-    using lotus::case_map::toUpperUtf8;
     using lotus::utils::addMarkToChar;
     using lotus::utils::addToneToChar;
     using lotus::utils::findToneFromChar;
@@ -65,8 +63,8 @@ int run_utils() {
     check("isLetter ơ", isLetter(U'ơ'));
     check("not a letter: !", !isLetter(U'!'));
     check("not a letter: 0", !isLetter(U'0'));
-    check("toLowerUtf8", toLowerUtf8("ĐƯỜNG TiẾNG") == "đường tiếng");
-    check("toUpperUtf8", toUpperUtf8("đường") == "ĐƯỜNG");
+    check("toLower", toLower(U"ĐƯỜNG TiẾNG") == U"đường tiếng");
+    check("toUpper", toUpper(U"đường") == U"ĐƯỜNG");
 
     if (failures != 0) {
         std::printf("%d failure(s)\n", failures);

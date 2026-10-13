@@ -30,10 +30,10 @@ namespace lotus {
       public:
         /**
          * @brief Replaces the words with the given list, like Go's newDictionary.
-         * @param words Candidate words; empty ones are dropped, the rest are sorted byte-wise and
-         *              deduplicated.
+         * @param words Candidate words; empty ones are dropped, the rest are sorted by code point
+         *              and deduplicated.
          */
-        void loadFromWords(std::vector<std::string> words);
+        void loadFromWords(const std::vector<std::string>& words);
 
         /**
          * @brief Replaces the words with those of a dictionary file, like Go's NewDictionary.
@@ -50,7 +50,7 @@ namespace lotus {
          * @return True when the word is stored. A nil Go dictionary reports false; a null
          *         std::shared_ptr is the C++ equivalent, and an empty dictionary also reports false.
          */
-        [[nodiscard]] bool hasWord(std::string_view word) const;
+        [[nodiscard]] bool hasWord(std::u32string_view word) const;
 
         /**
          * @brief Reports whether a word is in the dictionary or starts a longer dictionary word,
@@ -58,26 +58,32 @@ namespace lotus {
          * @param word Word to look up; an empty word never matches.
          * @return True when a stored word equals word or begins with it.
          */
-        [[nodiscard]] bool hasWordOrPrefix(std::string_view word) const;
+        [[nodiscard]] bool hasWordOrPrefix(std::u32string_view word) const;
 
         /**
-         * @brief Words currently stored, sorted byte-wise and duplicate-free.
+         * @brief Words currently stored, in code point order and duplicate-free.
          * @return Stored words; this mirrors the unexported words field that Go's
          *         dictionary_test.go prints when reporting a miss.
          */
-        [[nodiscard]] const std::vector<std::string>& words() const;
+        [[nodiscard]] const std::vector<std::u32string>& words() const;
 
       private:
         /**
-         * @brief Orders a stored word against a lookup key byte-wise, like Go's string ordering.
+         * @brief Replaces the word list with the given one, dropping empties and duplicates.
+         * @param words Candidate words; sorted in place and moved into the dictionary.
+         */
+        void assignWords(std::vector<std::u32string> words);
+
+        /**
+         * @brief Orders a stored word against a lookup key by code point, like Go's string ordering.
          * @param stored Stored word.
          * @param candidate Word being looked up.
          * @return True when stored sorts before candidate.
          */
-        static bool sortsBefore(const std::string& stored, std::string_view candidate);
+        static bool sortsBefore(const std::u32string& stored, std::u32string_view candidate);
 
         // Go: []string, kept sorted so the lookups can binary search.
-        std::vector<std::string> words_;
+        std::vector<std::u32string> words_;
     };
 
 } // namespace lotus

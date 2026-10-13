@@ -123,4 +123,14 @@ namespace lotus::utf8 {
         return out;
     }
 
+    std::u32string sanitize(std::u32string_view text) {
+        std::u32string out(text);
+        for (char32_t& codePoint : out) {
+            if (codePoint > 0x10FFFFU || (codePoint >= 0xD800U && codePoint <= 0xDFFFU)) {
+                codePoint = kReplacement;
+            }
+        }
+        return out;
+    }
+
 } // namespace lotus::utf8

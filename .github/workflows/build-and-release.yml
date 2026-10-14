@@ -371,7 +371,7 @@ jobs:
             set -euo pipefail
             pacman -Syu --noconfirm \
               cmake extra-cmake-modules gcc \
-              fcitx5 libinput systemd python \
+              fcitx5 libinput libevdev systemd python \
               make pkgconf zstd
 
             cd /work

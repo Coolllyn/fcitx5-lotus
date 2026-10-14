@@ -25,10 +25,12 @@ include(FeatureSummary)
 include(GNUInstallDirs)
 include(ECMUninstallTarget)
 
+find_package(PkgConfig REQUIRED)
 find_package(Fcitx5Core ${REQUIRED_FCITX_VERSION} REQUIRED)
 find_package(Fcitx5ModuleEmoji REQUIRED)
 find_package(Pthread REQUIRED)
 find_package(Gettext REQUIRED)
+pkg_check_modules(LIBEVDEV REQUIRED IMPORTED_TARGET libevdev)
 
 include("${FCITX_INSTALL_CMAKECONFIG_DIR}/Fcitx5Utils/Fcitx5CompilerSettings.cmake")
 

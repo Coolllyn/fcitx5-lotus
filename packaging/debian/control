@@ -13,6 +13,7 @@ Build-Depends: debhelper-compat (= 13),
                libfcitx5config-dev,
                libfcitx5utils-dev,
                libinput-dev,
+               libevdev-dev,
                libudev-dev,
                pkg-config,
                python3

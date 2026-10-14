@@ -19,7 +19,7 @@
 
 #include <atomic>
 #include <cstdint>
-#include <string>
+#include <string_view>
 
 enum class LogLevel : std::uint8_t {
     DEBUG,
@@ -53,19 +53,19 @@ class LotusLogger {
     [[nodiscard]] bool isEnabled(LogLevel level) const;
 
     // Convenience methods
-    void debug(const std::string& msg) const {
+    void debug(std::string_view msg) const {
         if (isEnabled(LogLevel::DEBUG))
             log(LogLevel::DEBUG, msg);
     }
-    void info(const std::string& msg) const {
+    void info(std::string_view msg) const {
         if (isEnabled(LogLevel::INFO))
             log(LogLevel::INFO, msg);
     }
-    void warn(const std::string& msg) const {
+    void warn(std::string_view msg) const {
         if (isEnabled(LogLevel::WARN))
             log(LogLevel::WARN, msg);
     }
-    void error(const std::string& msg) const {
+    void error(std::string_view msg) const {
         if (isEnabled(LogLevel::ERROR))
             log(LogLevel::ERROR, msg);
     }
@@ -84,8 +84,10 @@ class LotusLogger {
 
     /**
      * @brief Log a message through syslog()
+     * @param level Level the message is logged at
+     * @param message Message text, passed as data and never as a format string
      */
-    static void           log(LogLevel level, const std::string& message);
+    static void           log(LogLevel level, std::string_view message);
 
     std::atomic<LogLevel> level_;
 };

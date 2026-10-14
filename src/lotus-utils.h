@@ -54,6 +54,11 @@ extern std::atomic<int>                           uinput_client_fd_; ///< Uinput
 extern std::atomic<unsigned int>                  realtextLen;       ///< Current text length
 extern std::atomic<int>                           mouse_socket_fd;   ///< Mouse socket file descriptor
 
+struct DiffPart {
+    std::u32string_view deletedPart;
+    std::u32string_view addedPart;
+};
+
 /**
  * @brief Builds socket path from base suffix.
  * @param base_path_suffix Suffix to append to base path.
@@ -120,11 +125,9 @@ bool isUinputMode(fcitx::LotusMode mode);
  * @brief Compares two texts and computes diff.
  * @param A First text.
  * @param B Second text.
- * @param deletedPart Output deleted portion.
- * @param addedPart Output added portion.
- * @return Comparison result code.
+ * @return Pairs of delete part and add part.
  */
-int compareAndSplitU32(std::u32string_view A, std::u32string_view B, std::u32string& deletedPart, std::u32string& addedPart);
+DiffPart compareAndSplitU32(std::u32string_view A, std::u32string_view B);
 
 /**
  * @brief Get the frontend name from the input context.

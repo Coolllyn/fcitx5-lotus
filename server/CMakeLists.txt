@@ -10,6 +10,7 @@ add_executable(fcitx5-lotus-server lotus-server.cpp lotus-logger.cpp
 target_link_libraries(fcitx5-lotus-server
     PkgConfig::LIBINPUT
     PkgConfig::LIBUDEV
+    PkgConfig::LIBEVDEV
 )
 
 target_compile_definitions(fcitx5-lotus-server PRIVATE

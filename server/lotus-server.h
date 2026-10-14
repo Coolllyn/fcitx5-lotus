@@ -19,12 +19,14 @@
 #ifndef _LOTUS_SERVER_H_
 #define _LOTUS_SERVER_H_
 
-#include "../src/lotus-fd-guard.h"
+#include "lotus-uinput-device.h"
 
 #include <atomic>
+#include <cstdint>
 #include <fcntl.h>
 #include <libinput.h>
-#include <linux/uinput.h>
+#include <memory>
+#include <optional>
 #include <poll.h>
 #include <pwd.h>
 #include <string>
@@ -32,32 +34,20 @@
 #include <sys/resource.h>
 #include <sys/socket.h>
 #include <sys/types.h>
-#include <sys/un.h>
 
 /**
- * @brief RAII Wrapper for uinput device.
- * Handles UI_DEV_CREATE and UI_DEV_DESTROY automatically.
+ * @brief RAII Wrapper for the virtual keyboard injected through libevdev-uinput.
  */
 class UinputDevice {
   public:
     UinputDevice() = default;
-    ~UinputDevice();
 
-    // Disable copy, allow move
-    UinputDevice(const UinputDevice&)            = delete;
-    UinputDevice& operator=(const UinputDevice&) = delete;
-    UinputDevice(UinputDevice&&)                 = default;
-    UinputDevice&     operator=(UinputDevice&&)  = default;
-
-    bool              initialize();
-    void              send_backspace();
-    void              send_delete();
-    void              send_shift_down();
-    void              send_shift_up();
-    void              send_left();
-    [[nodiscard]] int get_fd() const {
-        return guard_.get();
-    }
+    bool initialize();
+    void send_backspace();
+    void send_delete();
+    void send_shift_down();
+    void send_shift_up();
+    void send_left();
 
   private:
     /**
@@ -71,10 +61,59 @@ class UinputDevice {
      * @param code Linux KEY_* code.
      * @param value 1 = press, 0 = release.
      */
-    void    send_mod(uint16_t code, int value);
-
-    FdGuard guard_;
+    void send_mod(uint16_t code, int value);
+    /**
+     * @brief Logs the first write failure only, so a broken device cannot flood the log.
+     * @param error Negative errno returned by libevdev.
+     */
+    static void    reportWriteFailure(int error);
+    LibevdevDevice dev_;   ///< In-memory description of the virtual keyboard
+    LibevdevUinput uidev_; ///< Device created from that description
 };
+
+/**
+ * @brief Unrefs a udev context.
+ */
+struct UdevDeleter {
+    /**
+     * @brief Releases the udev context.
+     * @param context Context to unref, may be null.
+     */
+    void operator()(struct udev* context) const noexcept {
+        udev_unref(context);
+    }
+};
+
+/**
+ * @brief Unrefs a libinput context.
+ */
+struct LibinputDeleter {
+    /**
+     * @brief Releases the libinput context.
+     * @param context Context to unref, may be null.
+     */
+    void operator()(struct libinput* context) const noexcept {
+        libinput_unref(context);
+    }
+};
+
+/**
+ * @brief Destroys a libinput event.
+ */
+struct LibinputEventDeleter {
+    /**
+     * @brief Releases the event handle.
+     * @param event Event to destroy, may be null.
+     */
+    void operator()(struct libinput_event* event) const noexcept {
+        libinput_event_destroy(event);
+    }
+};
+
+/**
+ * @brief Owning handle of one dispatched libinput event.
+ */
+using LibinputEvent = std::unique_ptr<struct libinput_event, LibinputEventDeleter>;
 
 /**
  * @brief RAII Wrapper for Libinput and Udev contexts.
@@ -82,51 +121,21 @@ class UinputDevice {
 class LibinputContext {
   public:
     explicit LibinputContext(const struct libinput_interface* interface);
-    ~LibinputContext();
-
-    // Disable copy, allow move
-    LibinputContext(const LibinputContext&)            = delete;
-    LibinputContext& operator=(const LibinputContext&) = delete;
-    LibinputContext(LibinputContext&& other) noexcept : udev_(other.udev_), li_(other.li_) {
-        other.udev_ = nullptr;
-        other.li_   = nullptr;
-    }
-
-    LibinputContext& operator=(LibinputContext&& other) noexcept {
-        if (this != &other) {
-            reset();
-            udev_       = other.udev_;
-            li_         = other.li_;
-            other.udev_ = nullptr;
-            other.li_   = nullptr;
-        }
-        return *this;
-    }
 
     [[nodiscard]] bool is_valid() const {
         return li_ != nullptr;
     }
     [[nodiscard]] struct libinput* get_li() const {
-        return li_;
+        return li_.get();
     }
     [[nodiscard]] int get_fd() const {
-        return li_ == nullptr ? -1 : libinput_get_fd(li_);
+        return li_ == nullptr ? -1 : libinput_get_fd(li_.get());
     }
 
   private:
-    /**
-     * @brief Releases the libinput and udev contexts, if they were created.
-     */
-    void             reset();
-
-    struct udev*     udev_ = nullptr;
-    struct libinput* li_   = nullptr;
+    std::unique_ptr<struct udev, UdevDeleter>         udev_; ///< Udev context backing the libinput context
+    std::unique_ptr<struct libinput, LibinputDeleter> li_;   ///< Libinput context, null when creation failed
 };
-
-/**
- * @brief Maximum length of Unix socket paths.
-*/
-#define UNIX_PATH_MAX sizeof(((struct sockaddr_un*)0)->sun_path)
 
 /**
  * @brief Global flag to control server running state.
@@ -148,9 +157,9 @@ std::string get_current_username();
 /**
  * @brief Gets the UID for a given username.
  * @param username Username to resolve.
- * @return UID of the user, or (uid_t)-1 if not found.
+ * @return UID of the user, or nullopt when the user does not exist.
  */
-uid_t get_uid_for_user(const std::string& username);
+std::optional<uid_t> get_uid_for_user(std::string_view username);
 
 /**
  * @brief Boosts process priority for real-time responsiveness.
@@ -187,10 +196,9 @@ void close_restricted(int fd, void* user_data);
  * @param fd Accepted client socket.
  * @param expectedUid UID the server was started for.
  * @param socketLabel Socket name used in the log messages.
- * @param peerPid Received peer PID, zero when the credentials could not be read.
- * @return True when the peer is allowed to use the socket.
+ * @return Peer PID when the peer is allowed to use the socket, nullopt otherwise.
  */
-bool authorizePeer(int fd, uid_t expectedUid, std::string_view socketLabel, pid_t& peerPid);
+std::optional<pid_t> authorizePeer(int fd, uid_t expectedUid, std::string_view socketLabel);
 
 /**
  * @brief libinput interface callbacks.

@@ -31,7 +31,7 @@ bool LotusLogger::isEnabled(LogLevel level) const {
     return level >= level_.load();
 }
 
-void LotusLogger::log(LogLevel level, const std::string& message) {
+void LotusLogger::log(LogLevel level, std::string_view message) {
     int priority = LOG_INFO;
     switch (level) {
         case LogLevel::DEBUG: priority = LOG_DEBUG; break;
@@ -40,6 +40,6 @@ void LotusLogger::log(LogLevel level, const std::string& message) {
         case LogLevel::ERROR: priority = LOG_ERR; break;
         default: break;
     }
-    // Message is data, never a format string.
-    syslog(priority, "%s", message.c_str());
+    // Message is data, never a format string
+    syslog(priority, "%.*s", static_cast<int>(message.size()), message.data());
 }

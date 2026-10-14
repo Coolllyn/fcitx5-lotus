@@ -96,13 +96,23 @@ jobs:
     name: Build and test (musl)
     runs-on: ubuntu-latest
     container: alpine:latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [gcc, clang]
+        include:
+          - compiler: gcc
+            cxx_compiler: g++
+          - compiler: clang
+            cxx_compiler: clang++
     env:
-      CC: gcc
-      CXX: g++
+      CC: ${{ matrix.compiler }}
+      CXX: ${{ matrix.cxx_compiler }}
     steps:
       - name: Install dependencies
         run: |
-          apk add --no-cache build-base cmake ninja extra-cmake-modules libuv-dev git libinput-dev libevdev-dev python3 zlib-dev gettext-dev util-linux-dev linux-headers
+          apk add --no-cache build-base cmake ninja extra-cmake-modules libuv-dev git libinput-dev libevdev-dev python3 zlib-dev gettext-dev util-linux-dev linux-headers tar clang
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           git config --global --add safe.directory "$GITHUB_WORKSPACE/fcitx5-lotus"
           git config --global --add safe.directory "$GITHUB_WORKSPACE/fcitx5"
@@ -121,9 +131,8 @@ jobs:
           path: fcitx5
           shell: sh
           cmake-option: >-
-            -DENABLE_KEYBOARD=Off -DENABLE_X11=Off -DENABLE_WAYLAND=Off
-            -DENABLE_ENCHANT=Off -DENABLE_DBUS=Off -DENABLE_SERVER=Off
-            -DUSE_SYSTEMD=Off -DENABLE_EMOJI=On
+            -DENABLE_KEYBOARD=Off -DENABLE_X11=Off -DENABLE_WAYLAND=Off -DENABLE_ENCHANT=Off
+            -DENABLE_DBUS=Off -DENABLE_SERVER=Off -DUSE_SYSTEMD=Off -DENABLE_EMOJI=On
       - uses: actions/checkout@v7
         with:
           path: fcitx5-lotus

@@ -17,7 +17,6 @@
 #include "lotus-plasma-theme.h"
 
 #include "dictionary.h"
-#include "input_method.h"
 #include "utf8.h"
 
 #include <optional>
@@ -1303,9 +1302,6 @@ namespace fcitx {
                     if (ic) {
                         auto* state = ic->propertyFor(&factory_);
                         if (state) {
-                            if (realMode == LotusMode::Preedit) {
-                                state->commitBuffer();
-                            }
                             state->clearAllBuffers();
                         }
                     }

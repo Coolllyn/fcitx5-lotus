@@ -67,10 +67,10 @@ If you want to compile the input method from source to contribute or customize:
 
 ### Dependencies
 
-- **Debian/Ubuntu:** `sudo apt-get install cmake extra-cmake-modules libfcitx5core-dev libfcitx5config-dev libfcitx5utils-dev libinput-dev libudev-dev g++ hicolor-icon-theme pkg-config fcitx5-modules-dev python3-qtpy python3-dbus acl`
-- **Fedora/RHEL:** `sudo dnf install cmake extra-cmake-modules fcitx5-devel libinput-devel libudev-devel gcc-c++ hicolor-icon-theme systemd-devel python3-pyside6 python3-QtPy python3-dbus acl`
-- **openSUSE:** `sudo zypper install cmake kf6-extra-cmake-modules fcitx5-devel libinput-devel systemd-devel gcc-c++ hicolor-icon-theme systemd-devel python3-pyside6 python3-QtPy python3-dbus-python acl`
-- **Arch:** `sudo pacman -S --needed cmake extra-cmake-modules gcc git python make pkgconf acl fcitx5 libinput hicolor-icon-theme python-qtpy python-dbus`
+- **Debian/Ubuntu:** `sudo apt-get install cmake extra-cmake-modules libfcitx5core-dev libfcitx5config-dev libfcitx5utils-dev libevdev-dev libinput-dev libudev-dev g++ hicolor-icon-theme pkg-config fcitx5-modules-dev python3-qtpy python3-dbus acl`
+- **Fedora/RHEL:** `sudo dnf install cmake extra-cmake-modules fcitx5-devel libevdev-devel libinput-devel libudev-devel gcc-c++ hicolor-icon-theme systemd-devel python3-pyside6 python3-QtPy python3-dbus acl`
+- **openSUSE:** `sudo zypper install cmake kf6-extra-cmake-modules fcitx5-devel libevdev-devel libinput-devel systemd-devel gcc-c++ hicolor-icon-theme systemd-devel python3-pyside6 python3-QtPy python3-dbus-python acl`
+- **Arch:** `sudo pacman -S --needed cmake extra-cmake-modules gcc git python make pkgconf acl fcitx5 libevdev libinput hicolor-icon-theme python-qtpy python-dbus`
 
 ### Install
 

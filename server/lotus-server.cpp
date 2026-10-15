@@ -29,8 +29,16 @@
 #include <climits> // IWYU pragma: keep
 #include <sched.h>
 #include <unistd.h>
+#include <sys/ioctl.h>
+#include <linux/input.h>
 
 std::atomic<bool> g_running{true};
+
+UinputDevice::~UinputDevice() {
+    for (const auto& [device, fd] : physical_keyboards_) {
+        close(fd);
+    }
+}
 
 bool              UinputDevice::initialize() {
     dev_ = buildLotusUinputDevice();
@@ -108,12 +116,95 @@ void UinputDevice::send_delete() {
     send_tap(KEY_DELETE);
 }
 
+void UinputDevice::add_physical_keyboard(struct libinput_device* device) {
+    if (!libinput_device_has_capability(device, LIBINPUT_DEVICE_CAP_KEYBOARD)) {
+        return;
+    }
+
+    const char* name = libinput_device_get_name(device);
+    if (name != nullptr && std::string_view(name) == kLotusUinputName) {
+        return; // Never inspect the synthetic Shift key as a physical key.
+    }
+
+    struct udev_device* udev_device = libinput_device_get_udev_device(device);
+    if (udev_device == nullptr) {
+        return;
+    }
+    const char* path = udev_device_get_devnode(udev_device);
+    const int fd = path != nullptr ? open(path, O_RDONLY | O_NONBLOCK | O_CLOEXEC) : -1;
+    udev_device_unref(udev_device);
+
+    if (fd < 0) {
+        LotusLogger::instance().warn("Cannot inspect physical keyboard: " + std::string(name != nullptr ? name : "unknown"));
+        return;
+    }
+
+    auto [it, inserted] = physical_keyboards_.emplace(device, fd);
+
+    if (!inserted) {
+        close(fd);
+    } else {
+        LotusLogger::instance().info("Physical keyboard added: " + std::string(name != nullptr ? name : "unknown"));
+    }
+}
+
+void UinputDevice::remove_physical_keyboard(struct libinput_device* device) {
+    auto it = physical_keyboards_.find(device);
+    if (it == physical_keyboards_.end()) {
+        return;
+    }
+
+    const char* name = libinput_device_get_name(device);
+
+    close(it->second);
+    physical_keyboards_.erase(it);
+
+    LotusLogger::instance().info("Physical keyboard removed: " + std::string(name != nullptr ? name : "unknown"));
+}
+
+uint16_t UinputDevice::choose_virtual_shift() const {
+    constexpr std::size_t bits_per_word = sizeof(unsigned long) * CHAR_BIT;
+    constexpr std::size_t word_count = KEY_MAX / bits_per_word + 1;
+    bool physical_left = false;
+    bool physical_right = false;
+
+    for (const auto& [device, fd] : physical_keyboards_) {
+        std::array<unsigned long, word_count> keys{};
+        if (ioctl(fd, EVIOCGKEY(sizeof(keys)), keys.data()) < 0) {
+            continue;
+        }
+        const auto pressed = [&](unsigned int code) {
+            return (keys[code / bits_per_word] & (1UL << (code % bits_per_word))) != 0;
+        };
+        physical_left |= pressed(KEY_LEFTSHIFT);
+        physical_right |= pressed(KEY_RIGHTSHIFT);
+    }
+
+    if (physical_left && !physical_right) {
+        return KEY_RIGHTSHIFT;
+    }
+    return KEY_LEFTSHIFT; // Default, Right held, or both held (Tk nào nhấn 2 Shift thì t lạy).
+}
+
 void UinputDevice::send_shift_down() {
-    send_mod(KEY_LEFTSHIFT, 1);
+    if (active_virtual_shift_ != 0) {
+        return;
+    }
+    const uint16_t code = choose_virtual_shift();
+    send_mod(code, 1);
+    active_virtual_shift_ = code;
+    // LotusLogger::instance().info(std::string("Vir shift down: ") + (code == KEY_RIGHTSHIFT ? "right" : "left"));
 }
 
 void UinputDevice::send_shift_up() {
-    send_mod(KEY_LEFTSHIFT, 0);
+    if (active_virtual_shift_ == 0) {
+        return;
+    }
+    const uint16_t code = active_virtual_shift_;
+    send_mod(code, 0);
+    active_virtual_shift_ = 0;
+    // LotusLogger::instance().info(std::string("Vir shift up: ") + (code == KEY_RIGHTSHIFT ? "right" : "left"));
+    // LotusLogger::instance().info("Vanphat111 was here!!!");
 }
 
 void UinputDevice::send_left() {
@@ -439,10 +530,15 @@ int main(int argc, char* argv[]) {
                     const char* const       rawName = libinput_device_get_name(device);
                     const std::string_view  name    = rawName != nullptr ? std::string_view(rawName) : std::string_view{};
                     LotusLogger::instance().info("Device added: " + std::string(name));
+                    uinput.add_physical_keyboard(device);
                     if (libinput_device_config_tap_get_finger_count(device) > 0) {
                         libinput_device_config_tap_set_enabled(device, LIBINPUT_CONFIG_TAP_ENABLED);
                         libinput_device_config_tap_set_button_map(device, LIBINPUT_CONFIG_TAP_MAP_LRM);
                     }
+                    break;
+                }
+                case LIBINPUT_EVENT_DEVICE_REMOVED: {
+                    uinput.remove_physical_keyboard(libinput_event_get_device(event.get()));
                     break;
                 }
                 default: break;

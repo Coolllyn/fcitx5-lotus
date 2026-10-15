@@ -1,5 +1,6 @@
 /*
  * SPDX-FileCopyrightText: 2026 Nguyễn Quang Minh <minhnbnt@gmail.com>
+ * SPDX-FileCopyrightText: 2026 Nguyễn Hoàng Kỳ  <nhktmdzhg@gmail.com>
  *
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
@@ -27,45 +28,34 @@
 /**
  * @brief Bounded FIFO of keystrokes awaiting replay.
  */
-class KeyBuffer {
+class LOTUS_EXPORT KeyBuffer {
   public:
     /**
-     * @brief True when no keystroke is waiting for replay.
+     * @brief Whether when no key entry in deque
+     * @return true when deque is empty
      */
-    bool empty() const {
-        return queue_.empty();
-    }
+    [[nodiscard]] bool empty() const;
 
     /**
      * @brief Appends a keystroke; silently dropped when the buffer is full.
+     * @param entry Key entry pushed into deque
      */
-    void push(KeyEntry entry) {
-        if (queue_.size() >= kMaxEntries)
-            return;
-        queue_.push_back(entry);
-    }
+    void push(KeyEntry entry);
 
     /**
      * @brief Removes and returns the oldest keystroke.
-     * @pre !empty()
+     * @return the first entry of deque
      */
-    KeyEntry pop() {
-        KeyEntry entry = queue_.front();
-        queue_.pop_front();
-        return entry;
-    }
+    KeyEntry pop();
 
     /**
      * @brief Discards every buffered keystroke.
      */
-    void clear() {
-        queue_.clear();
-    }
+    void clear();
 
   private:
     static constexpr size_t kMaxEntries = 50; ///< Same cap as the old inline checks.
-
-    std::deque<KeyEntry>    queue_;
+    std::deque<KeyEntry>    deque_;
 };
 
 #endif // _FCITX5_LOTUS_KEY_BUFFER_H_

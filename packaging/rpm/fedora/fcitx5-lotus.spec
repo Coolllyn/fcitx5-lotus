@@ -1,5 +1,5 @@
 Name:           fcitx5-lotus
-Version:        5.0.2
+Version:        5.0.3
 Release:        1
 Summary:        Vietnamese input method for fcitx5
 License:        GPL-3.0-or-later
@@ -113,5 +113,5 @@ fi
 %systemd_postun_with_restart fcitx5-lotus-server@.service
 
 %changelog
-* Wed Oct 14 2026 Nguyen Hoang Ky <nhktmdzhg@gmail.com> - 5.0.2-1
-- Rewrite core engine from Go to C++20 for better performance and maintainability
+* Thu Oct 15 2026 Nguyen Hoang Ky <nhktmdzhg@gmail.com> - 5.0.3-1
+- Fix the issue of double-committing upon a mouse click

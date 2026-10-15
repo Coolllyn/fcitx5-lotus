@@ -70,12 +70,12 @@ class UinputDevice {
      * @brief Logs the first write failure only, so a broken device cannot flood the log.
      * @param error Negative errno returned by libevdev.
      */
-    static void    reportWriteFailure(int error);
-    LibevdevDevice dev_;   ///< In-memory description of the virtual keyboard
-    LibevdevUinput uidev_; ///< Device created from that description
+    static void                                      reportWriteFailure(int error);
+    LibevdevDevice                                   dev_;   ///< In-memory description of the virtual keyboard
+    LibevdevUinput                                   uidev_; ///< Device created from that description
     std::unordered_map<struct libinput_device*, int> physical_keyboards_;
-    uint16_t active_virtual_shift_ = 0; ///< Exact synthetic Shift key held by Lotus.
-    uint16_t choose_virtual_shift() const;
+    uint16_t                                         active_virtual_shift_ = 0; ///< Exact synthetic Shift key held by Lotus.
+    uint16_t                                         choose_virtual_shift() const;
 };
 
 /**

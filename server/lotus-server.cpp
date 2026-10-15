@@ -40,7 +40,7 @@ UinputDevice::~UinputDevice() {
     }
 }
 
-bool              UinputDevice::initialize() {
+bool UinputDevice::initialize() {
     dev_ = buildLotusUinputDevice();
     if (dev_ == nullptr) {
         LotusLogger::instance().error("Failed to build the uinput device description");
@@ -131,7 +131,7 @@ void UinputDevice::add_physical_keyboard(struct libinput_device* device) {
         return;
     }
     const char* path = udev_device_get_devnode(udev_device);
-    const int fd = path != nullptr ? open(path, O_RDONLY | O_NONBLOCK | O_CLOEXEC) : -1;
+    const int   fd   = path != nullptr ? open(path, O_RDONLY | O_NONBLOCK | O_CLOEXEC) : -1;
     udev_device_unref(udev_device);
 
     if (fd < 0) {
@@ -163,19 +163,17 @@ void UinputDevice::remove_physical_keyboard(struct libinput_device* device) {
 }
 
 uint16_t UinputDevice::choose_virtual_shift() const {
-    constexpr std::size_t bits_per_word = sizeof(unsigned long) * CHAR_BIT;
-    constexpr std::size_t word_count = KEY_MAX / bits_per_word + 1;
-    bool physical_left = false;
-    bool physical_right = false;
+    constexpr std::size_t bits_per_word  = sizeof(unsigned long) * CHAR_BIT;
+    constexpr std::size_t word_count     = KEY_MAX / bits_per_word + 1;
+    bool                  physical_left  = false;
+    bool                  physical_right = false;
 
     for (const auto& [device, fd] : physical_keyboards_) {
         std::array<unsigned long, word_count> keys{};
         if (ioctl(fd, EVIOCGKEY(sizeof(keys)), keys.data()) < 0) {
             continue;
         }
-        const auto pressed = [&](unsigned int code) {
-            return (keys[code / bits_per_word] & (1UL << (code % bits_per_word))) != 0;
-        };
+        const auto pressed = [&](unsigned int code) { return (keys[code / bits_per_word] & (1UL << (code % bits_per_word))) != 0; };
         physical_left |= pressed(KEY_LEFTSHIFT);
         physical_right |= pressed(KEY_RIGHTSHIFT);
     }

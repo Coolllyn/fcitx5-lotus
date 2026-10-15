@@ -146,7 +146,7 @@ namespace fcitx {
          * @return Pointer to the fcitx instance.
          */
         Instance* instance() const {
-            return instance_;
+            return &instance_;
         }
 
         /**
@@ -290,13 +290,13 @@ namespace fcitx {
          */
         EmojiLoader& emojiLoader() {
             if (!emojiLoader_) {
-                emojiLoader_ = std::make_unique<EmojiLoader>(&instance_->addonManager());
+                emojiLoader_ = std::make_unique<EmojiLoader>(&instance_.addonManager());
             }
             return *emojiLoader_;
         }
 
       private:
-        Instance*                                            instance_;
+        Instance&                                            instance_;
         lotusConfig                                          config_;
         lotusCustomKeymap                                    customKeymap_;
         lotusCustomKeymap                                    emptyCustomKeymap_;
@@ -326,7 +326,7 @@ namespace fcitx {
         std::string                                          currentConfigureApp_;
         std::unique_ptr<EventSourceTime>                     cycleModeNotificationTimer_;
         static constexpr uint64_t                            CYCLE_MODE_NOTIFICATION_TIMEOUT_USEC = 800000; // 800ms in microseconds
-        FCITX_ADDON_DEPENDENCY_LOADER(emoji, instance_->addonManager());
+        FCITX_ADDON_DEPENDENCY_LOADER(emoji, instance_.addonManager());
         std::unique_ptr<EmojiLoader>          emojiLoader_;
         bool                                  isGnome_ = false;
         mutable std::mutex                    appRulesMutex_;

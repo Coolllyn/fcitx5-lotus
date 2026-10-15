@@ -101,8 +101,8 @@ namespace fcitx {
       private:
         static constexpr size_t               MAX_BUFFERED_KEYS = 50;
 
-        LotusEngine*                          engine_;
-        InputContext*                         ic_;
+        LotusEngine&                          engine_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+        InputContext&                         ic_;     // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
         std::shared_ptr<lotus::KeyProcessor>  lotusEngine_;
         std::u32string                        oldPreBuffer_;
         bool                                  hasHistory_              = false;

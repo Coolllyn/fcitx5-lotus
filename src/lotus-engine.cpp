@@ -255,12 +255,12 @@ namespace fcitx {
         return dictionary_;
     }
 
-    LotusEngine::LotusEngine(Instance* instance) : instance_(instance), factory_([this](InputContext& ic) { return new LotusState(this, &ic); }) { //NOLINT
+    LotusEngine::LotusEngine(Instance* instance) : instance_(*instance), factory_([this](InputContext& ic) { return new LotusState(this, &ic); }) { //NOLINT
         std::string desktop = getEnv("XDG_CURRENT_DESKTOP");
         isGnome_            = (!desktop.empty()) && desktop.find("GNOME") != std::string::npos;
         // emptyCustomKeymap_.customKeymap is implicitly initialized to empty by fcitx::Option default value macro.
 
-        auto& uiManager = instance_->userInterfaceManager();
+        auto& uiManager = instance_.userInterfaceManager();
 
         charsetAction_ = std::make_unique<SimpleAction>();
         charsetAction_->setShortText(_("Charset"));
@@ -312,7 +312,7 @@ namespace fcitx {
         }
         reloadConfig();
         realMode = config_.mode.value();
-        instance_->inputContextManager().registerProperty("LotusState", &factory_);
+        instance_.inputContextManager().registerProperty("LotusState", &factory_);
         appRulesPath_ = configDir + "/lotus-app-rules.conf";
         loadAppRules();
         toggleActions_ = {
@@ -498,7 +498,7 @@ namespace fcitx {
 
         auto& statusArea = event.inputContext()->statusArea();
         if (ic->capabilityFlags().test(CapabilityFlag::Preedit))
-            instance_->inputContextManager().setPreeditEnabledByDefault(true);
+            instance_.inputContextManager().setPreeditEnabledByDefault(true);
 
         std::string appName = getProgramName(ic);
         LOTUS_INFO("App name: " + appName);
@@ -856,7 +856,7 @@ namespace fcitx {
     void LotusEngine::refreshEngine() {
         if (!factory_.registered())
             return;
-        instance_->inputContextManager().foreach ([this](InputContext* ic) {
+        instance_.inputContextManager().foreach ([this](InputContext* ic) {
             auto* state = ic->propertyFor(&factory_);
             state->setEngine();
             if (ic->hasFocus()) {
@@ -872,7 +872,7 @@ namespace fcitx {
     void LotusEngine::refreshOption() {
         if (!factory_.registered())
             return;
-        instance_->inputContextManager().foreach ([this](InputContext* ic) {
+        instance_.inputContextManager().foreach ([this](InputContext* ic) {
             auto* state = ic->propertyFor(&factory_);
             state->setOption();
             if (ic->hasFocus())
@@ -1171,7 +1171,7 @@ namespace fcitx {
         cycleModeNotificationTimer_.reset();
 
         // Schedule auto-close using EventLoop::addTimeEvent
-        auto& eventLoop    = instance_->eventLoop();
+        auto& eventLoop    = instance_.eventLoop();
         auto  now_time     = ::fcitx::now(CLOCK_MONOTONIC);
         auto  timeout_time = now_time + CYCLE_MODE_NOTIFICATION_TIMEOUT_USEC;
 
@@ -1284,7 +1284,7 @@ namespace fcitx {
         mouse_socket_fd.store(sock.release(), std::memory_order_release);
         LOTUS_INFO("Mouse socket connected and registered to Fcitx EventLoop.");
 
-        mouseEventSource_ = instance_->eventLoop().addIOEvent(sockFd, IOEventFlag::In, [this, sockFd](EventSourceIO*, int, IOEventFlags) {
+        mouseEventSource_ = instance_.eventLoop().addIOEvent(sockFd, IOEventFlag::In, [this, sockFd](EventSourceIO*, int, IOEventFlags) {
             std::array<char, 16> buf{};
             ssize_t              n = recv(sockFd, buf.data(), buf.size(), 0);
             if (n <= 0) {
@@ -1298,7 +1298,7 @@ namespace fcitx {
             if (n >= 1 && buf[0] == 'C') {
                 LOTUS_DEBUG("Mouse click detected from server. Resetting.....");
                 g_mouse_clicked.store(true, std::memory_order_release);
-                instance_->inputContextManager().foreachFocused([this](InputContext* ic) {
+                instance_.inputContextManager().foreachFocused([this](InputContext* ic) {
                     if (ic) {
                         auto* state = ic->propertyFor(&factory_);
                         if (state) {

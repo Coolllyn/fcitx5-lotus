@@ -43,7 +43,7 @@ namespace fcitx {
         void select(InputContext* inputContext) const override;
 
       private:
-        LotusState* state_;
+        LotusState& state_;
         EmojiEntry  entry_;
     };
 

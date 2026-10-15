@@ -32,7 +32,7 @@
 #include <fcitx/inputmethodengine.h>
 #include <fcitx/instance.h>
 #include <fcitx-utils/event.h>
-#include "lotus-export.h"
+#include "common-export.h"
 
 namespace fcitx {
 

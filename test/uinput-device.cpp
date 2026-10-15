@@ -5,7 +5,7 @@
 // The server injects keys through a libevdev-uinput keyboard. Describing that keyboard in memory
 // needs no privileges, so this test pins the identity and the exact key set the old raw UI_SET_*
 // setup produced, without opening /dev/uinput (it passes inside a user namespace as well).
-#include "../server/lotus-uinput-device.h"
+#include "lotus-uinput-device.h"
 
 #include <cstdio>
 #include <exception>

@@ -24,7 +24,7 @@
 #include <fcitx/inputcontext.h>
 
 #include "lotus-config.h"
-#include "lotus-export.h"
+#include "common-export.h"
 
 /**
  * @brief Maximum length of Unix socket paths.

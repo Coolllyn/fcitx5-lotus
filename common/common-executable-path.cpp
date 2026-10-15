@@ -5,7 +5,7 @@
  *
  */
 
-#include "lotus-executable-path.h"
+#include "common-executable-path.h"
 
 bool isAllowedExecutablePath(std::string_view exePath, std::string_view expectedPath, std::string_view altPrefix) {
     if (exePath.empty() || expectedPath.empty()) {

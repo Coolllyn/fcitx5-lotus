@@ -17,7 +17,7 @@
 
 #include "emoji-entry.h"
 #include "key_processor.h"
-#include "lotus-protocol.h"
+#include "common-protocol.h"
 #include "lotus-utils.h"
 
 #include <chrono>

@@ -9,9 +9,10 @@
 #include "lotus-abstract-socket.h"
 #include "lotus-server.h"
 #include "lotus-logger.h"
-#include "../src/lotus-executable-path.h"
-#include "../src/lotus-fd-guard.h"
-#include "../src/lotus-protocol.h"
+#include "common-executable-path.h"
+#include "common-fd-guard.h"
+#include "common-protocol.h"
+#include "common-socket-name.h"
 
 #include <algorithm>
 #include <array>
@@ -232,8 +233,9 @@ int main(int argc, char* argv[]) {
     boost_process_priority();
     pin_to_pcore();
 
-    const AbstractSocket kb_socket    = makeAbstractSocket("lotussocket-" + target_user + "-kb_socket");
-    const AbstractSocket mouse_socket = makeAbstractSocket("lotussocket-" + target_user + "-mouse_socket");
+    const std::string    socket_namespace = lotusSocketNamespace(target_user);
+    const AbstractSocket kb_socket        = makeAbstractSocket("lotussocket-" + socket_namespace + "-kb_socket");
+    const AbstractSocket mouse_socket     = makeAbstractSocket("lotussocket-" + socket_namespace + "-mouse_socket");
 
     // Setup Uinput
     UinputDevice uinput;

@@ -6,8 +6,9 @@
  *
  */
 #include "lotus-utils.h"
-#include "lotus-fd-guard.h"
+#include "common-fd-guard.h"
 #include "lotus-config.h"
+#include "common-socket-name.h"
 
 #include <cstddef>
 #include <cstring>
@@ -52,7 +53,7 @@ std::string buildSocketPath(std::string_view base_path_suffix) {
     std::string path;
     path.reserve(32);
     path += "lotussocket-";
-    path += username;
+    path += lotusSocketNamespace(username);
     path += '-';
     path += base_path_suffix;
     const size_t max_socket_path_length = UNIX_PATH_MAX - 1;

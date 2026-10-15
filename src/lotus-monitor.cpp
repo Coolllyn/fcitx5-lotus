@@ -5,8 +5,8 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
  */
-#include "lotus-executable-path.h"
-#include "lotus-fd-guard.h"
+#include "common-executable-path.h"
+#include "common-fd-guard.h"
 #include "lotus-monitor.h"
 #include "lotus-utils.h"
 

@@ -6,8 +6,8 @@
  *
  */
 
-#ifndef _LOTUS_PROTOCOL_H_
-#define _LOTUS_PROTOCOL_H_
+#ifndef _COMMON_PROTOCOL_H_
+#define _COMMON_PROTOCOL_H_
 
 #include <cstddef>
 #include <cstdint>
@@ -31,4 +31,4 @@ struct KbMsg {
     uint32_t post_delay; ///< ms to wait BEFORE sending the final trigger key (to let DOM expand selection)
 };
 
-#endif // _LOTUS_PROTOCOL_H_
+#endif // _COMMON_PROTOCOL_H_

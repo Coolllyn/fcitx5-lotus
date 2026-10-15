@@ -7,7 +7,7 @@
  *
  */
 #include "lotus-state.h"
-#include "lotus-fd-guard.h"
+#include "common-fd-guard.h"
 #include "lotus-engine.h"
 #include "lotus-candidates.h"
 #include "lotus-fcitx-text.h"

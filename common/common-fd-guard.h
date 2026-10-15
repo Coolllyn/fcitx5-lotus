@@ -7,15 +7,15 @@
  */
 
 /**
- * @file lotus-fd-guard.h
+ * @file common-fd-guard.h
  * @brief RAII wrapper for Unix file descriptors, shared by the addon and the uinput server.
  *
- * Header-only because the addon and the server are two separate targets: the server includes it
- * relatively (like lotus-protocol.h) and does not link the addon core.
+ * Header-only because the addon and the server are two separate targets that both include it from
+ * common/, and the server must not link the addon core.
  */
 
-#ifndef _LOTUS_FD_GUARD_H_
-#define _LOTUS_FD_GUARD_H_
+#ifndef _COMMON_FD_GUARD_H_
+#define _COMMON_FD_GUARD_H_
 
 #include <unistd.h>
 
@@ -108,4 +108,4 @@ class FdGuard {
     int fd_;
 };
 
-#endif // _LOTUS_FD_GUARD_H_
+#endif // _COMMON_FD_GUARD_H_

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(fcitx5-lotus VERSION 5.0.2)
+project(fcitx5-lotus VERSION 5.0.3)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(BUILD_TESTING "Build Lotus tests" OFF)
 
@@ -25,10 +25,12 @@ include(FeatureSummary)
 include(GNUInstallDirs)
 include(ECMUninstallTarget)
 
+find_package(PkgConfig REQUIRED)
 find_package(Fcitx5Core ${REQUIRED_FCITX_VERSION} REQUIRED)
 find_package(Fcitx5ModuleEmoji REQUIRED)
 find_package(Pthread REQUIRED)
 find_package(Gettext REQUIRED)
+pkg_check_modules(LIBEVDEV REQUIRED IMPORTED_TARGET libevdev)
 
 include("${FCITX_INSTALL_CMAKECONFIG_DIR}/Fcitx5Utils/Fcitx5CompilerSettings.cmake")
 
@@ -56,10 +58,7 @@ set(LOTUS_ALT_EXECUTABLE_PREFIX "" CACHE STRING
 set(LOTUS_SETFACL_EXECUTABLE "/usr/bin/setfacl" CACHE FILEPATH
     "setfacl used by the udev rule and the service units")
 
-add_library(lotus_executable_path OBJECT src/lotus-executable-path.cpp)
-set_target_properties(lotus_executable_path PROPERTIES POSITION_INDEPENDENT_CODE ON)
-target_include_directories(lotus_executable_path PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
-
+add_subdirectory(common)
 add_subdirectory(po)
 add_subdirectory(lotus)
 add_subdirectory(src)

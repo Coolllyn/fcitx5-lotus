@@ -5,7 +5,7 @@
  *        path matches exactly, or (when a prefix is configured) matches <prefix>*bin/<name>.
  */
 
-#include "lotus-executable-path.h"
+#include "common-executable-path.h"
 
 #include <iostream>
 #include <string>

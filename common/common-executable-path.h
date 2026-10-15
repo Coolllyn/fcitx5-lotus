@@ -6,16 +6,16 @@
  */
 
 /**
- * @file lotus-executable-path.h
+ * @file common-executable-path.h
  * @brief Peer executable path checks shared by the addon and the uinput server.
  */
 
-#ifndef _LOTUS_EXECUTABLE_PATH_H_
-#define _LOTUS_EXECUTABLE_PATH_H_
+#ifndef _COMMON_EXECUTABLE_PATH_H_
+#define _COMMON_EXECUTABLE_PATH_H_
 
 #include <string_view>
 
-#include "lotus-export.h"
+#include "common-export.h"
 
 /**
  * @brief Checks whether a peer executable may act as the expected program.
@@ -27,4 +27,4 @@
 // LOTUS_EXPORT: also read by the headless tests through lotus_test_core.
 bool LOTUS_EXPORT isAllowedExecutablePath(std::string_view exePath, std::string_view expectedPath, std::string_view altPrefix);
 
-#endif // _LOTUS_EXECUTABLE_PATH_H_
+#endif // _COMMON_EXECUTABLE_PATH_H_

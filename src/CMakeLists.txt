@@ -5,6 +5,7 @@ set_target_properties(lotus_core_objects PROPERTIES POSITION_INDEPENDENT_CODE ON
 target_include_directories(lotus_core_objects PRIVATE
     ${PROJECT_BINARY_DIR}
     ${PROJECT_SOURCE_DIR}/src
+    ${PROJECT_SOURCE_DIR}/common
 )
 target_compile_definitions(lotus_core_objects PRIVATE
     FCITX5_LOTUS_SETTINGS_PATH="${CMAKE_INSTALL_FULL_BINDIR}/fcitx5-lotus-settings"
@@ -44,11 +45,11 @@ endif()
 
 add_library(lotus MODULE lotus.cpp
     $<TARGET_OBJECTS:lotus_core_objects>
-    $<TARGET_OBJECTS:lotus_executable_path>
 )
 set_target_properties(lotus PROPERTIES OUTPUT_NAME "lotus")
 set_target_properties(lotus PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_link_libraries(lotus
+        lotus_common_executable_path
         Fcitx5::Core
         Fcitx5::Config
   Fcitx5::Module::Emoji

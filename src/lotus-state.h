@@ -17,7 +17,7 @@
 
 #include "emoji-entry.h"
 #include "key_processor.h"
-#include "lotus-protocol.h"
+#include "common-protocol.h"
 #include "lotus-utils.h"
 
 #include <chrono>
@@ -101,8 +101,8 @@ namespace fcitx {
       private:
         static constexpr size_t               MAX_BUFFERED_KEYS = 50;
 
-        LotusEngine*                          engine_;
-        InputContext*                         ic_;
+        LotusEngine&                          engine_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+        InputContext&                         ic_;     // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
         std::shared_ptr<lotus::KeyProcessor>  lotusEngine_;
         std::u32string                        oldPreBuffer_;
         bool                                  hasHistory_              = false;
@@ -271,18 +271,16 @@ namespace fcitx {
 
         /**
          * @brief Performs text replacement via uinput.
-         * @param deletedPart UTF-32 text to delete.
-         * @param addedPart UTF-32 text to insert.
+         * @param diffPart pairs of deleted part and added part
          */
-        void performReplacement(const std::u32string& deletedPart, const std::u32string& addedPart);
+        void performReplacement(DiffPart diffPart);
 
         /**
          * @brief Replaces the last character, either through surrounding text or through uinput.
-         * @param deleted UTF-32 text to delete.
-         * @param added UTF-32 text to insert.
+         * @param diff pairs of deleted part and added part
          * @param logMsg Message to log once the replacement is issued.
          */
-        void commitOrReplace(const std::u32string& deleted, const std::u32string& added, const std::string& logMsg);
+        void commitOrReplace(DiffPart diffPart, const std::string& logMsg);
 
         /**
          * @brief Forwards special keys (cursor move, Tab, Escape, modifiers) and reports

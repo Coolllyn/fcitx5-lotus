@@ -6,8 +6,9 @@
  *
  */
 #include "lotus-utils.h"
-#include "lotus-fd-guard.h"
+#include "common-fd-guard.h"
 #include "lotus-config.h"
+#include "common-socket-name.h"
 
 #include <cstddef>
 #include <cstring>
@@ -52,7 +53,7 @@ std::string buildSocketPath(std::string_view base_path_suffix) {
     std::string path;
     path.reserve(32);
     path += "lotussocket-";
-    path += username;
+    path += lotusSocketNamespace(username);
     path += '-';
     path += base_path_suffix;
     const size_t max_socket_path_length = UNIX_PATH_MAX - 1;
@@ -109,17 +110,10 @@ bool isUinputMode(fcitx::LotusMode mode) {
     return std::ranges::find(modes, mode) != modes.end();
 }
 
-int compareAndSplitU32(std::u32string_view A, std::u32string_view B, std::u32string& deletedPart, std::u32string& addedPart) {
-    size_t i = 0;
-    size_t j = 0;
-    while (i < A.size() && j < B.size() && A[i] == B[j]) {
-        ++i;
-        ++j;
-    }
-
-    deletedPart.assign(A, i, std::u32string_view::npos);
-    addedPart.assign(B, j, std::u32string_view::npos);
-    return (deletedPart.empty() && addedPart.empty()) ? 1 : 2;
+DiffPart compareAndSplitU32(std::u32string_view A, std::u32string_view B) {
+    auto [itA, itB] = std::ranges::mismatch(A, B);
+    size_t offset   = std::distance(A.begin(), itA);
+    return {.deletedPart = A.substr(offset), .addedPart = B.substr(offset)};
 }
 
 std::string getFrontendName(fcitx::InputContext* ic) {

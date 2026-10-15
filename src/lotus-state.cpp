@@ -7,7 +7,7 @@
  *
  */
 #include "lotus-state.h"
-#include "lotus-fd-guard.h"
+#include "common-fd-guard.h"
 #include "lotus-engine.h"
 #include "lotus-candidates.h"
 #include "lotus-fcitx-text.h"
@@ -43,25 +43,25 @@ namespace fcitx {
         return ucs4 == ' ' || ucs4 == '\t' || ucs4 == '\n' || ucs4 == '\r' || ucs4 == 0 || (ucs4 >= 58 && ucs4 <= 64);
     }
 
-    LotusState::LotusState(LotusEngine* engine, InputContext* ic) : engine_(engine), ic_(ic) {
+    LotusState::LotusState(LotusEngine* engine, InputContext* ic) : engine_(*engine), ic_(*ic) {
         setEngine();
     }
 
     void LotusState::setEngine() {
         lotusEngine_ = nullptr;
 
-        if (engine_->config().inputMethod.value() == lotus::InputMethodId::Custom) {
+        if (engine_.config().inputMethod.value() == lotus::InputMethodId::Custom) {
             std::unordered_map<std::string, std::string> definition;
-            for (const auto& keymap : *engine_->customKeymap().customKeymap) {
+            for (const auto& keymap : *engine_.customKeymap().customKeymap) {
                 definition.emplace(*keymap.key, *keymap.value);
             }
             // Go's NewCustomEngine parsed the custom definition and left spell checking off.
             lotusEngine_ = std::make_shared<lotus::KeyProcessor>(lotus::parseInputMethod(definition), false);
         } else {
-            lotusEngine_ = std::make_shared<lotus::KeyProcessor>(lotus::cachedInputMethod(engine_->config().inputMethod.value()), true);
+            lotusEngine_ = std::make_shared<lotus::KeyProcessor>(lotus::cachedInputMethod(engine_.config().inputMethod.value()), true);
         }
-        lotusEngine_->setMacroTable(engine_->macroTable());
-        lotusEngine_->setDictionary(engine_->dictionary());
+        lotusEngine_->setMacroTable(engine_.macroTable());
+        lotusEngine_->setDictionary(engine_.dictionary());
         setOption();
         resetMacroSkip();
     }
@@ -70,18 +70,18 @@ namespace fcitx {
         if (!lotusEngine_)
             return;
         lotus::Options option = {
-            .autoNonVnRestore    = *engine_->config().autoNonVnRestore,
-            .ddFreeStyle         = *engine_->config().ddFreeStyle,
-            .macroEnabled        = *engine_->config().enableMacro,
-            .autoCapitalizeMacro = *engine_->config().capitalizeMacro,
-            .spellCheckWithDicts = *engine_->config().spellCheck,
-            .modernStyle         = *engine_->config().modernStyle,
-            .freeMarking         = *engine_->config().freeMarking,
-            .outputCharset       = *engine_->config().outputCharset,
-            .w2u                 = *engine_->config().w2u,
-            .bracketTransform    = *engine_->config().bracketTransform,
-            .timeFormat          = *engine_->config().timeFormat,
-            .dateFormat          = *engine_->config().dateFormat,
+            .autoNonVnRestore    = *engine_.config().autoNonVnRestore,
+            .ddFreeStyle         = *engine_.config().ddFreeStyle,
+            .macroEnabled        = *engine_.config().enableMacro,
+            .autoCapitalizeMacro = *engine_.config().capitalizeMacro,
+            .spellCheckWithDicts = *engine_.config().spellCheck,
+            .modernStyle         = *engine_.config().modernStyle,
+            .freeMarking         = *engine_.config().freeMarking,
+            .outputCharset       = *engine_.config().outputCharset,
+            .w2u                 = *engine_.config().w2u,
+            .bracketTransform    = *engine_.config().bracketTransform,
+            .timeFormat          = *engine_.config().timeFormat,
+            .dateFormat          = *engine_.config().dateFormat,
         };
 
         lotusEngine_->setOptions(option);
@@ -144,17 +144,16 @@ namespace fcitx {
             return false;
         }
 
-        auto                 textRange = fcitx::utf8::MakeUTF8CharRange(s.text());
-        std::u32string       u32Text(textRange.begin(), textRange.end());
-        const std::u32string u32OldPreBuffer = oldPreBuffer_;
+        auto               textRange = fcitx::utf8::MakeUTF8CharRange(s.text());
+        std::u32string     u32Text(textRange.begin(), textRange.end());
 
-        const unsigned int   cursor  = s.cursor();
-        const unsigned int   anchor  = s.anchor();
-        const size_t         textLen = u32Text.length();
+        const unsigned int cursor  = s.cursor();
+        const unsigned int anchor  = s.anchor();
+        const size_t       textLen = u32Text.length();
 
         // Fix that surrounding text is delay update
-        const size_t buffLen    = u32OldPreBuffer.length();
-        const size_t pb         = u32Text.find(u32OldPreBuffer);
+        const size_t buffLen    = oldPreBuffer_.length();
+        const size_t pb         = u32Text.find(oldPreBuffer_);
         size_t       rangeStart = static_cast<size_t>(cursor) >= buffLen ? static_cast<size_t>(cursor) - buffLen : 0;
         const bool   sameprefix = pb != std::u32string::npos && pb >= rangeStart && pb <= static_cast<size_t>(cursor);
 
@@ -198,18 +197,18 @@ namespace fcitx {
         if (lotusEngine_->processKey(engineKeyValue(currentSym), lotus::keyStatesFromBits(static_cast<uint32_t>(keyEvent.rawKey().states()))))
             keyEvent.filterAndAccept();
         const std::u32string commitText = pullCommitString();
-        lotus::fcitx_text::commit(ic_, commitText, last_commit_time_);
-        ic_->inputPanel().reset();
+        lotus::fcitx_text::commit(&ic_, commitText, last_commit_time_);
+        ic_.inputPanel().reset();
         const std::u32string preeditText = pullPreeditString();
         if (!preeditText.empty()) {
             Text text = lotus::fcitx_text::toText(preeditText);
-            if (ic_->capabilityFlags().test(CapabilityFlag::Preedit))
-                ic_->inputPanel().setClientPreedit(text);
+            if (ic_.capabilityFlags().test(CapabilityFlag::Preedit))
+                ic_.inputPanel().setClientPreedit(text);
             else
-                ic_->inputPanel().setPreedit(text);
+                ic_.inputPanel().setPreedit(text);
         }
-        ic_->updatePreedit();
-        ic_->updateUserInterface(UserInterfaceComponent::InputPanel);
+        ic_.updatePreedit();
+        ic_.updateUserInterface(UserInterfaceComponent::InputPanel);
     }
 
     void LotusState::updateEmojiPageStatus(CommonCandidateList* commonList) {
@@ -227,7 +226,7 @@ namespace fcitx {
         int         totalPages  = (totalItems + pageSize - 1) / pageSize;
 
         std::string status = _("Page ") + std::to_string(currentPage) + "/" + std::to_string(totalPages);
-        ic_->inputPanel().setAuxDown(Text(status));
+        ic_.inputPanel().setAuxDown(Text(status));
     }
 
     void LotusState::handleEmojiMode(KeyEvent& keyEvent) {
@@ -239,14 +238,14 @@ namespace fcitx {
             return;
         }
 
-        auto baseList   = ic_->inputPanel().candidateList();
+        auto baseList   = ic_.inputPanel().candidateList();
         auto commonList = std::dynamic_pointer_cast<CommonCandidateList>(baseList);
         if (commonList && currentSym >= FcitxKey_1 && currentSym <= FcitxKey_9) {
             int offset      = currentSym - FcitxKey_1;
             int globalIndex = (commonList->currentPage() * commonList->pageSize()) + offset;
 
             if (globalIndex < commonList->totalSize()) {
-                commonList->candidateFromAll(globalIndex).select(ic_);
+                commonList->candidateFromAll(globalIndex).select(&ic_);
                 keyEvent.filterAndAccept();
                 return;
             }
@@ -309,7 +308,7 @@ namespace fcitx {
 
             if (handled) {
                 updateEmojiPageStatus(commonList.get());
-                ic_->updateUserInterface(UserInterfaceComponent::InputPanel);
+                ic_.updateUserInterface(UserInterfaceComponent::InputPanel);
                 keyEvent.filterAndAccept();
                 return;
             }
@@ -335,10 +334,10 @@ namespace fcitx {
             case FcitxKey_Return: {
                 if (commonList && !commonList->empty()) {
                     int globalIdx = commonList->globalCursorIndex();
-                    commonList->candidateFromAll(globalIdx).select(ic_);
+                    commonList->candidateFromAll(globalIdx).select(&ic_);
                     keyEvent.filterAndAccept();
                 } else if (currentSym == FcitxKey_Return && !emojiBuffer_.empty()) {
-                    lotus::fcitx_text::commit(ic_, emojiBuffer_, last_commit_time_);
+                    lotus::fcitx_text::commit(&ic_, emojiBuffer_, last_commit_time_);
                     emojiBuffer_.clear();
                     updateEmojiPreedit();
                     keyEvent.filterAndAccept();
@@ -351,8 +350,8 @@ namespace fcitx {
             case FcitxKey_Escape: {
                 emojiBuffer_.clear();
                 emojiCandidates_.clear();
-                ic_->inputPanel().reset();
-                ic_->updateUserInterface(UserInterfaceComponent::InputPanel);
+                ic_.inputPanel().reset();
+                ic_.updateUserInterface(UserInterfaceComponent::InputPanel);
                 keyEvent.filterAndAccept();
                 return;
             }
@@ -373,28 +372,28 @@ namespace fcitx {
     }
     void LotusState::updateEmojiPreedit() {
         if (emojiBuffer_.empty()) {
-            emojiCandidates_ = engine_->emojiLoader().history();
+            emojiCandidates_ = engine_.emojiLoader().history();
             if (emojiCandidates_.empty()) {
-                ic_->inputPanel().reset();
-                ic_->updatePreedit();
-                ic_->updateUserInterface(UserInterfaceComponent::InputPanel);
+                ic_.inputPanel().reset();
+                ic_.updatePreedit();
+                ic_.updateUserInterface(UserInterfaceComponent::InputPanel);
                 return;
             }
         } else {
-            emojiCandidates_ = engine_->emojiLoader().search(lotus::utf8::encode(emojiBuffer_));
+            emojiCandidates_ = engine_.emojiLoader().search(lotus::utf8::encode(emojiBuffer_));
         }
 
         if (!emojiBuffer_.empty()) {
             Text preeditText;
             preeditText.append(lotus::utf8::encode(emojiBuffer_), TextFormatFlag::Underline);
             preeditText.setCursor(static_cast<int>(preeditText.textLength()));
-            if (ic_->capabilityFlags().test(CapabilityFlag::Preedit))
-                ic_->inputPanel().setClientPreedit(preeditText);
+            if (ic_.capabilityFlags().test(CapabilityFlag::Preedit))
+                ic_.inputPanel().setClientPreedit(preeditText);
             else
-                ic_->inputPanel().setPreedit(preeditText);
+                ic_.inputPanel().setPreedit(preeditText);
         } else {
-            ic_->inputPanel().setClientPreedit(Text());
-            ic_->inputPanel().setPreedit(Text());
+            ic_.inputPanel().setClientPreedit(Text());
+            ic_.inputPanel().setPreedit(Text());
         }
 
         if (!emojiCandidates_.empty()) {
@@ -414,22 +413,22 @@ namespace fcitx {
             }
             candidateList->setGlobalCursorIndex(0);
 
-            ic_->inputPanel().setCandidateList(std::move(candidateList));
-            auto currentList = std::dynamic_pointer_cast<CommonCandidateList>(ic_->inputPanel().candidateList());
+            ic_.inputPanel().setCandidateList(std::move(candidateList));
+            auto currentList = std::dynamic_pointer_cast<CommonCandidateList>(ic_.inputPanel().candidateList());
             updateEmojiPageStatus(currentList.get());
         } else {
-            ic_->inputPanel().setCandidateList(nullptr);
+            ic_.inputPanel().setCandidateList(nullptr);
         }
 
-        ic_->updatePreedit();
-        ic_->updateUserInterface(UserInterfaceComponent::InputPanel);
+        ic_.updatePreedit();
+        ic_.updateUserInterface(UserInterfaceComponent::InputPanel);
     }
 
     void LotusState::finishReplacement(KeyEvent& event) {
         std::u32string commitText = std::move(pending_commit_string_);
         pending_commit_string_.clear();
 
-        lotus::fcitx_text::commit(ic_, commitText, last_commit_time_);
+        lotus::fcitx_text::commit(&ic_, commitText, last_commit_time_);
         expected_backspaces_     = 0;
         current_backspace_count_ = 0;
         event.filterAndAccept();
@@ -456,10 +455,10 @@ namespace fcitx {
         return true;
     }
 
-    void LotusState::performReplacement(const std::u32string& deletedPart, const std::u32string& addedPart) {
-        const int  commitMs = clampDelay(appRuleSetting_.commitInterval > 0 ? appRuleSetting_.commitInterval : *engine_->config().defaultCommitInterval);
+    void LotusState::performReplacement(DiffPart diffPart) {
+        const int  commitMs = clampDelay(appRuleSetting_.commitInterval > 0 ? appRuleSetting_.commitInterval : *engine_.config().defaultCommitInterval);
         const auto interval =
-            static_cast<uint32_t>(clampDelay(appRuleSetting_.backspaceInterval > 0 ? appRuleSetting_.backspaceInterval : *engine_->config().defaultBackspaceInterval));
+            static_cast<uint32_t>(clampDelay(appRuleSetting_.backspaceInterval > 0 ? appRuleSetting_.backspaceInterval : *engine_.config().defaultBackspaceInterval));
         uint32_t pre_delay = 0;
         if (last_commit_time_.time_since_epoch().count() > 0) {
             auto now       = std::chrono::steady_clock::now();
@@ -468,11 +467,11 @@ namespace fcitx {
                 pre_delay = static_cast<uint32_t>(commitMs - elapsedMs);
             }
         }
-        LOTUS_INFO("Perform replacement: " + lotus::utf8::encode(deletedPart) + " -> " + lotus::utf8::encode(addedPart)); //NOLINT
+        LOTUS_INFO("Perform replacement: " + lotus::utf8::encode(diffPart.deletedPart) + " -> " + lotus::utf8::encode(diffPart.addedPart)); //NOLINT
         current_backspace_count_       = 0;
-        pending_commit_string_         = addedPart;
-        expected_backspaces_           = deletedPart.size();
-        const auto& surrounding        = ic_->surroundingText();
+        pending_commit_string_         = diffPart.addedPart;
+        expected_backspaces_           = diffPart.deletedPart.size();
+        const auto& surrounding        = ic_.surroundingText();
         bool        isAutofillCertain_ = isAutofillCertain(surrounding);
         if (realMode != LotusMode::Minecraft) {
             ++expected_backspaces_;
@@ -489,7 +488,7 @@ namespace fcitx {
             }
         }
         is_deleting_.store(true, std::memory_order_release);
-        const auto post_delay = static_cast<uint32_t>(clampDelay(appRuleSetting_.postDelay > 0 ? appRuleSetting_.postDelay : *engine_->config().defaultPostDelay));
+        const auto post_delay = static_cast<uint32_t>(clampDelay(appRuleSetting_.postDelay > 0 ? appRuleSetting_.postDelay : *engine_.config().defaultPostDelay));
         // Select mode: the uinput server selects with Shift+Left instead. The
         // trigger-key compensation above still applies because the last echoed
         // Left is swallowed; autofill compensation does not, see above.
@@ -570,12 +569,12 @@ namespace fcitx {
         return false;
     }
 
-    void LotusState::commitOrReplace(const std::u32string& deleted, const std::u32string& added, const std::string& logMsg) {
+    void LotusState::commitOrReplace(DiffPart diffPart, const std::string& logMsg) {
         if (realMode == LotusMode::SurroundingText) {
-            ic_->deleteSurroundingText(-1, 1);
-            lotus::fcitx_text::commit(ic_, added, last_commit_time_);
+            ic_.deleteSurroundingText(-1, 1);
+            lotus::fcitx_text::commit(&ic_, diffPart.addedPart, last_commit_time_);
         } else { // Uinput, Smooth, Preedit, etc.
-            performReplacement(deleted, added);
+            performReplacement(diffPart);
         }
         LOTUS_INFO(logMsg);
     }
@@ -621,22 +620,20 @@ namespace fcitx {
 
         const std::u32string commitStr = pullCommitString();
         if (!commitStr.empty()) {
-            std::u32string deletedPart;
-            std::u32string addedPart;
-            compareAndSplitU32(oldPreBuffer_, commitStr, deletedPart, addedPart);
+            DiffPart diffPart = compareAndSplitU32(oldPreBuffer_, commitStr);
 
-            if (!deletedPart.empty()) {
-                performReplacement(deletedPart, addedPart);
+            if (!diffPart.deletedPart.empty()) {
+                performReplacement(diffPart);
                 keyEvent.filterAndAccept();
             } else {
                 bool wasAutoCapitalized = (currentSym != keyEvent.rawKey().sym());
-                if (!addedPart.empty() && (keyText != addedPart || wasAutoCapitalized)) {
+                if (!diffPart.addedPart.empty() && (keyText != diffPart.addedPart || wasAutoCapitalized)) {
                     // Prevent auto-capitalized character replacement from stripping out Vietnamese chars
-                    if (addedPart.size() > 1 && addedPart.back() == U' ') {
+                    if (diffPart.addedPart.size() > 1 && diffPart.addedPart.back() == U' ') {
                         // Stripping the trigger key (space) from addedPart
-                        addedPart.pop_back();
+                        diffPart.addedPart.remove_suffix(1);
                     }
-                    lotus::fcitx_text::commit(ic_, addedPart, last_commit_time_);
+                    lotus::fcitx_text::commit(&ic_, diffPart.addedPart, last_commit_time_);
                     keyEvent.filterAndAccept();
                 } else {
                     keyEvent.forward();
@@ -666,42 +663,38 @@ namespace fcitx {
 
         const std::u32string preeditStr = pullPreeditString();
 
-        std::u32string       deletedPart;
-        std::u32string       addedPart;
-
-        if (compareAndSplitU32(oldPreBuffer_, preeditStr, deletedPart, addedPart) != 0) {
-            if (deletedPart.empty()) {
-                bool isCommit           = false;
-                bool wasAutoCapitalized = (currentSym != keyEvent.rawKey().sym());
-                if (!addedPart.empty()) {
-                    oldPreBuffer_ = preeditStr;
-                    if (wasAutoCapitalized || addedPart != keyText) {
-                        lotus::fcitx_text::commit(ic_, addedPart, last_commit_time_);
-                        keyEvent.filterAndAccept();
-                        isCommit = true;
-                    }
-                }
-                if (!isCommit) {
-                    keyEvent.forward();
-                }
-            } else {
-                if (uinput_client_fd_ < 0) {
-                    LOTUS_ERROR("Cannot connect to uinput server, commit rawkey");
-                    std::string rawKey = keyEvent.key().toString();
-                    if (!rawKey.empty()) {
-                        ic_->commitString(rawKey);
-                    }
-                    return;
-                }
-
-                if (is_deleting_.load()) {
-                    is_deleting_.store(false, std::memory_order_release);
-                }
-
-                keyEvent.filterAndAccept();
-                performReplacement(deletedPart, addedPart);
+        DiffPart             diffPart = compareAndSplitU32(oldPreBuffer_, preeditStr);
+        if (diffPart.deletedPart.empty()) {
+            bool isCommit           = false;
+            bool wasAutoCapitalized = (currentSym != keyEvent.rawKey().sym());
+            if (!diffPart.addedPart.empty()) {
                 oldPreBuffer_ = preeditStr;
+                if (wasAutoCapitalized || diffPart.addedPart != keyText) {
+                    lotus::fcitx_text::commit(&ic_, diffPart.addedPart, last_commit_time_);
+                    keyEvent.filterAndAccept();
+                    isCommit = true;
+                }
             }
+            if (!isCommit) {
+                keyEvent.forward();
+            }
+        } else {
+            if (uinput_client_fd_ < 0) {
+                LOTUS_ERROR("Cannot connect to uinput server, commit rawkey");
+                std::string rawKey = keyEvent.key().toString();
+                if (!rawKey.empty()) {
+                    ic_.commitString(rawKey);
+                }
+                return;
+            }
+
+            if (is_deleting_.load()) {
+                is_deleting_.store(false, std::memory_order_release);
+            }
+
+            keyEvent.filterAndAccept();
+            performReplacement(diffPart);
+            oldPreBuffer_ = preeditStr;
         }
     }
 
@@ -785,24 +778,22 @@ namespace fcitx {
             std::u32string newWord = pullCommitString();
             newWord += pullPreeditString();
 
-            std::u32string deletedPart;
-            std::u32string addedPart;
-            compareAndSplitU32(oldWord, newWord, deletedPart, addedPart);
-            if ((deletedPart.empty() || deletedPart == oldWord) && addedPart == lotus::utf8::decode(keyEvent.key().toString())) {
+            DiffPart diffPart = compareAndSplitU32(oldWord, newWord);
+            if ((diffPart.deletedPart.empty() || diffPart.deletedPart == oldWord) && diffPart.addedPart == lotus::utf8::decode(keyEvent.key().toString())) {
                 (*lotusEngine_).reset();
                 keyEvent.forward();
                 return;
             }
 
-            if (!deletedPart.empty() || !addedPart.empty()) {
-                const size_t charsToDelete = deletedPart.size();
+            if (!diffPart.deletedPart.empty() || !diffPart.addedPart.empty()) {
+                const size_t charsToDelete = diffPart.deletedPart.size();
 
                 if (charsToDelete > 0) {
                     ic->deleteSurroundingText(-static_cast<int>(charsToDelete), static_cast<int>(charsToDelete));
                 }
 
-                if (!addedPart.empty()) {
-                    lotus::fcitx_text::commit(ic, addedPart, last_commit_time_);
+                if (!diffPart.addedPart.empty()) {
+                    lotus::fcitx_text::commit(ic, diffPart.addedPart, last_commit_time_);
                 }
 
                 (*lotusEngine_).reset();
@@ -836,17 +827,15 @@ namespace fcitx {
     }
 
     void LotusState::handleDoubleSpaceReplacement() {
-        commitOrReplace(U" ", U". ", "Commit: . ");
-        if (*engine_->config().autoCapitalizeAfterPunctuation) {
+        commitOrReplace({.deletedPart = U" ", .addedPart = U". "}, "Commit: . ");
+        if (*engine_.config().autoCapitalizeAfterPunctuation) {
             isPrevPunctuation_ = true;
             shouldCapitalize_  = true;
         }
     }
 
     void LotusState::handleDoubleHyphenReplacement() {
-        // Em-dash (U+2014)
-        const std::u32string emDash = U"—";
-        commitOrReplace(U"-", emDash, "Commit: — (em-dash)");
+        commitOrReplace({.deletedPart = U"-", .addedPart = U"—"}, "Commit: — (em-dash)");
     }
 
     void LotusState::handleOffModeMacro(KeyEvent& keyEvent, KeySym currentSym) {
@@ -893,20 +882,20 @@ namespace fcitx {
                 LOTUS_INFO("Macro expansion: '" + lotus::utf8::encode(oldPreBuffer_) + "' -> '" + lotus::utf8::encode(commitStr) + "'");
                 // Try uinput replacement first, fallback to deleteSurroundingText, then plain commit
                 if (uinput_client_fd_ >= 0 && !oldPreBuffer_.empty()) {
-                    performReplacement(oldPreBuffer_, commitStr);
-                } else if (ic_->capabilityFlags().test(CapabilityFlag::SurroundingText)) {
-                    const auto& surrounding = ic_->surroundingText();
+                    performReplacement({.deletedPart = oldPreBuffer_, .addedPart = commitStr});
+                } else if (ic_.capabilityFlags().test(CapabilityFlag::SurroundingText)) {
+                    const auto& surrounding = ic_.surroundingText();
                     if (surrounding.isValid()) {
                         const size_t oldLen = oldPreBuffer_.size();
                         if (oldLen > 0) {
-                            ic_->deleteSurroundingText(-static_cast<int>(oldLen), static_cast<int>(oldLen));
+                            ic_.deleteSurroundingText(-static_cast<int>(oldLen), static_cast<int>(oldLen));
                         }
-                        lotus::fcitx_text::commit(ic_, commitStr, last_commit_time_);
+                        lotus::fcitx_text::commit(&ic_, commitStr, last_commit_time_);
                     } else {
-                        lotus::fcitx_text::commit(ic_, commitStr, last_commit_time_);
+                        lotus::fcitx_text::commit(&ic_, commitStr, last_commit_time_);
                     }
                 } else {
-                    lotus::fcitx_text::commit(ic_, commitStr, last_commit_time_);
+                    lotus::fcitx_text::commit(&ic_, commitStr, last_commit_time_);
                 }
                 keyEvent.filterAndAccept();
             } else {
@@ -1003,7 +992,7 @@ namespace fcitx {
     }
 
     void LotusState::applyAutoCapitalize(KeyEvent& keyEvent, KeySym& currentSym) {
-        if (*engine_->config().autoCapitalizeAfterPunctuation && realMode != LotusMode::Off) {
+        if (*engine_.config().autoCapitalizeAfterPunctuation && realMode != LotusMode::Off) {
             // Ignore auto-capitalize side-effects if we're processing automated replacement backspaces
             bool isAutomatedBackspace = is_deleting_.load(std::memory_order_acquire) && isBackspace(currentSym);
 
@@ -1083,7 +1072,7 @@ namespace fcitx {
     }
 
     bool LotusState::handleDoubleSpaceToPeriod(KeyEvent& keyEvent, KeySym currentSym) {
-        if (*engine_->config().doubleSpaceToPeriod && realMode != LotusMode::Off) {
+        if (*engine_.config().doubleSpaceToPeriod && realMode != LotusMode::Off) {
             bool isSpaceKey = (currentSym == FcitxKey_space || currentSym == FcitxKey_KP_Space);
             if (isSpaceKey && !keyEvent.key().hasModifier()) {
                 if (isPrevSpace_) {
@@ -1101,7 +1090,7 @@ namespace fcitx {
     }
 
     bool LotusState::handleDoubleHyphenToEmDash(KeyEvent& keyEvent, KeySym currentSym) {
-        if (*engine_->config().doubleHyphenToEmDash && realMode != LotusMode::Off) {
+        if (*engine_.config().doubleHyphenToEmDash && realMode != LotusMode::Off) {
             bool isHyphenKey = (currentSym == FcitxKey_minus || currentSym == FcitxKey_KP_Subtract);
             if (isHyphenKey && !keyEvent.key().hasModifier()) {
                 if (isPrevHyphen_) {
@@ -1140,7 +1129,7 @@ namespace fcitx {
                 break;
             }
             default: {
-                if (*engine_->config().enableMacroInOffMode && *engine_->config().enableMacro) {
+                if (*engine_.config().enableMacroInOffMode && *engine_.config().enableMacro) {
                     handleOffModeMacro(keyEvent, currentSym);
                 }
                 break;
@@ -1149,7 +1138,7 @@ namespace fcitx {
     }
 
     void LotusState::reset(bool isFocusOut) {
-        const auto& surrounding = ic_->surroundingText();
+        const auto& surrounding = ic_.surroundingText();
         const auto& text        = surrounding.text();
         size_t      textLen     = utf8::length(text);
         realtextLen.store(textLen, std::memory_order_release);
@@ -1167,21 +1156,21 @@ namespace fcitx {
                 (*lotusEngine_).commitPreedit();
                 const std::u32string commitText = pullCommitString();
                 if (!commitText.empty()) {
-                    lotus::fcitx_text::commit(ic_, commitText, last_commit_time_);
+                    lotus::fcitx_text::commit(&ic_, commitText, last_commit_time_);
                 }
             }
             (*lotusEngine_).reset();
             oldPreBuffer_.clear();
             hasHistory_ = false;
         }
-        if (getFrontendName(ic_) != "dbus")
+        if (getFrontendName(&ic_) != "dbus")
             clearAllBuffers();
 
         switch (realMode) {
             case LotusMode::Preedit: {
-                ic_->inputPanel().reset();
-                ic_->updateUserInterface(UserInterfaceComponent::InputPanel);
-                ic_->updatePreedit();
+                ic_.inputPanel().reset();
+                ic_.updateUserInterface(UserInterfaceComponent::InputPanel);
+                ic_.updatePreedit();
                 break;
             }
             case LotusMode::SurroundingText:
@@ -1189,13 +1178,13 @@ namespace fcitx {
             case LotusMode::Minecraft:
             case LotusMode::SuperSmooth:
             case LotusMode::Select: {
-                ic_->inputPanel().reset();
+                ic_.inputPanel().reset();
                 break;
             }
             case LotusMode::Emoji: {
-                ic_->inputPanel().reset();
-                ic_->updateUserInterface(UserInterfaceComponent::InputPanel);
-                ic_->updatePreedit();
+                ic_.inputPanel().reset();
+                ic_.updateUserInterface(UserInterfaceComponent::InputPanel);
+                ic_.updatePreedit();
                 break;
             }
             default: {
@@ -1207,15 +1196,15 @@ namespace fcitx {
     void LotusState::commitBuffer() {
         switch (realMode) {
             case LotusMode::Preedit: {
-                ic_->inputPanel().reset();
+                ic_.inputPanel().reset();
                 if (lotusEngine_) {
                     (*lotusEngine_).commitPreedit();
                     const std::u32string commitText = pullCommitString();
-                    lotus::fcitx_text::commit(ic_, commitText, last_commit_time_);
+                    lotus::fcitx_text::commit(&ic_, commitText, last_commit_time_);
                     (*lotusEngine_).reset();
                 }
-                ic_->updateUserInterface(UserInterfaceComponent::InputPanel);
-                ic_->updatePreedit();
+                ic_.updateUserInterface(UserInterfaceComponent::InputPanel);
+                ic_.updatePreedit();
                 break;
             }
             case LotusMode::Smooth:
@@ -1282,25 +1271,23 @@ namespace fcitx {
 
             const std::u32string commitStr = pullCommitString();
             if (!commitStr.empty()) {
-                std::u32string deletedPart;
-                std::u32string addedPart;
-                compareAndSplitU32(oldPreBuffer_, commitStr, deletedPart, addedPart);
+                DiffPart diffPart = compareAndSplitU32(oldPreBuffer_, commitStr);
 
-                if (!deletedPart.empty()) {
+                if (!diffPart.deletedPart.empty()) {
                     // Re-buffer remaining keys for next replay cycle.
                     for (size_t j = i + 1; j < keys.size(); ++j) {
                         if (buffered_keys_.size() < MAX_BUFFERED_KEYS) {
                             buffered_keys_.push_back(keys[j]);
                         }
                     }
-                    performReplacement(deletedPart, addedPart);
+                    performReplacement(diffPart);
                     hasHistory_ = false;
                     (*lotusEngine_).reset();
                     oldPreBuffer_.clear();
                     return;
                 }
-                if (!addedPart.empty()) {
-                    lotus::fcitx_text::commit(ic_, addedPart, last_commit_time_);
+                if (!diffPart.addedPart.empty()) {
+                    lotus::fcitx_text::commit(&ic_, diffPart.addedPart, last_commit_time_);
                 }
 
                 hasHistory_ = false;
@@ -1310,7 +1297,7 @@ namespace fcitx {
             }
 
             if (!processed) {
-                lotus::fcitx_text::commit(ic_, keyText, last_commit_time_);
+                lotus::fcitx_text::commit(&ic_, keyText, last_commit_time_);
                 continue;
             }
 
@@ -1319,41 +1306,38 @@ namespace fcitx {
 
             const std::u32string preeditStr = pullPreeditString();
 
-            std::u32string       deletedPart;
-            std::u32string       addedPart;
-            if (compareAndSplitU32(oldPreBuffer_, preeditStr, deletedPart, addedPart) != 0) {
-                if (deletedPart.empty()) {
-                    if (!addedPart.empty()) {
-                        lotus::fcitx_text::commit(ic_, addedPart, last_commit_time_);
-                        oldPreBuffer_ = preeditStr;
-                    }
-                } else {
-                    if (uinput_client_fd_ < 0) {
-                        lotus::fcitx_text::commit(ic_, keyText, last_commit_time_);
-                        continue;
-                    }
-
-                    if (is_deleting_.load()) {
-                        is_deleting_.store(false, std::memory_order_release);
-                    }
-
-                    // Re-buffer remaining keys for next replay cycle.
-                    for (size_t j = i + 1; j < keys.size(); ++j) {
-                        if (buffered_keys_.size() < MAX_BUFFERED_KEYS) {
-                            buffered_keys_.push_back(keys[j]);
-                        }
-                    }
-                    performReplacement(deletedPart, addedPart);
+            DiffPart             diffPart = compareAndSplitU32(oldPreBuffer_, preeditStr);
+            if (diffPart.deletedPart.empty()) {
+                if (!diffPart.addedPart.empty()) {
+                    lotus::fcitx_text::commit(&ic_, diffPart.addedPart, last_commit_time_);
                     oldPreBuffer_ = preeditStr;
-                    return;
                 }
+            } else {
+                if (uinput_client_fd_ < 0) {
+                    lotus::fcitx_text::commit(&ic_, keyText, last_commit_time_);
+                    continue;
+                }
+
+                if (is_deleting_.load()) {
+                    is_deleting_.store(false, std::memory_order_release);
+                }
+
+                // Re-buffer remaining keys for next replay cycle.
+                for (size_t j = i + 1; j < keys.size(); ++j) {
+                    if (buffered_keys_.size() < MAX_BUFFERED_KEYS) {
+                        buffered_keys_.push_back(keys[j]);
+                    }
+                }
+                performReplacement(diffPart);
+                oldPreBuffer_ = preeditStr;
+                return;
             }
         }
         LOTUS_INFO("Replay buffered keys done");
     }
 
     bool LotusState::isMacroSkipModifier(KeySym sym) const {
-        const auto trigger = engine_->config().macroSkipTriggerModifier.value();
+        const auto trigger = engine_.config().macroSkipTriggerModifier.value();
         switch (trigger) {
             case MacroSkipTriggerModifier::Shift: return sym == FcitxKey_Shift_L || sym == FcitxKey_Shift_R;
             case MacroSkipTriggerModifier::Ctrl: return sym == FcitxKey_Control_L || sym == FcitxKey_Control_R;
@@ -1364,8 +1348,8 @@ namespace fcitx {
     }
 
     void LotusState::handleModifierTap(const KeyEvent& keyEvent) {
-        const auto trigger = engine_->config().macroSkipTriggerModifier.value();
-        if (trigger == MacroSkipTriggerModifier::Disabled || !*engine_->config().enableMacro) {
+        const auto trigger = engine_.config().macroSkipTriggerModifier.value();
+        if (trigger == MacroSkipTriggerModifier::Disabled || !*engine_.config().enableMacro) {
             return;
         }
         if (!isMacroSkipModifier(keyEvent.rawKey().sym())) {
@@ -1396,14 +1380,14 @@ namespace fcitx {
             return;
         }
         macro_skip_ = false;
-        lotusEngine_->setMacroEnabled(*engine_->config().enableMacro);
+        lotusEngine_->setMacroEnabled(*engine_.config().enableMacro);
     }
 
     void LotusState::resetMacroSkip() {
         tracking_modifier_tap_ = false;
         macro_skip_            = false;
         if (lotusEngine_) {
-            lotusEngine_->setMacroEnabled(*engine_->config().enableMacro);
+            lotusEngine_->setMacroEnabled(*engine_.config().enableMacro);
         }
     }
 

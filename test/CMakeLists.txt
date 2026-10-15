@@ -1,13 +1,13 @@
 # Wraps the core objects compiled once in src/lotus_core_objects for the headless tests.
 add_library(lotus_test_core SHARED
     $<TARGET_OBJECTS:lotus_core_objects>
-    $<TARGET_OBJECTS:lotus_executable_path>
 )
 target_include_directories(lotus_test_core PUBLIC
     ${PROJECT_BINARY_DIR}
     ${PROJECT_SOURCE_DIR}/src
 )
 target_link_libraries(lotus_test_core PUBLIC
+    lotus_common_executable_path
     Fcitx5::Core
     Fcitx5::Config
     Fcitx5::Module::Emoji
@@ -50,6 +50,8 @@ add_executable(lotus_unit_tests lotus-unit-test-main.cpp)
 target_link_libraries(lotus_unit_tests PRIVATE Lotus::Engine)
 target_compile_definitions(lotus_unit_tests PRIVATE LOTUS_TEST_GOLDEN_DIR="${PROJECT_SOURCE_DIR}/test/golden")
 
+set_target_properties(lotus_unit_tests PROPERTIES UNITY_BUILD OFF)
+
 add_lotus_unit_test(lotus_utf8 utf8 lotus-utf8-test.cpp "unit;lotus")
 add_lotus_unit_test(lotus_data data lotus-data-test.cpp "unit;lotus")
 add_lotus_unit_test(lotus_utils utils lotus-utils-test.cpp "unit;lotus")
@@ -77,14 +79,22 @@ add_lotus_headless_test(app_rule_delays app-rule-delays.cpp "integration;apprule
 add_lotus_headless_test(replacement_delays replacement-delays.cpp "integration;smooth")
 add_lotus_headless_test(app_rule_delay_wire app-rule-delay-wire.cpp "integration;apprule")
 add_lotus_headless_test(dict_reload dict-reload.cpp "integration;dictionary")
+add_lotus_headless_test(uinput_device uinput-device.cpp "unit;server")
+target_link_libraries(uinput_device PRIVATE PkgConfig::LIBEVDEV)
+target_include_directories(uinput_device PRIVATE ${PROJECT_SOURCE_DIR}/server)
 add_lotus_headless_test(config_enum_names config-enum-names.cpp "unit;config")
+
+string(MD5 LOTUS_CTEST_SOCKET_NAMESPACE "${PROJECT_BINARY_DIR}")
 set_tests_properties(smooth_buffered_key_replay select_mode_replacement replacement_delays app_rule_delay_wire
-    PROPERTIES RESOURCE_LOCK lotus_kb_socket)
+    PROPERTIES RESOURCE_LOCK lotus_kb_socket
+    ENVIRONMENT "LOTUS_SOCKET_NAMESPACE=ctest-${LOTUS_CTEST_SOCKET_NAMESPACE}")
 add_lotus_headless_test(modifier_key_bypasses_surrounding_text
     modifier-key-bypasses-surrounding-text.cpp "integration;surrounding")
 add_lotus_headless_test(runtime_safety
     runtime-safety.cpp "integration;raii")
-set_tests_properties(runtime_safety PROPERTIES RESOURCE_LOCK lotus_kb_socket)
+set_tests_properties(runtime_safety
+    PROPERTIES RESOURCE_LOCK lotus_kb_socket
+    ENVIRONMENT "LOTUS_SOCKET_NAMESPACE=ctest-${LOTUS_CTEST_SOCKET_NAMESPACE}")
 add_lotus_headless_test(emoji_history_page_navigation
     emoji-history-page-navigation.cpp "integration;emoji")
 add_lotus_unit_test(numeric_macro_case_preservation numeric_macro_case
@@ -93,7 +103,7 @@ add_lotus_unit_test(numeric_macro_case_preservation numeric_macro_case
 add_executable(executable_path_match
     executable-path-match.cpp
 )
-target_link_libraries(executable_path_match PRIVATE lotus_executable_path)
+target_link_libraries(executable_path_match PRIVATE lotus_common_executable_path)
 add_test(NAME executable_path_match COMMAND executable_path_match)
 set_tests_properties(executable_path_match PROPERTIES
     LABELS "unit;packaging"

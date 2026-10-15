@@ -1,5 +1,5 @@
-fcitx5-lotus (5.0.2-1) unstable; urgency=medium
+fcitx5-lotus (5.0.3-1) unstable; urgency=medium
 
-  * Rewrite core engine from Go to C++20 for better performance and maintainability
+  * Fix the issue of double-committing upon a mouse click
 
- -- Nguyen Hoang Ky <nhktmdzhg@gmail.com>  Wed, 14 Oct 2026 00:59:00 +0700
+ -- Nguyen Hoang Ky <nhktmdzhg@gmail.com>  Thu, 15 Oct 2026 10:44:00 +0700

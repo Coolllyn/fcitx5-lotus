@@ -11,7 +11,7 @@
  * virtual uinput keyboard (BackSpace stream or Shift+Left selection).
  */
 
-#include "lotus-protocol.h"
+#include "common-protocol.h"
 #include "lotus-utils.h"
 
 #include <cerrno>

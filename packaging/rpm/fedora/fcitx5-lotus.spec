@@ -1,5 +1,5 @@
 Name:           fcitx5-lotus
-Version:        5.0.3
+Version:        5.0.4
 Release:        1
 Summary:        Vietnamese input method for fcitx5
 License:        GPL-3.0-or-later
@@ -113,5 +113,6 @@ fi
 %systemd_postun_with_restart fcitx5-lotus-server@.service
 
 %changelog
-* Thu Oct 15 2026 Nguyen Hoang Ky <nhktmdzhg@gmail.com> - 5.0.3-1
-- Fix the issue of double-committing upon a mouse click
+* Fri Oct 16 2026 Nguyen Hoang Ky <nhktmdzhg@gmail.com> - 5.0.4-1
+- Fallback to backspace in Select mode when user hold shift
+- Defer commit out of the key event for the dbus frontend

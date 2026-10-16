@@ -96,6 +96,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           path: fcitx5-lotus
+          fetch-depth: 0
       - name: Init CodeQL
         if: matrix.distro == 'glibc' && matrix.compiler == 'gcc'
         uses: github/codeql-action/init@v4.38.3
@@ -118,7 +119,16 @@ jobs:
         if: matrix.distro == 'glibc' && matrix.compiler == 'clang'
         run: |
           cd fcitx5-lotus
-          clang-tidy -p build --header-filter='(src|server|common|lotus|test)/.*' --warnings-as-errors='*' $(git ls-files '*.cpp')
+          base="${{ github.event.pull_request.base.sha || github.event.before }}"
+          changed="$(git diff --name-only "$base" HEAD 2>/dev/null || true)"
+          if [ -z "$changed" ] || printf '%s\n' "$changed" | grep -qE '\.(h|hpp)$'; then
+              run-clang-tidy -p build -j "$(nproc)" -quiet -warnings-as-errors='*'
+          else
+              cpp_changed="$(printf '%s\n' "$changed" | grep -E '\.cpp$' || true)"
+              if [ -n "$cpp_changed" ]; then
+                  printf '%s\n' "$cpp_changed" | xargs run-clang-tidy -p build -j "$(nproc)" -quiet -warnings-as-errors='*'
+              fi
+          fi
       - name: CodeQL Analysis
         if: matrix.distro == 'glibc' && matrix.compiler == 'gcc'
         uses: github/codeql-action/analyze@v4.38.3

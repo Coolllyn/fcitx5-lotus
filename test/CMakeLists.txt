@@ -80,6 +80,7 @@ add_lotus_headless_test(replacement_delays replacement-delays.cpp "integration;s
 add_lotus_headless_test(app_rule_delay_wire app-rule-delay-wire.cpp "integration;apprule")
 add_lotus_headless_test(dict_reload dict-reload.cpp "integration;dictionary")
 add_lotus_headless_test(uinput_device uinput-device.cpp "unit;server")
+target_sources(uinput_device PRIVATE ${PROJECT_SOURCE_DIR}/server/lotus-uinput-device.cpp)
 target_link_libraries(uinput_device PRIVATE PkgConfig::LIBEVDEV)
 target_include_directories(uinput_device PRIVATE ${PROJECT_SOURCE_DIR}/server)
 add_lotus_headless_test(config_enum_names config-enum-names.cpp "unit;config")

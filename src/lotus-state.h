@@ -23,6 +23,7 @@
 
 #include <chrono>
 #include <cstddef>
+#include <fcitx-utils/event.h>
 #include <fcitx/inputcontext.h>
 #include <memory>
 
@@ -108,7 +109,10 @@ namespace fcitx {
         size_t                                expectedBackspaces_    = 0;
         size_t                                currentBackspaceCount_ = 0;
         std::u32string                        pendingCommitString_;
-        LotusAppRuleSetting                   appRuleSetting_; ///< Per-app rule (mode + delay overrides) pushed by the engine
+        std::unique_ptr<EventSourceTime>      deferredCommitTimer_;           ///< Pending dbus commit timer
+        std::u32string                        deferredCommitText_;            ///< Text waiting for the deferred commit
+        bool                                  deferredCommitPending_ = false; ///< Timer armed and not fired yet
+        LotusAppRuleSetting                   appRuleSetting_;                ///< Per-app rule (mode + delay overrides) pushed by the engine
         std::u32string                        emojiBuffer_;
         std::vector<EmojiEntry>               emojiCandidates_;
         KeyBuffer                             bufferedKeys_; ///< Keystrokes buffered during replacement

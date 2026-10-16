@@ -429,12 +429,33 @@ namespace fcitx {
         std::u32string commitText = std::move(pendingCommitString_);
         pendingCommitString_.clear();
 
-        lotus::fcitx_text::commit(&ic_, commitText, lastCommitTime_);
+        const bool dbusDefer = getFrontendName(&ic_) == "dbus";
+        if (dbusDefer) {
+            deferredCommitText_ += commitText;
+            if (!deferredCommitPending_) {
+                deferredCommitPending_ = true;
+                deferredCommitTimer_   = engine_.instance()->eventLoop().addTimeEvent(CLOCK_MONOTONIC, now(CLOCK_MONOTONIC), 0, [this](EventSourceTime*, uint64_t) {
+                    deferredCommitPending_  = false;
+                    std::u32string deferred = std::move(deferredCommitText_);
+                    deferredCommitText_.clear();
+                    if (!deferred.empty()) {
+                        lotus::fcitx_text::commit(&ic_, deferred, lastCommitTime_);
+                    }
+                    replayBufferedKeys();
+                    return false;
+                });
+            }
+        } else {
+            lotus::fcitx_text::commit(&ic_, commitText, lastCommitTime_);
+        }
+
         expectedBackspaces_    = 0;
         currentBackspaceCount_ = 0;
         event.filterAndAccept();
         g_isDeleting.store(false, std::memory_order_release);
-        replayBufferedKeys();
+        if (!dbusDefer) {
+            replayBufferedKeys();
+        }
     }
 
     bool LotusState::handleUInputKeyPress(KeyEvent& event, KeySym currentSym) {

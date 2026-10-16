@@ -185,6 +185,15 @@
         "code",
         "bug"
       ]
+    },
+    {
+      "login": "vanphat111",
+      "name": "Vanphat111",
+      "avatar_url": "https://avatars.githubusercontent.com/u/133842092?v=4",
+      "profile": "https://github.com/vanphat111",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 4,

@@ -84,8 +84,10 @@ All members contributing to this project must adhere to the [Contributor Code of
 
 ## Code Style Rules
 
-- **C/C++**: Follow the [`.clang-format`](.clang-format) file in the repository.
-- **Python (`settings-gui`)**: Follow `ruff` linting and formatting standards (`ruff check` and `ruff format`).
+All rules live in [CODE_STYLE.en.md](CODE_STYLE.en.md) — that is the single source of truth.
+
+- **C/C++**: `.clang-format` + `.clang-tidy`, C++20.
+- **Python (`settings-gui`)**: `ruff check` and `ruff format` (configuration in `pyproject.toml`).
 - Encouraged to create a `pre-commit` hook to automatically format code before commit by creating `.git/hooks/pre-commit` with the following content:
 
 ```bash
@@ -113,6 +115,8 @@ fi
 Then run the command: `chmod +x .git/hooks/pre-commit`
 
 ## Pull Request Process
+
+**Each PR solves exactly one problem.** If you change several things, split them into several PRs.
 
 ### 1. Ensure clean code with `clang-format` and `ruff`
 

@@ -1,5 +1,6 @@
-fcitx5-lotus (5.0.3-1) unstable; urgency=medium
+fcitx5-lotus (5.0.4-1) unstable; urgency=medium
 
-  * Fix the issue of double-committing upon a mouse click
+  * Fallback to backspace in Select mode when user hold shift
+  * Defer commit out of the key event for the dbus frontend
 
- -- Nguyen Hoang Ky <nhktmdzhg@gmail.com>  Thu, 15 Oct 2026 10:44:00 +0700
+ -- Nguyen Hoang Ky <nhktmdzhg@gmail.com>  Fri, 16 Oct 2026 18:47:00 +0700

@@ -13,6 +13,7 @@
 #include "common-fd-guard.h"
 #include "common-protocol.h"
 #include "common-socket-name.h"
+#include "lotus-physical-shift.h"
 
 #include <algorithm>
 #include <array>
@@ -66,7 +67,7 @@ void UinputDevice::reportWriteFailure(int error) {
     }
 }
 
-void UinputDevice::send_tap(uint16_t code) {
+void UinputDevice::sendTap(uint16_t code) {
     if (uidev_ == nullptr) {
         return;
     }
@@ -87,7 +88,7 @@ void UinputDevice::send_tap(uint16_t code) {
     }
 }
 
-void UinputDevice::send_mod(uint16_t code, int value) {
+void UinputDevice::sendMod(uint16_t code, int value) {
     if (uidev_ == nullptr) {
         return;
     }
@@ -100,24 +101,24 @@ void UinputDevice::send_mod(uint16_t code, int value) {
     }
 }
 
-void UinputDevice::send_backspace() {
-    send_tap(KEY_BACKSPACE);
+void UinputDevice::sendBackspace() {
+    sendTap(KEY_BACKSPACE);
 }
 
-void UinputDevice::send_delete() {
-    send_tap(KEY_DELETE);
+void UinputDevice::sendDelete() {
+    sendTap(KEY_DELETE);
 }
 
-void UinputDevice::send_shift_down() {
-    send_mod(KEY_LEFTSHIFT, 1);
+void UinputDevice::sendShiftDown() {
+    sendMod(KEY_LEFTSHIFT, 1);
 }
 
-void UinputDevice::send_shift_up() {
-    send_mod(KEY_LEFTSHIFT, 0);
+void UinputDevice::sendShiftUp() {
+    sendMod(KEY_LEFTSHIFT, 0);
 }
 
-void UinputDevice::send_left() {
-    send_tap(KEY_LEFT);
+void UinputDevice::sendLeft() {
+    sendTap(KEY_LEFT);
 }
 
 LibinputContext::LibinputContext(const struct libinput_interface* interface) : udev_(udev_new()) {
@@ -130,44 +131,44 @@ LibinputContext::LibinputContext(const struct libinput_interface* interface) : u
     }
 }
 
-void signal_handler(int sig) {
+void signalHandler(int sig) {
     if (sig == SIGTERM || sig == SIGINT) {
         g_running.store(false);
     }
 }
 
-std::string get_current_username() {
+std::string getCurrentUsername() {
     struct passwd  pwd{};
-    struct passwd* result   = nullptr;
-    long           buf_size = sysconf(_SC_GETPW_R_SIZE_MAX);
-    if (buf_size == -1) {
-        buf_size = 16384;
+    struct passwd* result  = nullptr;
+    long           bufSize = sysconf(_SC_GETPW_R_SIZE_MAX);
+    if (bufSize == -1) {
+        bufSize = 16384;
     }
-    std::vector<char> buffer(static_cast<std::size_t>(buf_size));
+    std::vector<char> buffer(static_cast<std::size_t>(bufSize));
     if (getpwuid_r(getuid(), &pwd, buffer.data(), buffer.size(), &result) != 0 || result == nullptr) {
         return "unknown";
     }
     return {result->pw_name};
 }
 
-std::optional<uid_t> get_uid_for_user(std::string_view username) {
+std::optional<uid_t> getUidForUser(std::string_view username) {
     const std::string      name(username);
-    struct passwd          pw_buf{};
+    struct passwd          pwBuf{};
     struct passwd*         pw = nullptr;
     std::array<char, 1024> buffer{};
-    if (getpwnam_r(name.c_str(), &pw_buf, buffer.data(), buffer.size(), &pw) != 0 || pw == nullptr) {
+    if (getpwnam_r(name.c_str(), &pwBuf, buffer.data(), buffer.size(), &pw) != 0 || pw == nullptr) {
         return std::nullopt;
     }
     return pw->pw_uid;
 }
 
-void boost_process_priority() {
+void boostProcessPriority() {
     if (setpriority(PRIO_PROCESS, 0, -10) != 0) { //NOLINT
         LotusLogger::instance().error("Failed to boost process priority");
     }
 }
 
-void pin_to_pcore() {
+void pinToPcore() {
     cpu_set_t cpuset;
     CPU_ZERO(&cpuset);
     for (int i = 0; i <= 3; ++i)
@@ -203,15 +204,15 @@ std::optional<pid_t> authorizePeer(int fd, uid_t expectedUid, std::string_view s
         return std::nullopt;
     }
 
-    const std::string          exe_link = "/proc/" + std::to_string(cred.pid) + "/exe";
-    std::array<char, PATH_MAX> exe_path{};
-    const ssize_t              length = ::readlink(exe_link.c_str(), exe_path.data(), exe_path.size() - 1);
+    const std::string          exeLink = "/proc/" + std::to_string(cred.pid) + "/exe";
+    std::array<char, PATH_MAX> exePath{};
+    const ssize_t              length = ::readlink(exeLink.c_str(), exePath.data(), exePath.size() - 1);
     if (length <= 0) {
         LotusLogger::instance().warn("Failed to resolve the peer executable for " + std::string(socketLabel));
         return std::nullopt;
     }
 
-    const std::string_view exe(exe_path.data(), static_cast<std::size_t>(length));
+    const std::string_view exe(exePath.data(), static_cast<std::size_t>(length));
     if (!isAllowedExecutablePath(exe, LOTUS_FCITX5_EXECUTABLE, LOTUS_ALT_EXECUTABLE_PREFIX)) {
         LotusLogger::instance().warn("Unauthorized executable connection attempt to " + std::string(socketLabel) + " from: " + std::string(exe));
         return std::nullopt;
@@ -221,47 +222,48 @@ std::optional<pid_t> authorizePeer(int fd, uid_t expectedUid, std::string_view s
 
 int main(int argc, char* argv[]) {
     const std::span<char* const> args(argv, static_cast<std::size_t>(argc));
-    const std::string            target_user = args.size() == 3 && std::string_view(args[1]) == "-u" ? std::string(args[2]) : get_current_username();
-    LotusLogger::instance().info("Target user: " + target_user);
+    const std::string            targetUser = args.size() == 3 && std::string_view(args[1]) == "-u" ? std::string(args[2]) : getCurrentUsername();
+    LotusLogger::instance().info("Target user: " + targetUser);
 
-    const std::optional<uid_t> expected_uid = get_uid_for_user(target_user);
-    if (!expected_uid.has_value()) {
-        LotusLogger::instance().error("Failed to find UID for target user: " + target_user);
+    const std::optional<uid_t> expectedUid = getUidForUser(targetUser);
+    if (!expectedUid.has_value()) {
+        LotusLogger::instance().error("Failed to find UID for target user: " + targetUser);
         return 1;
     }
 
-    boost_process_priority();
-    pin_to_pcore();
+    boostProcessPriority();
+    pinToPcore();
 
-    const std::string    socket_namespace = lotusSocketNamespace(target_user);
-    const AbstractSocket kb_socket        = makeAbstractSocket("lotussocket-" + socket_namespace + "-kb_socket");
-    const AbstractSocket mouse_socket     = makeAbstractSocket("lotussocket-" + socket_namespace + "-mouse_socket");
+    const std::string    socketNamespace = lotusSocketNamespace(targetUser);
+    const AbstractSocket kbSocket        = makeAbstractSocket("lotussocket-" + socketNamespace + "-kbSocket");
+    const AbstractSocket mouseSocket     = makeAbstractSocket("lotussocket-" + socketNamespace + "-mouseSocket");
 
     // Setup Uinput
-    UinputDevice uinput;
+    UinputDevice       uinput;
+    PhysicalShiftState physical_shift;
     if (!uinput.initialize()) {
         LotusLogger::instance().error("Failed to initialize uinput device");
         return 1;
     }
 
-    FdGuard server_fd(socket(AF_UNIX, SOCK_SEQPACKET | SOCK_NONBLOCK, 0));
-    FdGuard mouse_server_fd(socket(AF_UNIX, SOCK_SEQPACKET | SOCK_NONBLOCK, 0));
+    FdGuard serverFd(socket(AF_UNIX, SOCK_SEQPACKET | SOCK_NONBLOCK, 0));
+    FdGuard mouseServerFd(socket(AF_UNIX, SOCK_SEQPACKET | SOCK_NONBLOCK, 0));
 
-    if (bind(server_fd.get(), kb_socket.asSockaddr(), kb_socket.length) != 0) {
+    if (bind(serverFd.get(), kbSocket.asSockaddr(), kbSocket.length) != 0) {
         LotusLogger::instance().error("Failed to bind socket");
         return 1;
     }
 
-    if (bind(mouse_server_fd.get(), mouse_socket.asSockaddr(), mouse_socket.length) != 0) {
+    if (bind(mouseServerFd.get(), mouseSocket.asSockaddr(), mouseSocket.length) != 0) {
         LotusLogger::instance().error("Failed to bind socket");
         return 1;
     }
 
-    listen(server_fd.get(), 5);
-    listen(mouse_server_fd.get(), 5);
+    listen(serverFd.get(), 5);
+    listen(mouseServerFd.get(), 5);
 
     LibinputContext li_ctx(&interface);
-    if (!li_ctx.is_valid()) {
+    if (!li_ctx.isValid()) {
         LotusLogger::instance().error("Failed to create libinput/udev context");
         return 1;
     }
@@ -272,34 +274,34 @@ int main(int argc, char* argv[]) {
 
     std::array<struct pollfd, 4> fds{
         {
-            {.fd = server_fd.get(), .events = POLLIN, .revents = 0},
-            {.fd = li_ctx.get_fd(), .events = POLLIN, .revents = 0},
-            {.fd = mouse_server_fd.get(), .events = POLLIN, .revents = 0},
+            {.fd = serverFd.get(), .events = POLLIN, .revents = 0},
+            {.fd = li_ctx.getFd(), .events = POLLIN, .revents = 0},
+            {.fd = mouseServerFd.get(), .events = POLLIN, .revents = 0},
             {.fd = -1, .events = POLLIN, .revents = 0},
         },
     };
 
-    FdGuard          addon_fd;
-    FdGuard          kb_client_fd;
-    size_t           pending_backspaces = 0;
-    size_t           pending_selects    = 0;     ///< remaining Shift+Left events to pace out
-    bool             shift_held         = false; ///< Shift pressed for an in-flight selection
-    uint32_t         current_post_delay = 0;     ///< stores post_delay from KbMsg
-    uint32_t         current_interval   = 5;     ///< ms between injected keys within one request
+    FdGuard          addonFd;
+    FdGuard          kbClientFd;
+    size_t           pendingBackspaces = 0;
+    size_t           pendingSelects    = 0;     ///< remaining Shift+Left events to pace out
+    bool             shiftHeld         = false; ///< Shift pressed for an in-flight selection
+    uint32_t         currentPostDelay  = 0;     ///< stores postDelay from KbMsg
+    uint32_t         currentInterval   = 5;     ///< ms between injected keys within one request
 
     struct sigaction sa{};
-    sa.sa_handler = signal_handler;
+    sa.sa_handler = signalHandler;
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = 0;
     sigaction(SIGTERM, &sa, nullptr);
     sigaction(SIGINT, &sa, nullptr);
 
     while (g_running.load(std::memory_order_acquire)) {
-        int poll_timeout = -1;
-        if (pending_backspaces > 0 || pending_selects > 0) {
-            poll_timeout = static_cast<int>(current_interval);
+        int pollTimeout = -1;
+        if (pendingBackspaces > 0 || pendingSelects > 0) {
+            pollTimeout = static_cast<int>(currentInterval);
         }
-        int ret = poll(fds.data(), fds.size(), poll_timeout);
+        int ret = poll(fds.data(), fds.size(), pollTimeout);
 
         if (ret < 0) {
             if (errno == EINTR) {
@@ -309,47 +311,45 @@ int main(int argc, char* argv[]) {
         }
 
         if (ret == 0) {
-            if (pending_backspaces > 0) {
-                if (pending_backspaces == 1 && current_post_delay > 0) {
-                    std::this_thread::sleep_for(std::chrono::milliseconds(current_post_delay));
+            if (pendingBackspaces > 0) {
+                if (pendingBackspaces == 1 && currentPostDelay > 0) {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(currentPostDelay));
                 }
-                uinput.send_backspace();
-                --pending_backspaces;
-            } else if (pending_selects > 0) {
-                if (pending_selects > 1) {
-                    uinput.send_left();
-                    --pending_selects;
+                uinput.sendBackspace();
+                --pendingBackspaces;
+            } else if (pendingSelects > 0) {
+                if (pendingSelects > 1) {
+                    uinput.sendLeft();
+                    --pendingSelects;
                 } else {
-                    if (shift_held) {
+                    if (shiftHeld) {
                         std::this_thread::sleep_for(std::chrono::milliseconds(10));
-                        uinput.send_shift_up();
-                        shift_held = false;
+                        uinput.sendShiftUp();
+                        shiftHeld = false;
                     } else {
-                        uinput.send_delete();
-                        if (current_post_delay > 0) {
-                            std::this_thread::sleep_for(std::chrono::milliseconds(current_post_delay));
+                        uinput.sendDelete();
+                        if (currentPostDelay > 0) {
+                            std::this_thread::sleep_for(std::chrono::milliseconds(currentPostDelay));
                         }
-                        uinput.send_left();
-                        --pending_selects;
+                        uinput.sendLeft();
+                        --pendingSelects;
                     }
                 }
             }
         }
 
-        libinput_dispatch(li_ctx.get_li());
+        libinput_dispatch(li_ctx.getLi());
 
         // handle socket (backspace)
         if ((static_cast<unsigned>(fds[kKeyboardServerIndex].revents) & static_cast<unsigned>(POLLIN)) != 0) {
-            int client_fd = accept4(server_fd.get(), nullptr, nullptr, SOCK_NONBLOCK);
-            if (client_fd >= 0) {
-                const std::optional<pid_t> peer = authorizePeer(client_fd, *expected_uid, "keyboard socket");
+            FdGuard candidate(accept4(serverFd.get(), nullptr, nullptr, SOCK_NONBLOCK));
+            if (candidate.isValid()) {
+                const std::optional<pid_t> peer = authorizePeer(candidate.get(), *expectedUid, "keyboard socket");
 
                 if (peer.has_value()) {
                     LotusLogger::instance().info("Fcitx5 connected to keyboard socket (PID: " + std::to_string(*peer) + ")");
-                    kb_client_fd.reset(client_fd);
-                    fds[kKbClientIndex].fd = kb_client_fd.get();
-                } else {
-                    close(client_fd);
+                    kbClientFd             = std::move(candidate);
+                    fds[kKbClientIndex].fd = kbClientFd.get();
                 }
             }
         }
@@ -361,43 +361,47 @@ int main(int argc, char* argv[]) {
             ssize_t n = recv(fds[kKbClientIndex].fd, &msg, sizeof(msg), 0);
             if (n <= 0) {
                 LotusLogger::instance().warn("Keyboard client disconnected or connection error");
-                if (shift_held) {
-                    uinput.send_shift_up(); // never leave Shift stuck down
-                    shift_held = false;
+                if (shiftHeld) {
+                    uinput.sendShiftUp(); // never leave Shift stuck down
+                    shiftHeld = false;
                 }
-                pending_selects = 0;
-                kb_client_fd.reset(-1);
+                pendingSelects = 0;
+                kbClientFd.reset(-1);
                 fds[kKbClientIndex].fd = -1;
             } else if (std::cmp_not_equal(n, sizeof(KbMsg)) && std::cmp_not_equal(n, sizeof(int32_t))) {
                 LotusLogger::instance().warn("Malformed keyboard message (" + std::to_string(n) + " bytes)");
             } else {
-                current_interval = msg.interval > 0 ? std::min<uint32_t>(msg.interval, 1000) : 5;
-                if (msg.count > 0 && msg.op == KbOp::Select) {
-                    if (msg.pre_delay > 0) {
-                        std::this_thread::sleep_for(std::chrono::milliseconds(msg.pre_delay));
+                currentInterval = msg.interval > 0 ? std::min<uint32_t>(msg.interval, 1000) : 5;
+                const KbOp op   = resolveKeyboardOp(msg.op, physical_shift.shiftHeld());
+                if (op != msg.op) {
+                    LotusLogger::instance().info("Shift is held: replacing with Backspace instead of Shift+Left");
+                }
+                if (msg.count > 0 && op == KbOp::Select) {
+                    if (msg.preDelay > 0) {
+                        std::this_thread::sleep_for(std::chrono::milliseconds(msg.preDelay));
                     }
-                    current_post_delay = msg.post_delay;
-                    if (!shift_held) {
-                        uinput.send_shift_down();
-                        shift_held = true;
+                    currentPostDelay = msg.postDelay;
+                    if (!shiftHeld) {
+                        uinput.sendShiftDown();
+                        shiftHeld = true;
                     }
-                    std::this_thread::sleep_for(std::chrono::milliseconds(current_interval));
-                    uinput.send_left();
-                    pending_selects += msg.count - 1;
+                    std::this_thread::sleep_for(std::chrono::milliseconds(currentInterval));
+                    uinput.sendLeft();
+                    pendingSelects += msg.count - 1;
 
-                } else if (msg.count > 0 && msg.op == KbOp::Backspace) {
-                    if (msg.pre_delay > 0) {
-                        std::this_thread::sleep_for(std::chrono::milliseconds(msg.pre_delay));
+                } else if (msg.count > 0 && op == KbOp::Backspace) {
+                    if (msg.preDelay > 0) {
+                        std::this_thread::sleep_for(std::chrono::milliseconds(msg.preDelay));
                     }
-                    current_post_delay = msg.post_delay;
-                    if (shift_held) {
+                    currentPostDelay = msg.postDelay;
+                    if (shiftHeld) {
                         // A stale in-flight selection must not mix with backspaces.
-                        uinput.send_shift_up();
-                        shift_held      = false;
-                        pending_selects = 0;
+                        uinput.sendShiftUp();
+                        shiftHeld      = false;
+                        pendingSelects = 0;
                     }
-                    pending_backspaces += msg.count - 1;
-                    uinput.send_backspace();
+                    pendingBackspaces += msg.count - 1;
+                    uinput.sendBackspace();
                 } else if (msg.count > 0) {
                     LotusLogger::instance().warn("Unknown keyboard message op: " + std::to_string(static_cast<int>(msg.op)));
                 }
@@ -406,15 +410,13 @@ int main(int argc, char* argv[]) {
 
         // connect to mouse socket
         if ((static_cast<unsigned>(fds[kMouseServerIndex].revents) & static_cast<unsigned>(POLLIN)) != 0) {
-            int new_fd = accept4(mouse_server_fd.get(), nullptr, nullptr, SOCK_NONBLOCK);
-            if (new_fd >= 0) {
-                const std::optional<pid_t> peer = authorizePeer(new_fd, *expected_uid, "mouse socket");
+            FdGuard candidate(accept4(mouseServerFd.get(), nullptr, nullptr, SOCK_NONBLOCK));
+            if (candidate.isValid()) {
+                const std::optional<pid_t> peer = authorizePeer(candidate.get(), *expectedUid, "mouse socket");
 
                 if (peer.has_value()) {
                     LotusLogger::instance().info("New mouse flag client connected");
-                    addon_fd.reset(new_fd);
-                } else {
-                    close(new_fd);
+                    addonFd = std::move(candidate);
                 }
             }
         }
@@ -423,14 +425,14 @@ int main(int argc, char* argv[]) {
         // libinput_dispatch() may have already consumed the fd in an iteration where
         // the libinput revents were 0 (poll timeout, or another fd woke us up).  Always
         // drain the queue; libinput_get_event() returns nullptr when it is empty.
-        while (LibinputEvent event{libinput_get_event(li_ctx.get_li())}) {
+        while (LibinputEvent event{libinput_get_event(li_ctx.getLi())}) {
             switch (libinput_event_get_type(event.get())) {
                 case LIBINPUT_EVENT_POINTER_BUTTON: {
                     struct libinput_event_pointer* pointer = libinput_event_get_pointer_event(event.get());
-                    if (libinput_event_pointer_get_button_state(pointer) == LIBINPUT_BUTTON_STATE_PRESSED && addon_fd.is_valid() &&
-                        send(addon_fd.get(), "C", 1, MSG_NOSIGNAL | MSG_DONTWAIT) <= 0) {
+                    if (libinput_event_pointer_get_button_state(pointer) == LIBINPUT_BUTTON_STATE_PRESSED && addonFd.isValid() &&
+                        send(addonFd.get(), "C", 1, MSG_NOSIGNAL | MSG_DONTWAIT) <= 0) {
                         LotusLogger::instance().warn("Failed to send to mouse flag client, closing connection");
-                        addon_fd.reset(-1);
+                        addonFd.reset(-1);
                     }
                     break;
                 }
@@ -439,10 +441,15 @@ int main(int argc, char* argv[]) {
                     const char* const       rawName = libinput_device_get_name(device);
                     const std::string_view  name    = rawName != nullptr ? std::string_view(rawName) : std::string_view{};
                     LotusLogger::instance().info("Device added: " + std::string(name));
+                    physical_shift.trackDevice(device);
                     if (libinput_device_config_tap_get_finger_count(device) > 0) {
                         libinput_device_config_tap_set_enabled(device, LIBINPUT_CONFIG_TAP_ENABLED);
                         libinput_device_config_tap_set_button_map(device, LIBINPUT_CONFIG_TAP_MAP_LRM);
                     }
+                    break;
+                }
+                case LIBINPUT_EVENT_DEVICE_REMOVED: {
+                    physical_shift.forgetDevice(libinput_event_get_device(event.get()));
                     break;
                 }
                 default: break;

@@ -5,7 +5,7 @@
  *        are released on every path.
  *
  * Covers the three lifetimes the pointer/RAII audit touched: the $TIME/$DATE local time (a stack
- * std::tm instead of a pointer into the shared libc buffer), the descriptors of the kb_socket
+ * std::tm instead of a pointer into the shared libc buffer), the descriptors of the kbSocket
  * transport (FdGuard) and the pipe of the dark-mode probe (unique_ptr with pclose as deleter).
  * Word replacement in Smooth mode must not leak a descriptor, however many times it replaces.
  */
@@ -94,11 +94,11 @@ int main() {
         return 1;
     }
 
-    // The listener owns the kb_socket name for the whole test: with a server of the session owning
+    // The listener owns the kbSocket name for the whole test: with a server of the session owning
     // it, the test would drive real keystrokes, so nothing is sent in that case.
     KbSocketListener listener;
     if (!listener.valid()) {
-        reportFailure("bind kb_socket", "free abstract socket", "another process owns the replacement socket",
+        reportFailure("bind kbSocket", "free abstract socket", "another process owns the replacement socket",
                       "the test refuses to drive the uinput transport owned by the session");
         return 1;
     }
@@ -128,7 +128,7 @@ int main() {
     const std::size_t afterWords = openDescriptorCount();
     if (afterWords != before) {
         reportFailure("descriptor count over 50 keys", std::to_string(before) + " open descriptors", std::to_string(afterWords) + " open descriptors",
-                      "the kb_socket transport must not leak a descriptor while it replaces words");
+                      "the kbSocket transport must not leak a descriptor while it replaces words");
         ok = false;
     }
 

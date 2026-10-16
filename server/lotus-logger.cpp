@@ -34,10 +34,10 @@ bool LotusLogger::isEnabled(LogLevel level) const {
 void LotusLogger::log(LogLevel level, std::string_view message) {
     int priority = LOG_INFO;
     switch (level) {
-        case LogLevel::DEBUG: priority = LOG_DEBUG; break;
-        case LogLevel::INFO: priority = LOG_INFO; break;
-        case LogLevel::WARN: priority = LOG_WARNING; break;
-        case LogLevel::ERROR: priority = LOG_ERR; break;
+        case LogLevel::Debug: priority = LOG_DEBUG; break;
+        case LogLevel::Info: priority = LOG_INFO; break;
+        case LogLevel::Warn: priority = LOG_WARNING; break;
+        case LogLevel::Error: priority = LOG_ERR; break;
         default: break;
     }
     // Message is data, never a format string

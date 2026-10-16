@@ -22,31 +22,31 @@
 
 bool authenticateMouseSocketPeer(int sock, std::string& out_exe_path) {
     struct ucred cred{};
-    socklen_t    cred_len = sizeof(cred);
+    socklen_t    credLen = sizeof(cred);
 
-    if (getsockopt(sock, SOL_SOCKET, SO_PEERCRED, &cred, &cred_len) != 0) {
+    if (getsockopt(sock, SOL_SOCKET, SO_PEERCRED, &cred, &credLen) != 0) {
         LOTUS_ERROR("Failed to get peer credentials: " + std::string(strerror(errno)));
         return false;
     }
 
-    std::array<char, 64> proc_path{};
-    snprintf(proc_path.data(), proc_path.size(), "/proc/%d/cmdline", cred.pid);
+    std::array<char, 64> procPath{};
+    snprintf(procPath.data(), procPath.size(), "/proc/%d/cmdline", cred.pid);
 
-    FdGuard fd(open(proc_path.data(), O_RDONLY));
-    if (!fd.is_valid()) {
+    FdGuard fd(open(procPath.data(), O_RDONLY));
+    if (!fd.isValid()) {
         LOTUS_ERROR("Failed to open cmdline: " + std::string(strerror(errno)));
         return false;
     }
 
-    std::array<char, PATH_MAX> exe_path{};
-    ssize_t                    bytes_read = read(fd.get(), exe_path.data(), exe_path.size() - 1);
+    std::array<char, PATH_MAX> exePath{};
+    ssize_t                    bytesRead = read(fd.get(), exePath.data(), exePath.size() - 1);
 
-    if (bytes_read <= 0) {
+    if (bytesRead <= 0) {
         LOTUS_ERROR("Failed to read cmdline: " + std::string(strerror(errno)));
         return false;
     }
 
-    out_exe_path = exe_path.data();
+    out_exe_path = exePath.data();
 
-    return isAllowedExecutablePath(exe_path.data(), LOTUS_SERVER_EXECUTABLE, LOTUS_ALT_EXECUTABLE_PREFIX);
+    return isAllowedExecutablePath(exePath.data(), LOTUS_SERVER_EXECUTABLE, LOTUS_ALT_EXECUTABLE_PREFIX);
 }

@@ -22,11 +22,11 @@
 #include <string_view>
 
 enum class LogLevel : std::uint8_t {
-    DEBUG,
-    INFO,
-    WARN,
-    ERROR,
-    NONE,
+    Debug,
+    Info,
+    Warn,
+    Error,
+    None,
 };
 
 class LotusLogger {
@@ -54,20 +54,20 @@ class LotusLogger {
 
     // Convenience methods
     void debug(std::string_view msg) const {
-        if (isEnabled(LogLevel::DEBUG))
-            log(LogLevel::DEBUG, msg);
+        if (isEnabled(LogLevel::Debug))
+            log(LogLevel::Debug, msg);
     }
     void info(std::string_view msg) const {
-        if (isEnabled(LogLevel::INFO))
-            log(LogLevel::INFO, msg);
+        if (isEnabled(LogLevel::Info))
+            log(LogLevel::Info, msg);
     }
     void warn(std::string_view msg) const {
-        if (isEnabled(LogLevel::WARN))
-            log(LogLevel::WARN, msg);
+        if (isEnabled(LogLevel::Warn))
+            log(LogLevel::Warn, msg);
     }
     void error(std::string_view msg) const {
-        if (isEnabled(LogLevel::ERROR))
-            log(LogLevel::ERROR, msg);
+        if (isEnabled(LogLevel::Error))
+            log(LogLevel::Error, msg);
     }
 
   private:
@@ -75,7 +75,7 @@ class LotusLogger {
      * @brief Constructor
      * @param level Minimum log level to output
      */
-    explicit LotusLogger(LogLevel level = LogLevel::INFO);
+    explicit LotusLogger(LogLevel level = LogLevel::Info);
 
     /**
      * @brief Destructor

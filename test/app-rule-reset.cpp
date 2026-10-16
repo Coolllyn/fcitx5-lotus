@@ -4,7 +4,7 @@
  * @brief Headless regression test: a per-app mode rule must survive a config
  *        reload / new input context for the focused window.
  *
- * Bug: LotusState::setEngine() wrote the global `realMode` from the global Mode
+ * Bug: LotusState::setEngine() wrote the global `g_realMode` from the global Mode
  * option without resolving the per-app rule.  setEngine() runs on every new
  * input context and for every input context on config reload (refreshEngine),
  * so a focused app with its own rule (e.g. Off) silently dropped back to the
@@ -85,8 +85,8 @@ int main() {
     fcitx::InputContextEvent focus(context.get(), fcitx::EventType::InputContextFocusIn);
     engine.activate(entry, focus);
 
-    if (::realMode.load() != fcitx::LotusMode::Off) {
-        reportFailure("activate with rule Off", "realMode=Off", "realMode=" + std::string(modeName(::realMode.load())),
+    if (::g_realMode.load() != fcitx::LotusMode::Off) {
+        reportFailure("activate with rule Off", "g_realMode=Off", "g_realMode=" + std::string(modeName(::g_realMode.load())),
                       "activate() must resolve the per-app rule for the focused window");
         return 1;
     }
@@ -99,8 +99,8 @@ int main() {
     reloaded.setValueByPath("InputMethod", "Telex");
     engine.setConfig(reloaded);
 
-    if (::realMode.load() != fcitx::LotusMode::Off) {
-        reportFailure("config reload keeps focused app rule", "realMode=Off", "realMode=" + std::string(modeName(::realMode.load())),
+    if (::g_realMode.load() != fcitx::LotusMode::Off) {
+        reportFailure("config reload keeps focused app rule", "g_realMode=Off", "g_realMode=" + std::string(modeName(::g_realMode.load())),
                       "a config reload must not reset the focused window from its per-app rule back to the global mode");
         return 1;
     }

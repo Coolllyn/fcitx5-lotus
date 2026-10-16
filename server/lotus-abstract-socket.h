@@ -13,9 +13,6 @@
 #ifndef _LOTUS_ABSTRACT_SOCKET_H_
 #define _LOTUS_ABSTRACT_SOCKET_H_
 
-#include <algorithm>
-#include <cstddef>
-#include <cstring>
 #include <string>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -41,14 +38,6 @@ struct AbstractSocket {
  * @param path Abstract socket name, without the leading NUL.
  * @return Address ready for bind().
  */
-inline AbstractSocket makeAbstractSocket(const std::string& path) {
-    AbstractSocket socket;
-    socket.address.sun_family  = AF_UNIX;
-    socket.address.sun_path[0] = '\0';
-    const std::size_t length   = std::min(path.size(), sizeof(socket.address.sun_path) - 2U);
-    std::memcpy(&socket.address.sun_path[1], path.data(), length);
-    socket.length = static_cast<socklen_t>(offsetof(struct sockaddr_un, sun_path) + length + 1U);
-    return socket;
-}
+AbstractSocket makeAbstractSocket(const std::string& path);
 
 #endif // _LOTUS_ABSTRACT_SOCKET_H_

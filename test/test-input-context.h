@@ -86,13 +86,21 @@ class TestInputContext final : public fcitx::InputContext {
         destroy();
     }
 
-    TestInputContext(const TestInputContext&)               = delete;
-    TestInputContext& operator=(const TestInputContext&)    = delete;
-    TestInputContext(TestInputContext&&)                    = delete;
-    TestInputContext&         operator=(TestInputContext&&) = delete;
+    TestInputContext(const TestInputContext&)            = delete;
+    TestInputContext& operator=(const TestInputContext&) = delete;
+    TestInputContext(TestInputContext&&)                 = delete;
+    TestInputContext& operator=(TestInputContext&&)      = delete;
+
+    /**
+     * @brief Overrides the frontend name reported to the engine.
+     * @param name Frontend name, e.g. "dbus" to exercise the deferred commit path.
+     */
+    void setFrontendName(std::string name) {
+        frontendName_ = std::move(name);
+    }
 
     [[nodiscard]] const char* frontend() const override {
-        return "test";
+        return frontendName_.c_str();
     }
 
     // Called by the engine when text is committed to the client application.
@@ -135,6 +143,7 @@ class TestInputContext final : public fcitx::InputContext {
     }
 
   private:
+    std::string                               frontendName_{"test"};
     std::vector<std::string>                  commits_;
     std::vector<std::pair<int, unsigned int>> deletes_;
     std::vector<fcitx::ForwardKeyEvent>       forwarded_;

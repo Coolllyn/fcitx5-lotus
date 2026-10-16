@@ -52,7 +52,7 @@ target_link_libraries(lotus
         lotus_common_executable_path
         Fcitx5::Core
         Fcitx5::Config
-  Fcitx5::Module::Emoji
+        Fcitx5::Module::Emoji
         Lotus::Engine
         Pthread::Pthread
 )

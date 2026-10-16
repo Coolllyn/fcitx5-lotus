@@ -62,7 +62,7 @@ int main() {
     context->resetPreeditUpdateCount();
 
     // Telex a, s changes the real Bamboo preedit a -> á. Smooth mode replaces
-    // the old character through the kb_socket transport.
+    // the old character through the kbSocket transport.
     if (!send(engine, entry, *context, FcitxKey_a, false) || !send(engine, entry, *context, FcitxKey_s, true))
         return 1;
     size_t backspaces = 0;

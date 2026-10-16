@@ -27,6 +27,7 @@ Checks: >
   -bugprone-command-processor
 
 WarningsAsErrors: ''
+HeaderFilterRegex: '(src|server|common|lotus|test)/.*'
 
 CheckOptions:
   - key:             modernize-use-nullptr.NullMacros

@@ -25,8 +25,8 @@ namespace lotus::case_map {
 
     char32_t toLower(char32_t codePoint) {
         if (codePoint < kAsciiLimit) {
-            if ('A' <= codePoint && codePoint <= 'Z') {
-                return codePoint + ('a' - 'A');
+            if (U'A' <= codePoint && codePoint <= U'Z') {
+                return codePoint + (U'a' - U'A');
             }
             return codePoint;
         }
@@ -35,8 +35,8 @@ namespace lotus::case_map {
 
     char32_t toUpper(char32_t codePoint) {
         if (codePoint < kAsciiLimit) {
-            if ('a' <= codePoint && codePoint <= 'z') {
-                return codePoint - ('a' - 'A');
+            if (U'a' <= codePoint && codePoint <= U'z') {
+                return codePoint - (U'a' - U'A');
             }
             return codePoint;
         }
@@ -53,7 +53,7 @@ namespace lotus::case_map {
 
     bool isLetter(char32_t codePoint) {
         if (codePoint < kAsciiLimit) {
-            return ('a' <= codePoint && codePoint <= 'z') || ('A' <= codePoint && codePoint <= 'Z');
+            return (U'a' <= codePoint && codePoint <= U'z') || (U'A' <= codePoint && codePoint <= U'Z');
         }
         const std::u32string_view letters = data::letters();
         return std::ranges::binary_search(letters, codePoint);

@@ -80,12 +80,15 @@ add_lotus_headless_test(replacement_delays replacement-delays.cpp "integration;s
 add_lotus_headless_test(app_rule_delay_wire app-rule-delay-wire.cpp "integration;apprule")
 add_lotus_headless_test(dict_reload dict-reload.cpp "integration;dictionary")
 add_lotus_headless_test(uinput_device uinput-device.cpp "unit;server")
+target_sources(uinput_device PRIVATE ${PROJECT_SOURCE_DIR}/server/lotus-uinput-device.cpp)
 target_link_libraries(uinput_device PRIVATE PkgConfig::LIBEVDEV)
 target_include_directories(uinput_device PRIVATE ${PROJECT_SOURCE_DIR}/server)
 add_lotus_headless_test(config_enum_names config-enum-names.cpp "unit;config")
+add_lotus_headless_test(key_buffer key-buffer.cpp "unit;buffer")
+add_lotus_headless_test(dbus_deferred_commit dbus-deferred-commit.cpp "integration;dbus")
 
 string(MD5 LOTUS_CTEST_SOCKET_NAMESPACE "${PROJECT_BINARY_DIR}")
-set_tests_properties(smooth_buffered_key_replay select_mode_replacement replacement_delays app_rule_delay_wire
+set_tests_properties(smooth_buffered_key_replay select_mode_replacement replacement_delays app_rule_delay_wire dbus_deferred_commit
     PROPERTIES RESOURCE_LOCK lotus_kb_socket
     ENVIRONMENT "LOTUS_SOCKET_NAMESPACE=ctest-${LOTUS_CTEST_SOCKET_NAMESPACE}")
 add_lotus_headless_test(modifier_key_bypasses_surrounding_text

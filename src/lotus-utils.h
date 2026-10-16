@@ -47,13 +47,13 @@ using KeySym = uint32_t;
 
 // Global state variables for input processing
 // LOTUS_EXPORT: read by the headless tests through lotus_test_core.
-extern LOTUS_EXPORT std::atomic<fcitx::LotusMode> realMode;          ///< Current active input mode
-extern std::atomic<bool>                          g_mouse_clicked;   ///< Mouse click detection flag
-extern std::atomic<bool>                          is_deleting_;      ///< Deletion in progress flag
-extern std::atomic<bool>                          stop_flag_monitor; ///< Signal to stop monitor threads
-extern std::atomic<int>                           uinput_client_fd_; ///< Uinput client file descriptor
-extern std::atomic<unsigned int>                  realtextLen;       ///< Current text length
-extern std::atomic<int>                           mouse_socket_fd;   ///< Mouse socket file descriptor
+extern LOTUS_EXPORT std::atomic<fcitx::LotusMode> g_realMode;        ///< Current active input mode
+extern std::atomic<bool>                          g_mouseClicked;    ///< Mouse click detection flag
+extern std::atomic<bool>                          g_isDeleting;      ///< Deletion in progress flag
+extern std::atomic<bool>                          g_stopFlagMonitor; ///< Signal to stop monitor threads
+extern std::atomic<int>                           g_uinputClientFd;  ///< Uinput client file descriptor
+extern std::atomic<unsigned int>                  g_realTextLen;     ///< Current text length
+extern std::atomic<int>                           g_mouseSocketFd;   ///< Mouse socket file descriptor
 
 struct DiffPart {
     std::u32string_view deletedPart;
@@ -96,7 +96,7 @@ std::string lotusConfigDir();
  * @brief Gets current time in milliseconds.
  * @return Timestamp in milliseconds.
  */
-int64_t now_ms();
+int64_t nowMs();
 
 /**
  * @brief Checks if key symbol is a backspace.
@@ -128,7 +128,7 @@ bool isUinputMode(fcitx::LotusMode mode);
  * @param B Second text.
  * @return Pairs of delete part and add part.
  */
-DiffPart compareAndSplitU32(std::u32string_view A, std::u32string_view B);
+DiffPart compareAndSplitU32(std::u32string_view oldText, std::u32string_view newText);
 
 /**
  * @brief Get the frontend name from the input context.

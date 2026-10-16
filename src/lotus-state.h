@@ -17,11 +17,13 @@
 
 #include "emoji-entry.h"
 #include "key_processor.h"
+#include "lotus-key-buffer.h"
 #include "common-protocol.h"
 #include "lotus-utils.h"
 
 #include <chrono>
 #include <cstddef>
+#include <fcitx-utils/event.h>
 #include <fcitx/inputcontext.h>
 #include <memory>
 
@@ -99,69 +101,70 @@ namespace fcitx {
         friend class LotusEngine;
 
       private:
-        static constexpr size_t               MAX_BUFFERED_KEYS = 50;
-
         LotusEngine&                          engine_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
         InputContext&                         ic_;     // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
         std::shared_ptr<lotus::KeyProcessor>  lotusEngine_;
         std::u32string                        oldPreBuffer_;
-        bool                                  hasHistory_              = false;
-        size_t                                expected_backspaces_     = 0;
-        size_t                                current_backspace_count_ = 0;
-        std::u32string                        pending_commit_string_;
-        LotusAppRuleSetting                   appRuleSetting_; ///< Per-app rule (mode + delay overrides) pushed by the engine
+        bool                                  hasHistory_            = false;
+        size_t                                expectedBackspaces_    = 0;
+        size_t                                currentBackspaceCount_ = 0;
+        std::u32string                        pendingCommitString_;
+        std::unique_ptr<EventSourceTime>      deferredCommitTimer_;           ///< Pending dbus commit timer
+        std::u32string                        deferredCommitText_;            ///< Text waiting for the deferred commit
+        bool                                  deferredCommitPending_ = false; ///< Timer armed and not fired yet
+        LotusAppRuleSetting                   appRuleSetting_;                ///< Per-app rule (mode + delay overrides) pushed by the engine
         std::u32string                        emojiBuffer_;
         std::vector<EmojiEntry>               emojiCandidates_;
-        std::vector<KeyEntry>                 buffered_keys_; ///< Keystrokes buffered during replacement
+        KeyBuffer                             bufferedKeys_; ///< Keystrokes buffered during replacement
         bool                                  isPrevSpace_           = false;
         bool                                  isPrevHyphen_          = false;
         bool                                  shouldCapitalize_      = false;
         bool                                  isPrevPunctuation_     = false;
         int64_t                               lastDeactivateTime_    = 0;
         int64_t                               deletionInterruptedAt_ = 0;     ///< when deactivate() cut an in-flight replacement (0 = none)
-        bool                                  tracking_modifier_tap_ = false; ///< Selected modifier held, waiting for consecutive keyup
-        bool                                  macro_skip_            = false; ///< Macro disabled for the current word
-        std::chrono::steady_clock::time_point last_commit_time_;
+        bool                                  trackingModifierTap_   = false; ///< Selected modifier held, waiting for consecutive keyup
+        bool                                  macroSkip_             = false; ///< Macro disabled for the current word
+        std::chrono::steady_clock::time_point lastCommitTime_;
 
         /**
          * @brief Connects to the uinput server.
          * @return True if connection successful.
          */
-        static bool connect_uinput_server();
+        static bool connectUinputServer();
 
         /**
          * @brief Sets up uinput device.
          * @return File descriptor or -1 on error.
          */
-        static int setup_uinput();
+        static int setupUinput();
 
         /**
          * @brief Sends a keyboard request to the uinput server (reconnect on failure).
          * @param op Operation to request.
          * @param count Number of backspaces or characters to select.
-         * @param pre_delay Delay in milliseconds before executing the keyboard operation.
+         * @param preDelay Delay in milliseconds before executing the keyboard operation.
          * @param interval Delay in milliseconds between consecutive injected keys.
-         * @param post_delay Delay in milliseconds after completing the keyboard operation.
+         * @param postDelay Delay in milliseconds after completing the keyboard operation.
          */
-        static void send_kb_msg(KbOp op, size_t count, uint32_t pre_delay, uint32_t interval, uint32_t post_delay);
+        static void sendKbMsg(KbOp op, size_t count, uint32_t preDelay, uint32_t interval, uint32_t postDelay);
 
         /**
          * @brief Sends backspace key events via uinput.
          * @param count Number of backspaces to send.
-         * @param pre_delay Delay in milliseconds before executing the keyboard operation.
+         * @param preDelay Delay in milliseconds before executing the keyboard operation.
          * @param interval Delay in milliseconds between consecutive injected keys.
-         * @param post_delay Delay in milliseconds after completing the keyboard operation.
+         * @param postDelay Delay in milliseconds after completing the keyboard operation.
          */
-        static void send_backspace_uinput(size_t count, uint32_t pre_delay, uint32_t interval, uint32_t post_delay);
+        static void sendBackspaceUinput(size_t count, uint32_t preDelay, uint32_t interval, uint32_t postDelay);
 
         /**
          * @brief Asks the uinput server to select count characters with Shift+Left.
          * @param count Number of characters to select.
-         * @param pre_delay Delay in milliseconds before executing the keyboard operation.
+         * @param preDelay Delay in milliseconds before executing the keyboard operation.
          * @param interval Delay in milliseconds between consecutive injected keys.
-         * @param post_delay Delay in milliseconds after completing the keyboard operation.
+         * @param postDelay Delay in milliseconds after completing the keyboard operation.
          */
-        static void send_select_uinput(size_t count, uint32_t pre_delay, uint32_t interval, uint32_t post_delay);
+        static void sendSelectUinput(size_t count, uint32_t preDelay, uint32_t interval, uint32_t postDelay);
 
         /**
          * @brief Handles the pre-dispatch guards of a key event (engine presence, shift in
@@ -352,7 +355,7 @@ namespace fcitx {
         /**
          * @brief Replays keystrokes buffered during replacement.
          *
-         * When is_deleting_ is true, non-special keystrokes are buffered
+         * When g_isDeleting is true, non-special keystrokes are buffered
          * instead of being discarded. This method replays them after the
          * replacement completes.
          */

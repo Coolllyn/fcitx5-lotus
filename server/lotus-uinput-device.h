@@ -18,7 +18,6 @@
 #include <array>
 #include <cstdint>
 #include <memory>
-#include <string>
 #include <string_view>
 
 /**
@@ -82,20 +81,6 @@ using LibevdevUinput = std::unique_ptr<libevdev_uinput, LibevdevUinputDeleter>;
  *
  * @return Description, or a null handle when libevdev cannot allocate.
  */
-inline LibevdevDevice buildLotusUinputDevice() {
-    LibevdevDevice device{libevdev_new()};
-    if (device == nullptr) {
-        return device;
-    }
-    libevdev_set_name(device.get(), std::string(kLotusUinputName).c_str());
-    libevdev_set_id_bustype(device.get(), BUS_USB);
-    libevdev_set_id_vendor(device.get(), kLotusUinputVendor);
-    libevdev_set_id_product(device.get(), kLotusUinputProduct);
-    libevdev_enable_event_type(device.get(), EV_KEY);
-    for (const unsigned int code : kLotusUinputKeys) {
-        libevdev_enable_event_code(device.get(), EV_KEY, code, nullptr);
-    }
-    return device;
-}
+LibevdevDevice buildLotusUinputDevice();
 
 #endif // _LOTUS_UINPUT_DEVICE_H_

@@ -190,9 +190,9 @@ namespace fcitx {
      */
     struct LotusAppRuleSetting {
         LotusMode mode              = LotusMode::Smooth; ///< Typing mode for the app
-        int       commitInterval    = 0;                 ///< ms cooldown between commits (KbMsg.pre_delay); 0 = default
+        int       commitInterval    = 0;                 ///< ms cooldown between commits (KbMsg.preDelay); 0 = default
         int       backspaceInterval = 0;                 ///< ms between injected keys (KbMsg.interval); 0 = default
-        int       postDelay         = 0;                 ///< ms before the final trigger key (KbMsg.post_delay); 0 = default
+        int       postDelay         = 0;                 ///< ms before the final trigger key (KbMsg.postDelay); 0 = default
     };
 
     /**

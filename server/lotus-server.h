@@ -43,11 +43,11 @@ class UinputDevice {
     UinputDevice() = default;
 
     bool initialize();
-    void send_backspace();
-    void send_delete();
-    void send_shift_down();
-    void send_shift_up();
-    void send_left();
+    void sendBackspace();
+    void sendDelete();
+    void sendShiftDown();
+    void sendShiftUp();
+    void sendLeft();
 
   private:
     /**
@@ -55,13 +55,13 @@ class UinputDevice {
      *        same style as the original backspace write.
      * @param code Linux KEY_* code.
      */
-    void send_tap(uint16_t code);
+    void sendTap(uint16_t code);
     /**
      * @brief Emits a single modifier-style event with its SYN.
      * @param code Linux KEY_* code.
      * @param value 1 = press, 0 = release.
      */
-    void send_mod(uint16_t code, int value);
+    void sendMod(uint16_t code, int value);
     /**
      * @brief Logs the first write failure only, so a broken device cannot flood the log.
      * @param error Negative errno returned by libevdev.
@@ -122,13 +122,13 @@ class LibinputContext {
   public:
     explicit LibinputContext(const struct libinput_interface* interface);
 
-    [[nodiscard]] bool is_valid() const {
+    [[nodiscard]] bool isValid() const {
         return li_ != nullptr;
     }
-    [[nodiscard]] struct libinput* get_li() const {
+    [[nodiscard]] struct libinput* getLi() const {
         return li_.get();
     }
-    [[nodiscard]] int get_fd() const {
+    [[nodiscard]] int getFd() const {
         return li_ == nullptr ? -1 : libinput_get_fd(li_.get());
     }
 
@@ -146,30 +146,30 @@ extern std::atomic<bool> g_running; //NOLINT
  * @brief Signal handler for graceful shutdown.
  * @param sig Signal number (SIGTERM or SIGINT).
  */
-void signal_handler(int sig);
+void signalHandler(int sig);
 
 /**
  * @brief Gets the current username.
  * @return Username string or "unknown" if cannot determine.
  */
-std::string get_current_username();
+std::string getCurrentUsername();
 
 /**
  * @brief Gets the UID for a given username.
  * @param username Username to resolve.
  * @return UID of the user, or nullopt when the user does not exist.
  */
-std::optional<uid_t> get_uid_for_user(std::string_view username);
+std::optional<uid_t> getUidForUser(std::string_view username);
 
 /**
  * @brief Boosts process priority for real-time responsiveness.
  */
-void boost_process_priority();
+void boostProcessPriority();
 
 /**
  * @brief Pins process to performance cores (cores 0-3).
  */
-void pin_to_pcore();
+void pinToPcore();
 
 /**
  * @brief Opens input device with restricted permissions.
@@ -177,6 +177,7 @@ void pin_to_pcore();
  * @param flags Open flags.
  * @param user_data Unused user data.
  * @return File descriptor or negative errno on error.
+ * @note libinput_interface callback name, see libinput.h.
  */
 int open_restricted(const char* path, int flags, void* user_data);
 
@@ -184,6 +185,7 @@ int open_restricted(const char* path, int flags, void* user_data);
  * @brief Closes input device.
  * @param fd File descriptor to close.
  * @param user_data Unused user data.
+ * @note libinput_interface callback name, see libinput.h.
  */
 void close_restricted(int fd, void* user_data);
 

@@ -3,7 +3,7 @@
  * @file replacement-delays.cpp
  * @brief Headless regression test: the global default delays reach the uinput
  *        server through KbMsg (interval = DefaultBackspaceInterval,
- *        post_delay = DefaultPostDelay) and DefaultCommitInterval delays a
+ *        postDelay = DefaultPostDelay) and DefaultCommitInterval delays a
  *        replacement that follows a recent commit.
  */
 
@@ -71,16 +71,16 @@ int main() {
     context->resetPreeditUpdateCount();
 
     // Telex a, s changes the real Bamboo preedit a -> á; Smooth mode replaces
-    // the old character through the kb_socket transport.
+    // the old character through the kbSocket transport.
     if (!send(engine, entry, *context, FcitxKey_a, false) || !send(engine, entry, *context, FcitxKey_s, true))
         return 1;
 
     KbMsg first{};
     if (!receiveBackspaceRequest(listener, first, "the initial Telex replacement request did not arrive"))
         return 1;
-    if (first.interval != 17 || first.post_delay != 33 || first.pre_delay != 0) {
-        reportFailure("default delays on the first request", "interval=17, post_delay=33, pre_delay=0",
-                      "interval=" + std::to_string(first.interval) + ", post_delay=" + std::to_string(first.post_delay) + ", pre_delay=" + std::to_string(first.pre_delay),
+    if (first.interval != 17 || first.postDelay != 33 || first.preDelay != 0) {
+        reportFailure("default delays on the first request", "interval=17, postDelay=33, preDelay=0",
+                      "interval=" + std::to_string(first.interval) + ", postDelay=" + std::to_string(first.postDelay) + ", preDelay=" + std::to_string(first.preDelay),
                       "DefaultBackspaceInterval/DefaultPostDelay must be forwarded and no commit happened before");
         return 1;
     }
@@ -98,8 +98,8 @@ int main() {
     KbMsg second{};
     if (!receiveBackspaceRequest(listener, second, "buffered key was not replayed after deletion", "buffered x replay starts another replacement request within 5000 ms"))
         return 1;
-    if (second.pre_delay < 900 || second.pre_delay > 1000) {
-        reportFailure("commit cooldown on the repeated request", "pre_delay in [900, 1000]", "pre_delay=" + std::to_string(second.pre_delay),
+    if (second.preDelay < 900 || second.preDelay > 1000) {
+        reportFailure("commit cooldown on the repeated request", "preDelay in [900, 1000]", "preDelay=" + std::to_string(second.preDelay),
                       "DefaultCommitInterval=1000 must delay a replacement that follows the previous commit");
         return 1;
     }

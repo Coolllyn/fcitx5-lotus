@@ -86,6 +86,10 @@ jobs:
       - name: Test
         run: |
           ctest --test-dir fcitx5-lotus/build --output-on-failure --no-tests=error
+      - name: Check clang-tidy
+        run: |
+          cd fcitx5-lotus
+          clang-tidy -p build --header-filter='(src|server|common|lotus|test)/.*' --warnings-as-errors='*' $(git ls-files '*.cpp')
       - name: CodeQL Analysis
         if: matrix.compiler == 'gcc'
         uses: github/codeql-action/analyze@v4.38.3

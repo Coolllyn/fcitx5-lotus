@@ -81,8 +81,8 @@ int main() {
     KbMsg msg{};
     if (!receiveBackspaceRequest(listener, msg, "the initial Telex replacement request did not arrive"))
         return 1;
-    if (msg.interval != 20 || msg.post_delay != 25) {
-        reportFailure("per-app delays on the request", "interval=20, post_delay=25", "interval=" + std::to_string(msg.interval) + ", post_delay=" + std::to_string(msg.post_delay),
+    if (msg.interval != 20 || msg.postDelay != 25) {
+        reportFailure("per-app delays on the request", "interval=20, postDelay=25", "interval=" + std::to_string(msg.interval) + ", postDelay=" + std::to_string(msg.postDelay),
                       "the per-app rule must win over DefaultBackspaceInterval/DefaultPostDelay");
         return 1;
     }

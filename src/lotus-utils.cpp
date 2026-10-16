@@ -23,13 +23,13 @@
 #include <chrono>
 
 // Global variables
-std::atomic<fcitx::LotusMode> realMode{fcitx::LotusMode::Smooth};
-std::atomic<bool>             g_mouse_clicked{false};
-std::atomic<bool>             is_deleting_{false};
-std::atomic<bool>             stop_flag_monitor{false};
-std::atomic<int>              uinput_client_fd_{-1};
-std::atomic<unsigned int>     realtextLen{0};
-std::atomic<int>              mouse_socket_fd{-1};
+std::atomic<fcitx::LotusMode> g_realMode{fcitx::LotusMode::Smooth};
+std::atomic<bool>             g_mouseClicked{false};
+std::atomic<bool>             g_isDeleting{false};
+std::atomic<bool>             g_stopFlagMonitor{false};
+std::atomic<int>              g_uinputClientFd{-1};
+std::atomic<unsigned int>     g_realTextLen{0};
+std::atomic<int>              g_mouseSocketFd{-1};
 
 namespace fcitx {
     FCITX_DEFINE_LOG_CATEGORY(lotusLog, "lotus", fcitx::LogLevel::NoLog);
@@ -37,14 +37,14 @@ namespace fcitx {
 
 std::string buildSocketPath(std::string_view base_path_suffix) {
     struct passwd  pwd{};
-    struct passwd* result   = nullptr;
-    long           buf_size = sysconf(_SC_GETPW_R_SIZE_MAX);
-    if (buf_size == -1) {
-        buf_size = 16384;
+    struct passwd* result  = nullptr;
+    long           bufSize = sysconf(_SC_GETPW_R_SIZE_MAX);
+    if (bufSize == -1) {
+        bufSize = 16384;
     }
-    std::vector<char> buf(buf_size);
+    std::vector<char> buf(bufSize);
     std::string       username;
-    int               res = getpwuid_r(getuid(), &pwd, buf.data(), buf_size, &result);
+    int               res = getpwuid_r(getuid(), &pwd, buf.data(), bufSize, &result);
     if (res == 0 && result != nullptr) {
         username = result->pw_name;
     } else {
@@ -56,8 +56,8 @@ std::string buildSocketPath(std::string_view base_path_suffix) {
     path += lotusSocketNamespace(username);
     path += '-';
     path += base_path_suffix;
-    const size_t max_socket_path_length = UNIX_PATH_MAX - 1;
-    path.resize(std::min(path.length(), max_socket_path_length));
+    const size_t maxSocketPathLength = UNIX_PATH_MAX - 1;
+    path.resize(std::min(path.length(), maxSocketPathLength));
     return path;
 }
 
@@ -74,7 +74,7 @@ int makeAbstractUnixSocket(std::string_view name, struct sockaddr_un& addr, sock
 }
 
 void closeUinputClient() {
-    FdGuard old_fd(uinput_client_fd_.exchange(-1));
+    FdGuard oldFd(g_uinputClientFd.exchange(-1));
 }
 
 std::string lotusConfigDir() {
@@ -85,7 +85,7 @@ std::string lotusConfigDir() {
 #endif
 }
 
-int64_t now_ms() {
+int64_t nowMs() {
     return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
 }
 
@@ -110,10 +110,10 @@ bool isUinputMode(fcitx::LotusMode mode) {
     return std::ranges::find(modes, mode) != modes.end();
 }
 
-DiffPart compareAndSplitU32(std::u32string_view A, std::u32string_view B) {
-    auto [itA, itB] = std::ranges::mismatch(A, B);
-    size_t offset   = std::distance(A.begin(), itA);
-    return {.deletedPart = A.substr(offset), .addedPart = B.substr(offset)};
+DiffPart compareAndSplitU32(std::u32string_view oldText, std::u32string_view newText) {
+    auto [itA, itB] = std::ranges::mismatch(oldText, newText);
+    size_t offset   = std::distance(oldText.begin(), itA);
+    return {.deletedPart = oldText.substr(offset), .addedPart = newText.substr(offset)};
 }
 
 std::string getFrontendName(fcitx::InputContext* ic) {

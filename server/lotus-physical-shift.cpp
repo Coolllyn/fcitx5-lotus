@@ -20,8 +20,8 @@ bool keyBitSet(std::span<const unsigned char> bits, unsigned int code) {
     return (bits[code / 8U] & (1U << (code % 8U))) != 0;
 }
 
-KbOp resolveKeyboardOp(KbOp requested, bool shift_held) {
-    return (requested == KbOp::Select && shift_held) ? KbOp::Backspace : requested;
+KbOp resolveKeyboardOp(KbOp requested, bool shiftHeld) {
+    return (requested == KbOp::Select && shiftHeld) ? KbOp::Backspace : requested;
 }
 
 std::string PhysicalShiftState::devnodeOf(struct libinput_device* device) {
@@ -31,21 +31,20 @@ std::string PhysicalShiftState::devnodeOf(struct libinput_device* device) {
 
 PhysicalShiftState::Keyboard PhysicalShiftState::openKeyboard(const std::string& devnode) {
     Keyboard  keyboard;
-    const int fd     = open(devnode.c_str(), O_RDONLY | O_NONBLOCK | O_CLOEXEC);
+    FdGuard   fd(open(devnode.c_str(), O_RDONLY | O_NONBLOCK | O_CLOEXEC));
+    libevdev* raw    = nullptr;
     keyboard.devnode = devnode;
-    if (fd < 0) {
+    if (!fd.isValid()) {
         return keyboard;
     }
-    libevdev* raw = nullptr;
-    if (libevdev_new_from_fd(fd, &raw) != 0 || raw == nullptr) {
-        close(fd);
+    if (libevdev_new_from_fd(fd.get(), &raw) != 0 || raw == nullptr) {
         return keyboard;
     }
     LibevdevDevice dev(raw);
     if (libevdev_has_event_code(dev.get(), EV_KEY, KEY_LEFTSHIFT) == 0 && libevdev_has_event_code(dev.get(), EV_KEY, KEY_RIGHTSHIFT) == 0) {
         return keyboard;
     }
-    keyboard.fd  = FdGuard(fd);
+    keyboard.fd  = std::move(fd);
     keyboard.dev = std::move(dev);
     return keyboard;
 }
@@ -63,7 +62,7 @@ void PhysicalShiftState::trackDevice(struct libinput_device* device) {
         return;
     }
     Keyboard keyboard = openKeyboard(devnode);
-    if (!keyboard.fd.is_valid()) {
+    if (!keyboard.fd.isValid()) {
         LotusLogger::instance().warn("Not tracking Shift keys of " + devnode);
         return;
     }
@@ -80,11 +79,11 @@ void PhysicalShiftState::forgetDevice(struct libinput_device* device) {
 }
 
 bool PhysicalShiftState::keyboardShiftHeld(Keyboard& keyboard) {
-    key_bits_.fill(0);
-    if (ioctl(keyboard.fd.get(), EVIOCGKEY(key_bits_.size()), key_bits_.data()) < 0) {
+    keyBits_.fill(0);
+    if (ioctl(keyboard.fd.get(), EVIOCGKEY(keyBits_.size()), keyBits_.data()) < 0) {
         return false;
     }
-    return keyBitSet(key_bits_, KEY_LEFTSHIFT) || keyBitSet(key_bits_, KEY_RIGHTSHIFT);
+    return keyBitSet(keyBits_, KEY_LEFTSHIFT) || keyBitSet(keyBits_, KEY_RIGHTSHIFT);
 }
 
 bool PhysicalShiftState::shiftHeld() {

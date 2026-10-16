@@ -4,13 +4,14 @@
 /**
  * @file kb-socket-listener.h
  * @brief Shared helper for tests that observe the addon -> uinput server
- *        keyboard socket (kb_socket).
+ *        keyboard socket (kbSocket).
  *
  * Tests bind the abstract socket first, accept the addon's connection and read
  * the KbMsg request the addon emits when a replacement must be delivered by the
  * virtual uinput keyboard (BackSpace stream or Shift+Left selection).
  */
 
+#include "common-fd-guard.h"
 #include "common-protocol.h"
 #include "lotus-utils.h"
 
@@ -19,6 +20,7 @@
 #include <cstring>
 #include <iostream>
 #include <string>
+#include <string_view>
 #include <utility>
 
 #include <poll.h>
@@ -26,7 +28,7 @@
 #include <sys/un.h>
 #include <unistd.h>
 
-inline void reportFailure(const std::string& step, const std::string& expected, const std::string& actual, const std::string& meaning) {
+inline void reportFailure(std::string_view step, std::string_view expected, std::string_view actual, std::string_view meaning) {
     std::cerr << "Step: " << step << '\n';
     std::cerr << "Expected: " << expected << '\n';
     std::cerr << "Actual: " << actual << '\n';
@@ -37,43 +39,38 @@ class KbSocketListener {
   public:
     KbSocketListener() : fd_(socket(AF_UNIX, SOCK_SEQPACKET, 0)) {
 
-        if (fd_ < 0) {
+        if (!fd_.isValid()) {
             fail("socket");
             return;
         }
         sockaddr_un address{};
         address.sun_family    = AF_UNIX;
-        const auto socketPath = buildSocketPath("kb_socket");
+        const auto socketPath = buildSocketPath("kbSocket");
         address.sun_path[0]   = '\0';
         std::memcpy(&address.sun_path[1], socketPath.data(), socketPath.size());
         const auto length = static_cast<socklen_t>(offsetof(sockaddr_un, sun_path) + socketPath.size() + 1);
-        if (bind(fd_, reinterpret_cast<const sockaddr*>(&address), length) < 0 || listen(fd_, 5) < 0) {
+        if (bind(fd_.get(), reinterpret_cast<const sockaddr*>(&address), length) < 0 || listen(fd_.get(), 5) < 0) {
             fail("bind/listen");
         }
     }
 
-    ~KbSocketListener() {
-        closeClient();
-        if (fd_ >= 0)
-            close(fd_);
-    }
-
+    ~KbSocketListener()                                  = default;
     KbSocketListener(const KbSocketListener&)            = delete;
     KbSocketListener& operator=(const KbSocketListener&) = delete;
     KbSocketListener(KbSocketListener&&)                 = delete;
     KbSocketListener& operator=(KbSocketListener&&)      = delete;
 
-    bool              receive(KbMsg& msg, const char* meaning, const char* requestTimeoutExpected = "request within 5000 ms") {
+    bool              receive(KbMsg& msg, std::string_view meaning, std::string_view requestTimeoutExpected = "request within 5000 ms") {
         int remainingTimeout = kDefaultTimeoutMs;
 
         while (remainingTimeout > 0) {
-            if (client_ < 0) {
-                if (fd_ < 0) {
+            if (!client_.isValid()) {
+                if (!fd_.isValid()) {
                     reportFailure("wait for replacement socket connection", "valid listener descriptor", "listener descriptor is invalid", meaning);
                     return false;
                 }
 
-                pollfd     pfd{.fd = fd_, .events = POLLIN, .revents = 0};
+                pollfd     pfd{.fd = fd_.get(), .events = POLLIN, .revents = 0};
                 const auto pollResult = poll(&pfd, 1, remainingTimeout);
                 if (pollResult == 0) {
                     reportFailure("wait for replacement socket connection", "connection request within timeout", "poll timed out", meaning);
@@ -89,8 +86,8 @@ class KbSocketListener {
                     reportFailure("wait for replacement socket connection", "POLLIN revents", "revents=" + std::to_string(pfd.revents), meaning);
                     return false;
                 }
-                client_ = accept(fd_, nullptr, nullptr);
-                if (client_ < 0) {
+                client_ = FdGuard(accept(fd_.get(), nullptr, nullptr));
+                if (!client_.isValid()) {
                     if (errno == EINTR || errno == EAGAIN)
                         continue;
                     reportFailure("accept replacement socket connection", "accept succeeds", "accept failed: " + std::string(std::strerror(errno)), meaning);
@@ -98,7 +95,7 @@ class KbSocketListener {
                 }
             }
 
-            pollfd     pfd{.fd = client_, .events = POLLIN | POLLHUP | POLLRDHUP, .revents = 0};
+            pollfd     pfd{.fd = client_.get(), .events = POLLIN | POLLHUP | POLLRDHUP, .revents = 0};
             const auto pollResult = poll(&pfd, 1, remainingTimeout);
             if (pollResult == 0) {
                 reportFailure("wait for replacement request", requestTimeoutExpected, "poll timed out", meaning);
@@ -116,7 +113,7 @@ class KbSocketListener {
                 continue;
             }
 
-            const auto received = recv(client_, &msg, sizeof(msg), 0);
+            const auto received = recv(client_.get(), &msg, sizeof(msg), 0);
             if (received < 0) {
                 if (errno == EINTR)
                     continue;
@@ -140,26 +137,22 @@ class KbSocketListener {
     }
 
     [[nodiscard]] bool valid() const {
-        return fd_ >= 0;
+        return fd_.isValid();
     }
 
   private:
     static constexpr int kDefaultTimeoutMs = 5000;
 
     void                 closeClient() {
-        if (client_ >= 0) {
-            close(client_);
-            client_ = -1;
-        }
+        client_.reset();
     }
 
-    void fail(const char* operation) {
+    void fail(std::string_view operation) {
         reportFailure(std::string(operation) + " replacement socket", "operation succeeds", std::string(operation) + " failed: " + std::strerror(errno),
                       "the test cannot observe replacement requests");
-        close(fd_);
-        fd_ = -1;
+        fd_.reset();
     }
 
-    int fd_     = -1;
-    int client_ = -1;
+    FdGuard fd_;
+    FdGuard client_;
 };

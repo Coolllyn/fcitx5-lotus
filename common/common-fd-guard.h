@@ -76,19 +76,19 @@ class FdGuard {
      * @brief Reports whether a descriptor is owned.
      * @return True when the guard owns a descriptor.
      */
-    [[nodiscard]] bool is_valid() const {
+    [[nodiscard]] bool isValid() const {
         return fd_ >= 0;
     }
 
     /**
      * @brief Closes the owned descriptor and takes a new one.
-     * @param new_fd Descriptor to own, -1 to own nothing.
+     * @param newFd Descriptor to own, -1 to own nothing.
      */
-    void reset(int new_fd = -1) {
+    void reset(int newFd = -1) {
         if (fd_ >= 0) {
             close(fd_);
         }
-        fd_ = new_fd;
+        fd_ = newFd;
     }
 
     /**

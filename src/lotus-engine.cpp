@@ -167,7 +167,7 @@ namespace fcitx {
         // so the cost is paid at most once per few seconds.
         static int64_t lastCheckMs = 0;
         static bool    cachedValue = false;
-        const int64_t  now         = now_ms();
+        const int64_t  now         = nowMs();
         if (now - lastCheckMs < 5000) {
             return cachedValue;
         }
@@ -311,7 +311,7 @@ namespace fcitx {
             std::filesystem::create_directories(configDir);
         }
         reloadConfig();
-        realMode = config_.mode.value();
+        g_realMode = config_.mode.value();
         instance_.inputContextManager().registerProperty("LotusState", &factory_);
         appRulesPath_ = configDir + "/lotus-app-rules.conf";
         loadAppRules();
@@ -346,10 +346,10 @@ namespace fcitx {
     }
 
     LotusEngine::~LotusEngine() {
-        stop_flag_monitor.store(true, std::memory_order_release);
+        g_stopFlagMonitor.store(true, std::memory_order_release);
         mouseEventSource_.reset();
-        FdGuard fd(mouse_socket_fd.exchange(-1, std::memory_order_acq_rel));
-        if (fd.is_valid()) {
+        FdGuard fd(g_mouseSocketFd.exchange(-1, std::memory_order_acq_rel));
+        if (fd.isValid()) {
             shutdown(fd.get(), SHUT_RDWR);
         }
         closeUinputClient();
@@ -493,7 +493,7 @@ namespace fcitx {
     void LotusEngine::activate(const InputMethodEntry& /*entry*/, InputContextEvent& event) {
         auto*      ic        = event.inputContext();
         const bool surrvalid = ic->surroundingText().isValid();
-        const bool is_dbus   = getFrontendName(ic) == "dbus";
+        const bool isDbus    = getFrontendName(ic) == "dbus";
         setupMouseWatcher();
 
         auto& statusArea = event.inputContext()->statusArea();
@@ -511,35 +511,35 @@ namespace fcitx {
         auto*      state = ic->propertyFor(&factory_);
 
         const bool uinputMode         = isUinputMode(targetMode);
-        const bool focusBounce        = uinputMode && state->lastDeactivateTime_ > 0 && now_ms() - state->lastDeactivateTime_ < 100;
-        const bool resumeReplacement  = focusBounce && state->deletionInterruptedAt_ > 0 && is_deleting_.load();
+        const bool focusBounce        = uinputMode && state->lastDeactivateTime_ > 0 && nowMs() - state->lastDeactivateTime_ < 100;
+        const bool resumeReplacement  = focusBounce && state->deletionInterruptedAt_ > 0 && g_isDeleting.load();
         state->deletionInterruptedAt_ = 0;
 
         if (!resumeReplacement) {
-            is_deleting_.store(false);
+            g_isDeleting.store(false);
         }
 
         if (focusBounce) {
-            realMode = targetMode;
+            g_realMode = targetMode;
             ic->updateUserInterface(UserInterfaceComponent::StatusArea);
             LOTUS_INFO("Focus bounce: keep word buffers");
         } else {
             setMode(targetMode, event.inputContext());
         }
-        if (event.type() == EventType::InputContextFocusIn && is_dbus && !surrvalid) {
+        if (event.type() == EventType::InputContextFocusIn && isDbus && !surrvalid) {
             LOTUS_INFO("Skip clearAllBuffers");
-        } else if (surrvalid && !state->oldPreBuffer_.empty() && (now_ms() - state->lastDeactivateTime_) >= 100) {
+        } else if (surrvalid && !state->oldPreBuffer_.empty() && (nowMs() - state->lastDeactivateTime_) >= 100) {
             state->clearAllBuffers();
         }
         if (!resumeReplacement) {
-            is_deleting_.store(false);
+            g_isDeleting.store(false);
         }
         if (targetMode == LotusMode::Emoji) {
             state->updateEmojiPreedit();
         } else {
             ic->inputPanel().reset();
             ic->updateUserInterface(UserInterfaceComponent::InputPanel);
-            if (realMode == LotusMode::Preedit || realMode == LotusMode::SurroundingText)
+            if (g_realMode == LotusMode::Preedit || g_realMode == LotusMode::SurroundingText)
                 ic->updatePreedit();
         }
         for (const auto& action : toggleActions_) {
@@ -700,7 +700,7 @@ namespace fcitx {
             return;
         }
 
-        if (isSelectingAppMode_ && g_mouse_clicked.load(std::memory_order_acquire)) {
+        if (isSelectingAppMode_ && g_mouseClicked.load(std::memory_order_acquire)) {
             closeAppModeMenu();
             ic->inputPanel().reset();
             ic->updateUserInterface(UserInterfaceComponent::InputPanel);
@@ -732,7 +732,7 @@ namespace fcitx {
                 state->reset();
             }
             currentConfigureApp_ = getProgramName(ic);
-            g_mouse_clicked.store(false, std::memory_order_release);
+            g_mouseClicked.store(false, std::memory_order_release);
             std::string appName = getProgramName(ic);
             setMode(getAppRule(appName), ic);
             showAppModeMenu(ic);
@@ -748,14 +748,14 @@ namespace fcitx {
         const size_t textLen = lotus::utf8::length(text);
         unsigned int cursor  = s.cursor();
         if (textLen == static_cast<size_t>(cursor))
-            realtextLen.store(static_cast<unsigned int>(textLen), std::memory_order_release);
+            g_realTextLen.store(static_cast<unsigned int>(textLen), std::memory_order_release);
     }
 
     bool LotusEngine::handleCycleModeHotkey(InputContext* ic, KeyEvent& keyEvent) {
         if (!keyEvent.isRelease() && !config_.cycleModeKey->empty() && keyEvent.key().checkKeyList(*config_.cycleModeKey)) {
             LOTUS_INFO("Cycle mode key pressed");
-            std::string            appName  = getProgramName(ic);
-            LotusMode              realMode = getAppRule(appName);
+            std::string            appName    = getProgramName(ic);
+            LotusMode              g_realMode = getAppRule(appName);
 
             std::vector<LotusMode> enabledModes = enabledModesInOrder();
 
@@ -763,7 +763,7 @@ namespace fcitx {
                 size_t currentIdx = 0;
                 bool   found      = false;
                 for (size_t i = 0; i < enabledModes.size(); ++i) {
-                    if (enabledModes[i] == realMode) {
+                    if (enabledModes[i] == g_realMode) {
                         currentIdx = i;
                         found      = true;
                         break;
@@ -804,7 +804,7 @@ namespace fcitx {
     }
 
     void LotusEngine::reset(const InputMethodEntry& /*entry*/, InputContextEvent& event) {
-        if (is_deleting_.load(std::memory_order_acquire)) {
+        if (g_isDeleting.load(std::memory_order_acquire)) {
             LOTUS_INFO("Ignore reset while is_deleting");
             return;
         }
@@ -822,33 +822,33 @@ namespace fcitx {
     void LotusEngine::deactivate(const InputMethodEntry& /*entry*/, InputContextEvent& event) {
         auto*      ic         = event.inputContext();
         auto*      state      = ic->propertyFor(&factory_);
-        const bool uinputMode = isUinputMode(realMode);
+        const bool uinputMode = isUinputMode(g_realMode);
 
-        if (uinputMode && is_deleting_.load(std::memory_order_acquire) && state->expected_backspaces_ > 0) {
-            state->lastDeactivateTime_    = now_ms();
+        if (uinputMode && g_isDeleting.load(std::memory_order_acquire) && state->expectedBackspaces_ > 0) {
+            state->lastDeactivateTime_    = nowMs();
             state->deletionInterruptedAt_ = state->lastDeactivateTime_;
             LOTUS_INFO("Replacement interrupted by focus out");
             return;
         }
 
         const bool surrvalid       = ic->surroundingText().isValid();
-        const bool is_dbus         = getFrontendName(ic) == "dbus";
-        state->lastDeactivateTime_ = now_ms();
-        if (realMode == LotusMode::Preedit && event.type() != EventType::InputContextFocusOut) {
+        const bool isDbus          = getFrontendName(ic) == "dbus";
+        state->lastDeactivateTime_ = nowMs();
+        if (g_realMode == LotusMode::Preedit && event.type() != EventType::InputContextFocusOut) {
             state->commitBuffer();
         } else {
-            if (event.type() == EventType::InputContextFocusOut && is_dbus && !surrvalid) {
-                state->lastDeactivateTime_ = now_ms();
+            if (event.type() == EventType::InputContextFocusOut && isDbus && !surrvalid) {
+                state->lastDeactivateTime_ = nowMs();
                 LOTUS_INFO("Skip clearAllBuffers");
             } else {
                 if (surrvalid && !state->oldPreBuffer_.empty())
                     state->clearAllBuffers();
             }
 
-            is_deleting_.store(false, std::memory_order_release);
+            g_isDeleting.store(false, std::memory_order_release);
             ic->inputPanel().reset();
             ic->updateUserInterface(UserInterfaceComponent::InputPanel);
-            if (realMode == LotusMode::Preedit || realMode == LotusMode::Emoji || realMode == LotusMode::SurroundingText)
+            if (g_realMode == LotusMode::Preedit || g_realMode == LotusMode::Emoji || g_realMode == LotusMode::SurroundingText)
                 ic->updatePreedit();
         }
     }
@@ -1035,7 +1035,7 @@ namespace fcitx {
 
     void LotusEngine::closeAppModeMenu() {
         isSelectingAppMode_ = false;
-        g_mouse_clicked.store(false, std::memory_order_release);
+        g_mouseClicked.store(false, std::memory_order_release);
     }
 
     void LotusEngine::showAppModeMenu(InputContext* ic) {
@@ -1047,7 +1047,7 @@ namespace fcitx {
         candidateList->setPageSize(10);
 
         auto getLabel = [&](const LotusMode& modeName, const std::string& modeLabel) {
-            if (modeName == realMode) {
+            if (modeName == g_realMode) {
                 return Text(">> " + modeLabel);
             }
             return Text("   " + modeLabel);
@@ -1107,7 +1107,7 @@ namespace fcitx {
                 std::string       keyLabel      = keyUtf8.empty() ? "" : "[" + keyUtf8 + "] ";
                 candidateList->append(std::make_unique<AppModeCandidateWord>(getLabel(entry.mode, keyLabel + modeLabel(entry)), applyMode(entry.mode, isDefaultItem)));
 
-                const bool selectedByMode    = entry.mode == realMode && !isDefaultItem;
+                const bool selectedByMode    = entry.mode == g_realMode && !isDefaultItem;
                 const bool selectedByDefault = isDefaultItem && getAppRule(currentConfigureApp_) == defaultMode && !appRules_.contains(currentConfigureApp_);
                 if (selectedByMode || selectedByDefault) {
                     activeSelectionIdx = currentCandidateIdx;
@@ -1171,11 +1171,11 @@ namespace fcitx {
         cycleModeNotificationTimer_.reset();
 
         // Schedule auto-close using EventLoop::addTimeEvent
-        auto& eventLoop    = instance_.eventLoop();
-        auto  now_time     = ::fcitx::now(CLOCK_MONOTONIC);
-        auto  timeout_time = now_time + CYCLE_MODE_NOTIFICATION_TIMEOUT_USEC;
+        auto& eventLoop   = instance_.eventLoop();
+        auto  nowTime     = ::fcitx::now(CLOCK_MONOTONIC);
+        auto  timeoutTime = nowTime + kCycleModeNotificationTimeoutUsec;
 
-        cycleModeNotificationTimer_ = eventLoop.addTimeEvent(CLOCK_MONOTONIC, timeout_time, 0, [icRef = ic->watch()](EventSourceTime*, uint64_t) {
+        cycleModeNotificationTimer_ = eventLoop.addTimeEvent(CLOCK_MONOTONIC, timeoutTime, 0, [icRef = ic->watch()](EventSourceTime*, uint64_t) {
             if (auto* ic = icRef.get(); ic && ic->hasFocus()) {
                 ic->inputPanel().reset();
                 ic->updateUserInterface(UserInterfaceComponent::InputPanel);
@@ -1185,7 +1185,7 @@ namespace fcitx {
     }
 
     void LotusEngine::setMode(LotusMode mode, InputContext* ic) {
-        realMode = mode;
+        g_realMode = mode;
         if (ic != nullptr) {
             if (auto* state = ic->propertyFor(&factory_)) {
                 state->appRuleSetting_ = getAppRuleSetting(getProgramName(ic));
@@ -1197,7 +1197,7 @@ namespace fcitx {
 
     std::string LotusEngine::subModeIconImpl(const InputMethodEntry& /*entry*/, InputContext& /*inputContext*/) {
         std::string baseIconName;
-        switch (realMode) {
+        switch (g_realMode) {
             case LotusMode::Off: baseIconName = "fcitx-lotus-off"; break;
             case LotusMode::Emoji: baseIconName = "fcitx-lotus-emoji"; break;
             default: baseIconName = "fcitx-lotus"; break;
@@ -1220,7 +1220,7 @@ namespace fcitx {
     }
 
     std::string LotusEngine::subModeLabelImpl(const InputMethodEntry& /*entry*/, InputContext& /*inputContext*/) {
-        switch (realMode) {
+        switch (g_realMode) {
             case LotusMode::Off: return _("Lotus - Off");
             case LotusMode::Emoji: return "😄";
             default: return isGnome_ ? "vi" : "🪷";
@@ -1260,11 +1260,11 @@ namespace fcitx {
             return;
         }
 
-        const std::string  mouse_socket_path = buildSocketPath("mouse_socket");
+        const std::string  mouseSocketPath = buildSocketPath("mouseSocket");
         struct sockaddr_un addr{};
         socklen_t          len = 0;
-        FdGuard            sock(makeAbstractUnixSocket(mouse_socket_path, addr, len));
-        if (!sock.is_valid()) {
+        FdGuard            sock(makeAbstractUnixSocket(mouseSocketPath, addr, len));
+        if (!sock.isValid()) {
             LOTUS_ERROR("Failed to create mouse socket: " + std::string(strerror(errno)));
             return;
         }
@@ -1274,14 +1274,14 @@ namespace fcitx {
             return;
         }
 
-        std::string peer_exe_path;
-        if (!authenticateMouseSocketPeer(sock.get(), peer_exe_path)) {
-            LOTUS_WARN("Unauthorized connection attempt from: " + peer_exe_path);
+        std::string peerExePath;
+        if (!authenticateMouseSocketPeer(sock.get(), peerExePath)) {
+            LOTUS_WARN("Unauthorized connection attempt from: " + peerExePath);
             return;
         }
 
         const int sockFd = sock.get();
-        mouse_socket_fd.store(sock.release(), std::memory_order_release);
+        g_mouseSocketFd.store(sock.release(), std::memory_order_release);
         LOTUS_INFO("Mouse socket connected and registered to Fcitx EventLoop.");
 
         mouseEventSource_ = instance_.eventLoop().addIOEvent(sockFd, IOEventFlag::In, [this, sockFd](EventSourceIO*, int, IOEventFlags) {
@@ -1290,14 +1290,14 @@ namespace fcitx {
             if (n <= 0) {
                 LOTUS_ERROR("Mouse socket recv error or disconnected: " + std::string(strerror(errno)));
                 mouseEventSource_.reset();
-                mouse_socket_fd.store(-1, std::memory_order_release);
-                close(sockFd);
+                g_mouseSocketFd.store(-1, std::memory_order_release);
+                FdGuard closed(sockFd);
                 return true;
             }
 
             if (n >= 1 && buf[0] == 'C') {
                 LOTUS_DEBUG("Mouse click detected from server. Resetting.....");
-                g_mouse_clicked.store(true, std::memory_order_release);
+                g_mouseClicked.store(true, std::memory_order_release);
                 instance_.inputContextManager().foreachFocused([this](InputContext* ic) {
                     if (ic) {
                         auto* state = ic->propertyFor(&factory_);

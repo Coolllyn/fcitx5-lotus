@@ -325,7 +325,7 @@ namespace fcitx {
         bool                                                 isSelectingAppMode_ = false;
         std::string                                          currentConfigureApp_;
         std::unique_ptr<EventSourceTime>                     cycleModeNotificationTimer_;
-        static constexpr uint64_t                            CYCLE_MODE_NOTIFICATION_TIMEOUT_USEC = 800000; // 800ms in microseconds
+        static constexpr uint64_t                            kCycleModeNotificationTimeoutUsec = 800000; // 800ms in microseconds
         FCITX_ADDON_DEPENDENCY_LOADER(emoji, instance_.addonManager());
         std::unique_ptr<EmojiLoader>          emojiLoader_;
         bool                                  isGnome_ = false;

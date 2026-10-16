@@ -120,13 +120,22 @@ jobs:
         run: |
           cd fcitx5-lotus
           base="${{ github.event.pull_request.base.sha || github.event.before }}"
-          changed="$(git diff --name-only "$base" HEAD 2>/dev/null || true)"
+          if git rev-parse --verify --quiet "${base}^{commit}" >/dev/null 2>&1; then
+              changed="$(git diff --name-only "$base" HEAD)"
+          else
+              echo "clang-tidy: base '${base:-<empty>}' is not available locally, checking everything"
+              changed=""
+          fi
           if [ -z "$changed" ] || printf '%s\n' "$changed" | grep -qE '\.(h|hpp)$'; then
+              echo "clang-tidy: checking the whole project"
               run-clang-tidy -p build -j "$(nproc)" -quiet -warnings-as-errors='*'
           else
               cpp_changed="$(printf '%s\n' "$changed" | grep -E '\.cpp$' || true)"
               if [ -n "$cpp_changed" ]; then
+                  echo "clang-tidy: checking the changed translation units"
                   printf '%s\n' "$cpp_changed" | xargs run-clang-tidy -p build -j "$(nproc)" -quiet -warnings-as-errors='*'
+              else
+                  echo "clang-tidy: no translation unit changed"
               fi
           fi
       - name: CodeQL Analysis

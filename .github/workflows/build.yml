@@ -23,98 +23,54 @@ jobs:
           git config --global --add safe.directory $GITHUB_WORKSPACE
       - uses: actions/checkout@v7
       - uses: fcitx/github-actions@clang-format
-
-  check-glibc:
-    name: Build and test (glibc)
+  build:
+    name: Build and test
     runs-on: ubuntu-latest
-    container: archlinux:latest
+    container: ${{ matrix.container }}
 
     strategy:
       fail-fast: false
       matrix:
+        distro: [glibc, musl]
         compiler: [gcc, clang]
         include:
-          - compiler: gcc
+          - distro: glibc
+            compiler: gcc
+            container: archlinux:latest
+            install: arch
+            shell: bash
             cxx_compiler: g++
-          - compiler: clang
+          - distro: glibc
+            compiler: clang
+            container: archlinux:latest
+            install: arch
+            shell: bash
+            cxx_compiler: clang++
+          - distro: musl
+            compiler: gcc
+            container: alpine:latest
+            install: alpine
+            shell: sh
+            cxx_compiler: g++
+          - distro: musl
+            compiler: clang
+            container: alpine:latest
+            install: alpine
+            shell: sh
             cxx_compiler: clang++
     env:
       CC: ${{ matrix.compiler }}
       CXX: ${{ matrix.cxx_compiler }}
     steps:
-      - name: Install dependencies
+      - name: Install dependencies (glibc)
+        if: matrix.install == 'arch'
         run: |
           pacman -Syu --noconfirm base-devel clang cmake ninja extra-cmake-modules libuv git libinput libevdev systemd-libs python
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           git config --global --add safe.directory "$GITHUB_WORKSPACE/fcitx5-lotus"
           git config --global --add safe.directory "$GITHUB_WORKSPACE/fcitx5"
-      - uses: actions/checkout@v7
-        with:
-          repository: fcitx/fcitx5
-          path: fcitx5
-      - name: Cache fcitx5 data files
-        uses: actions/cache@v6
-        with:
-          path: 'fcitx5/**/*.tar.*'
-          key:
-            ${{ runner.os }}-${{ hashFiles('fcitx5/src/modules/spell/CMakeLists.txt')
-            }}
-      - name: Build and Install fcitx5
-        uses: fcitx/github-actions@cmake
-        with:
-          path: fcitx5
-          cmake-option: >-
-            -DENABLE_KEYBOARD=Off -DENABLE_X11=Off -DENABLE_WAYLAND=Off -DENABLE_ENCHANT=Off
-            -DENABLE_DBUS=Off -DENABLE_SERVER=Off -DUSE_SYSTEMD=Off -DENABLE_EMOJI=On
-      - uses: actions/checkout@v7
-        with:
-          path: fcitx5-lotus
-      - name: Init CodeQL
-        if: matrix.compiler == 'gcc'
-        uses: github/codeql-action/init@v4.38.3
-        with:
-          languages: cpp
-          source-root: fcitx5-lotus
-      - name: Build and Install fcitx5-lotus
-        uses: fcitx/github-actions@cmake
-        with:
-          path: fcitx5-lotus
-          cmake-option: -DBUILD_TESTING=ON
-      - name: Discover tests
-        run: |
-          ctest --test-dir fcitx5-lotus/build -N
-      - name: Test
-        run: |
-          ctest --test-dir fcitx5-lotus/build --output-on-failure --no-tests=error
-      - name: Check clang-tidy
-        run: |
-          cd fcitx5-lotus
-          clang-tidy -p build --header-filter='(src|server|common|lotus|test)/.*' --warnings-as-errors='*' $(git ls-files '*.cpp')
-      - name: CodeQL Analysis
-        if: matrix.compiler == 'gcc'
-        uses: github/codeql-action/analyze@v4.38.3
-        with:
-          checkout_path: fcitx5-lotus
-
-  check-musl:
-    name: Build and test (musl)
-    runs-on: ubuntu-latest
-    container: alpine:latest
-
-    strategy:
-      fail-fast: false
-      matrix:
-        compiler: [gcc, clang]
-        include:
-          - compiler: gcc
-            cxx_compiler: g++
-          - compiler: clang
-            cxx_compiler: clang++
-    env:
-      CC: ${{ matrix.compiler }}
-      CXX: ${{ matrix.cxx_compiler }}
-    steps:
-      - name: Install dependencies
+      - name: Install dependencies (musl)
+        if: matrix.install == 'alpine'
         run: |
           apk add --no-cache build-base cmake ninja extra-cmake-modules libuv-dev git libinput-dev libevdev-dev python3 zlib-dev gettext-dev util-linux-dev tar clang linux-headers
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
@@ -133,18 +89,24 @@ jobs:
         uses: fcitx/github-actions@cmake
         with:
           path: fcitx5
-          shell: sh
+          shell: ${{ matrix.shell }}
           cmake-option: >-
             -DENABLE_KEYBOARD=Off -DENABLE_X11=Off -DENABLE_WAYLAND=Off -DENABLE_ENCHANT=Off
             -DENABLE_DBUS=Off -DENABLE_SERVER=Off -DUSE_SYSTEMD=Off -DENABLE_EMOJI=On
       - uses: actions/checkout@v7
         with:
           path: fcitx5-lotus
+      - name: Init CodeQL
+        if: matrix.distro == 'glibc' && matrix.compiler == 'gcc'
+        uses: github/codeql-action/init@v4.38.3
+        with:
+          languages: cpp
+          source-root: fcitx5-lotus
       - name: Build and Install fcitx5-lotus
         uses: fcitx/github-actions@cmake
         with:
           path: fcitx5-lotus
-          shell: sh
+          shell: ${{ matrix.shell }}
           cmake-option: -DBUILD_TESTING=ON
       - name: Discover tests
         run: |
@@ -152,6 +114,16 @@ jobs:
       - name: Test
         run: |
           ctest --test-dir fcitx5-lotus/build --output-on-failure --no-tests=error
+      - name: Check clang-tidy
+        if: matrix.distro == 'glibc' && matrix.compiler == 'clang'
+        run: |
+          cd fcitx5-lotus
+          clang-tidy -p build --header-filter='(src|server|common|lotus|test)/.*' --warnings-as-errors='*' $(git ls-files '*.cpp')
+      - name: CodeQL Analysis
+        if: matrix.distro == 'glibc' && matrix.compiler == 'gcc'
+        uses: github/codeql-action/analyze@v4.38.3
+        with:
+          checkout_path: fcitx5-lotus
 
   python-lint:
     name: Python lint

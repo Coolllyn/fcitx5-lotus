@@ -32,7 +32,6 @@
 #include <string>
 #include <string_view>
 #include <sys/resource.h>
-#include <unordered_map>
 #include <sys/socket.h>
 #include <sys/types.h>
 
@@ -42,7 +41,6 @@
 class UinputDevice {
   public:
     UinputDevice() = default;
-    ~UinputDevice();
 
     bool initialize();
     void send_backspace();
@@ -50,8 +48,6 @@ class UinputDevice {
     void send_shift_down();
     void send_shift_up();
     void send_left();
-    void add_physical_keyboard(struct libinput_device* device);
-    void remove_physical_keyboard(struct libinput_device* device);
 
   private:
     /**
@@ -70,12 +66,9 @@ class UinputDevice {
      * @brief Logs the first write failure only, so a broken device cannot flood the log.
      * @param error Negative errno returned by libevdev.
      */
-    static void                                      reportWriteFailure(int error);
-    LibevdevDevice                                   dev_;   ///< In-memory description of the virtual keyboard
-    LibevdevUinput                                   uidev_; ///< Device created from that description
-    std::unordered_map<struct libinput_device*, int> physical_keyboards_;
-    uint16_t                                         active_virtual_shift_ = 0; ///< Exact synthetic Shift key held by Lotus.
-    uint16_t                                         choose_virtual_shift() const;
+    static void    reportWriteFailure(int error);
+    LibevdevDevice dev_;   ///< In-memory description of the virtual keyboard
+    LibevdevUinput uidev_; ///< Device created from that description
 };
 
 /**

@@ -35,7 +35,7 @@ Tài liệu này là nguồn duy nhất cho quy tắc code của fcitx5-lotus. K
 
 ## 6. Cấu trúc file & header
 
-- Mỗi `.h` phải có `.cpp` cùng tên. Ngoại lệ: header chỉ chứa khai báo kiểu/`constexpr`/accessor một dòng/deleter/type alias (`common/*.h`, `src/lotus-config.h`, `src/emoji-entry.h`, `lotus/types.h`, `lotus/transformation.h`, `lotus/rule.h`, `test/*.h`).
+- Mỗi `.h` phải có `.cpp` cùng tên. Ngoại lệ: header chỉ chứa khai báo kiểu/`constexpr`/accessor một dòng/deleter/type alias/macro log (`common/*.h`, `src/lotus-config.h`, `src/lotus-mode.h`, `src/lotus-log.h`, `src/emoji-entry.h`, `lotus/types.h`, `lotus/transformation.h`, `lotus/rule.h`, `test/*.h`).
 - Header chỉ khai báo + doxygen; thân hàm để ở `.cpp`, trừ accessor một dòng, deleter, template, `inline constexpr`.
 - Code dùng chung giữa addon và server đặt ở `common/` với tên `common-xxx.{h,cpp}`.
 

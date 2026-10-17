@@ -7,13 +7,17 @@
  */
 #include "lotus-utils.h"
 #include "common-fd-guard.h"
-#include "lotus-config.h"
 #include "common-socket-name.h"
+#include "lotus-log.h"
 
 #include <cstddef>
 #include <cstring>
+#include <fcitx-utils/key.h>
+#include <fcitx-utils/keysym.h>
+#include <fcitx-utils/log.h>
 #include <fcitx-utils/standardpath.h>
 #include <fcitx-utils/utf8.h>
+#include <fcitx/inputcontext.h>
 #include <pwd.h>
 #include <sys/socket.h>
 #include <unistd.h>

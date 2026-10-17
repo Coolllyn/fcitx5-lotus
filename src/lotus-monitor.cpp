@@ -7,8 +7,8 @@
  */
 #include "common-executable-path.h"
 #include "common-fd-guard.h"
+#include "lotus-log.h"
 #include "lotus-monitor.h"
-#include "lotus-utils.h"
 
 #include <array>
 #include <cstdio>

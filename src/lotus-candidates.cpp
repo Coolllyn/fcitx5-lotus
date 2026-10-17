@@ -8,6 +8,9 @@
 #include "lotus-state.h"
 #include "lotus-engine.h"
 
+#include "emoji.h"
+#include "lotus-log.h"
+
 #include <fcitx/inputpanel.h>
 
 namespace fcitx {

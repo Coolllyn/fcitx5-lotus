@@ -16,11 +16,8 @@
 #define _FCITX5_LOTUS_ENGINE_H_
 
 #include "lotus-config.h"
-#include <array>
 #include <mutex>
 #include <memory>
-#include <optional>
-#include <string_view>
 #include <vector>
 #include <fcitx-config/iniparser.h>
 #include <fcitx/action.h>

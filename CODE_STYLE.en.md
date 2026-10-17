@@ -35,7 +35,7 @@ This document is the single source of truth for the code rules of fcitx5-lotus. 
 
 ## 6. File & header structure
 
-- Every `.h` must have a `.cpp` with the same name. Exceptions: headers that only hold type declarations/`constexpr`/one-line accessors/deleters/type aliases (`common/*.h`, `src/lotus-config.h`, `src/emoji-entry.h`, `lotus/types.h`, `lotus/transformation.h`, `lotus/rule.h`, `test/*.h`).
+- Every `.h` must have a `.cpp` with the same name. Exceptions: headers that only hold type declarations/`constexpr`/one-line accessors/deleters/type aliases/macro log (`common/*.h`, `src/lotus-config.h`, `src/lotus-mode.h`, `src/lotus-log.h`, `src/emoji-entry.h`, `lotus/types.h`, `lotus/transformation.h`, `lotus/rule.h`, `test/*.h`).
 - Headers only declare (plus doxygen); function bodies live in the `.cpp`, except one-line accessors, deleters, templates and `inline constexpr`.
 - Code shared between the addon and the server lives in `common/` and is named `common-xxx.{h,cpp}`.
 

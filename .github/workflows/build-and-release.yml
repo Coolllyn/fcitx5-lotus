@@ -35,6 +35,8 @@ jobs:
             codename: questing
           - distro: ubuntu:26.04
             codename: resolute
+          - distro: ubuntu:26.10
+            codename: stonking
 
     runs-on: ubuntu-latest
 
@@ -122,6 +124,8 @@ jobs:
             releasever: 43
           - distro: fedora:44
             releasever: 44
+          - distro: fedora:45
+            releasever: 45
           - distro: fedora:rawhide
             releasever: rawhide
 

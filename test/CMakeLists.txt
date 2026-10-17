@@ -24,6 +24,13 @@ target_link_libraries(lotus_test_core PUBLIC
 #   add_lotus_headless_test(my_test my-test.cpp "integration;myfeature")
 function(add_lotus_headless_test target source labels)
     add_executable(${target} ${source})
+    # Match the lotus_core_objects flags so its prebuilt PCH is reused, not rejected.
+    target_compile_definitions(${target} PRIVATE
+        FCITX5_LOTUS_SETTINGS_PATH="${CMAKE_INSTALL_FULL_BINDIR}/fcitx5-lotus-settings"
+        LOTUS_SERVER_EXECUTABLE="${LOTUS_SERVER_EXECUTABLE}"
+        LOTUS_ALT_EXECUTABLE_PREFIX="${LOTUS_ALT_EXECUTABLE_PREFIX}"
+    )
+    target_precompile_headers(${target} REUSE_FROM lotus_core_objects)
     target_link_libraries(${target} PRIVATE
         lotus_test_core
         Fcitx5::Core

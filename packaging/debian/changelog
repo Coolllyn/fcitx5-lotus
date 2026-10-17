@@ -1,6 +1,5 @@
-fcitx5-lotus (5.0.4-1) unstable; urgency=medium
+fcitx5-lotus (5.0.5-1) unstable; urgency=medium
 
-  * Fallback to backspace in Select mode when user hold shift
-  * Defer commit out of the key event for the dbus frontend
+  * Fix missing character typing error on ibus frontend
 
- -- Nguyen Hoang Ky <nhktmdzhg@gmail.com>  Fri, 16 Oct 2026 18:47:00 +0700
+ -- Nguyen Hoang Ky <nhktmdzhg@gmail.com>  Sat, 17 Oct 2026 15:32:00 +0700

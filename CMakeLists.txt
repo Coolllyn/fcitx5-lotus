@@ -10,6 +10,8 @@ option(BUILD_TESTING "Build Lotus tests" OFF)
 set(fcitx_lotus_core_sources
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lotus-engine.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lotus-fcitx-text.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/lotus-mode.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/lotus-mode-menu.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lotus-state.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lotus-candidates.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lotus-utils.cpp

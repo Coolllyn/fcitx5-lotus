@@ -20,30 +20,19 @@
 #include <string_view>
 #include <sys/socket.h>
 #include <sys/un.h>
-#include <fcitx-utils/log.h>
-#include <fcitx/inputcontext.h>
 
-#include "lotus-config.h"
 #include "common-export.h"
+#include "lotus-mode.h"
 
 /**
  * @brief Maximum length of Unix socket paths.
 */
 #define UNIX_PATH_MAX sizeof(((struct sockaddr_un*)0)->sun_path)
 
-// The log category lives inside namespace fcitx: a global "lotus" function would collide with the
-// lotus:: engine namespace, which the addon includes since it drives the C++ engine directly.
+// Forward declaration: the header only passes InputContext pointers around.
 namespace fcitx {
-    FCITX_DECLARE_LOG_CATEGORY(lotusLog);
+    class InputContext;
 }
-
-#define LOTUS_DEBUG(msg) FCITX_LOGC(fcitx::lotusLog, Debug) << "[DEBUG] " << msg
-#define LOTUS_INFO(msg)  FCITX_LOGC(fcitx::lotusLog, Info) << "[INFO] " << msg
-#define LOTUS_WARN(msg)  FCITX_LOGC(fcitx::lotusLog, Warn) << "[WARN] " << msg
-#define LOTUS_ERROR(msg) FCITX_LOGC(fcitx::lotusLog, Error) << "[ERROR] " << msg
-
-// Forward declaration for fcitx types
-using KeySym = uint32_t;
 
 // Global state variables for input processing
 // LOTUS_EXPORT: read by the headless tests through lotus_test_core.

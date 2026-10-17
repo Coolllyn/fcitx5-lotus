@@ -11,8 +11,10 @@
 #include "lotus-engine.h"
 #include "lotus-candidates.h"
 #include "lotus-fcitx-text.h"
+#include "lotus-log.h"
 #include "lotus-utils.h"
 
+#include "emoji.h"
 #include "input_method.h"
 #include "utf8.h"
 

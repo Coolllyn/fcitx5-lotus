@@ -109,9 +109,11 @@ namespace fcitx {
         size_t                                expectedBackspaces_    = 0;
         size_t                                currentBackspaceCount_ = 0;
         std::u32string                        pendingCommitString_;
+        std::u32string                        commitBatch_;                   ///< Text of the replacement batch, sent as one commitString
         std::unique_ptr<EventSourceTime>      deferredCommitTimer_;           ///< Pending dbus commit timer
         std::u32string                        deferredCommitText_;            ///< Text waiting for the deferred commit
         bool                                  deferredCommitPending_ = false; ///< Timer armed and not fired yet
+        bool                                  deferCommits_          = false; ///< Route the batch through the deferred timer
         LotusAppRuleSetting                   appRuleSetting_;                ///< Per-app rule (mode + delay overrides) pushed by the engine
         std::u32string                        emojiBuffer_;
         std::vector<EmojiEntry>               emojiCandidates_;
@@ -351,6 +353,27 @@ namespace fcitx {
          * @param currentSym Current key symbol.
          */
         void processNormalKey(KeyEvent& keyEvent, KeySym currentSym);
+
+        /**
+         * @brief Appends text to the batch that goes out as a single commitString.
+         * @param text Text to append.
+         */
+        void appendCommit(std::u32string_view text);
+
+        /**
+         * @brief Sends the batch as one commitString, immediately or through the deferred timer.
+         */
+        void flushCommitBatch();
+
+        /**
+         * @brief Arms the deferred commit timer when it is not armed yet.
+         */
+        void scheduleDeferredCommit();
+
+        /**
+         * @brief Delivers text that is still waiting for the deferred timer, then the current batch.
+         */
+        void deliverPendingCommits();
 
         /**
          * @brief Replays keystrokes buffered during replacement.

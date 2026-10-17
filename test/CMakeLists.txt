@@ -86,9 +86,10 @@ target_include_directories(uinput_device PRIVATE ${PROJECT_SOURCE_DIR}/server)
 add_lotus_headless_test(config_enum_names config-enum-names.cpp "unit;config")
 add_lotus_headless_test(key_buffer key-buffer.cpp "unit;buffer")
 add_lotus_headless_test(dbus_deferred_commit dbus-deferred-commit.cpp "integration;dbus")
+add_lotus_headless_test(merged_replacement_commit merged-replacement-commit.cpp "integration;smooth")
 
 string(MD5 LOTUS_CTEST_SOCKET_NAMESPACE "${PROJECT_BINARY_DIR}")
-set_tests_properties(smooth_buffered_key_replay select_mode_replacement replacement_delays app_rule_delay_wire dbus_deferred_commit
+set_tests_properties(smooth_buffered_key_replay select_mode_replacement replacement_delays app_rule_delay_wire dbus_deferred_commit merged_replacement_commit
     PROPERTIES RESOURCE_LOCK lotus_kb_socket
     ENVIRONMENT "LOTUS_SOCKET_NAMESPACE=ctest-${LOTUS_CTEST_SOCKET_NAMESPACE}")
 add_lotus_headless_test(modifier_key_bypasses_surrounding_text

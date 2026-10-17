@@ -426,35 +426,18 @@ namespace fcitx {
     }
 
     void LotusState::finishReplacement(KeyEvent& event) {
-        std::u32string commitText = std::move(pendingCommitString_);
+        appendCommit(pendingCommitString_);
         pendingCommitString_.clear();
-
-        const bool dbusDefer = getFrontendName(&ic_) == "dbus";
-        if (dbusDefer) {
-            deferredCommitText_ += commitText;
-            if (!deferredCommitPending_) {
-                deferredCommitPending_ = true;
-                deferredCommitTimer_   = engine_.instance()->eventLoop().addTimeEvent(CLOCK_MONOTONIC, now(CLOCK_MONOTONIC), 0, [this](EventSourceTime*, uint64_t) {
-                    deferredCommitPending_  = false;
-                    std::u32string deferred = std::move(deferredCommitText_);
-                    deferredCommitText_.clear();
-                    if (!deferred.empty()) {
-                        lotus::fcitx_text::commit(&ic_, deferred, lastCommitTime_);
-                    }
-                    replayBufferedKeys();
-                    return false;
-                });
-            }
-        } else {
-            lotus::fcitx_text::commit(&ic_, commitText, lastCommitTime_);
-        }
-
+        deferCommits_          = getFrontendName(&ic_) == "dbus";
         expectedBackspaces_    = 0;
         currentBackspaceCount_ = 0;
         event.filterAndAccept();
         g_isDeleting.store(false, std::memory_order_release);
-        if (!dbusDefer) {
+        if (deferCommits_) {
+            flushCommitBatch();
+        } else {
             replayBufferedKeys();
+            flushCommitBatch();
         }
     }
 
@@ -1008,7 +991,9 @@ namespace fcitx {
             currentBackspaceCount_ = 0;
             expectedBackspaces_    = 0;
             if (!bufferedKeys_.empty()) {
+                deferCommits_ = getFrontendName(&ic_) == "dbus";
                 replayBufferedKeys();
+                flushCommitBatch();
             }
         }
     }
@@ -1167,6 +1152,7 @@ namespace fcitx {
         if (g_isDeleting.load(std::memory_order_acquire)) {
             return;
         }
+        deliverPendingCommits();
         resetMacroSkip();
 
         if (lotusEngine_) {
@@ -1216,6 +1202,7 @@ namespace fcitx {
     }
 
     void LotusState::commitBuffer() {
+        deliverPendingCommits();
         switch (g_realMode) {
             case LotusMode::Preedit: {
                 ic_.inputPanel().reset();
@@ -1246,6 +1233,7 @@ namespace fcitx {
     }
 
     void LotusState::clearAllBuffers() {
+        deliverPendingCommits();
         LOTUS_DEBUG("Clear all buffers");
         if (g_isDeleting.load(std::memory_order_acquire)) {
             return;
@@ -1273,6 +1261,50 @@ namespace fcitx {
         return !hasHistory_;
     }
 
+    void LotusState::appendCommit(std::u32string_view text) {
+        commitBatch_.append(text);
+    }
+
+    void LotusState::scheduleDeferredCommit() {
+        if (deferredCommitPending_) {
+            return;
+        }
+        deferredCommitPending_ = true;
+        deferredCommitTimer_   = engine_.instance()->eventLoop().addTimeEvent(CLOCK_MONOTONIC, now(CLOCK_MONOTONIC), 0, [this](EventSourceTime*, uint64_t) {
+            deferredCommitPending_ = false;
+            deferCommits_          = false;
+            commitBatch_           = std::move(deferredCommitText_);
+            deferredCommitText_.clear();
+            replayBufferedKeys();
+            flushCommitBatch();
+            return false;
+        });
+    }
+
+    void LotusState::flushCommitBatch() {
+        if (commitBatch_.empty()) {
+            return;
+        }
+        if (deferCommits_) {
+            deferredCommitText_ += commitBatch_;
+            commitBatch_.clear();
+            scheduleDeferredCommit();
+            return;
+        }
+        lotus::fcitx_text::commit(&ic_, commitBatch_, lastCommitTime_);
+        commitBatch_.clear();
+    }
+
+    void LotusState::deliverPendingCommits() {
+        deferCommits_ = false;
+        if (!deferredCommitText_.empty()) {
+            commitBatch_ += deferredCommitText_;
+            deferredCommitText_.clear();
+            deferredCommitPending_ = false;
+        }
+        flushCommitBatch();
+    }
+
     void LotusState::replayBufferedKeys() {
         LOTUS_INFO("Starting replay buffered keys");
         while (!bufferedKeys_.empty()) {
@@ -1292,6 +1324,7 @@ namespace fcitx {
                 DiffPart diffPart = compareAndSplitU32(oldPreBuffer_, commitStr);
 
                 if (!diffPart.deletedPart.empty()) {
+                    flushCommitBatch();
                     // Remaining keys stay queued for the next replay cycle.
                     performReplacement(diffPart);
                     hasHistory_ = false;
@@ -1300,7 +1333,7 @@ namespace fcitx {
                     return;
                 }
                 if (!diffPart.addedPart.empty()) {
-                    lotus::fcitx_text::commit(&ic_, diffPart.addedPart, lastCommitTime_);
+                    appendCommit(diffPart.addedPart);
                 }
 
                 hasHistory_ = false;
@@ -1310,7 +1343,7 @@ namespace fcitx {
             }
 
             if (!processed) {
-                lotus::fcitx_text::commit(&ic_, keyText, lastCommitTime_);
+                appendCommit(keyText);
                 continue;
             }
 
@@ -1322,12 +1355,12 @@ namespace fcitx {
             DiffPart             diffPart = compareAndSplitU32(oldPreBuffer_, preeditStr);
             if (diffPart.deletedPart.empty()) {
                 if (!diffPart.addedPart.empty()) {
-                    lotus::fcitx_text::commit(&ic_, diffPart.addedPart, lastCommitTime_);
+                    appendCommit(diffPart.addedPart);
                     oldPreBuffer_ = preeditStr;
                 }
             } else {
                 if (g_uinputClientFd < 0) {
-                    lotus::fcitx_text::commit(&ic_, keyText, lastCommitTime_);
+                    appendCommit(keyText);
                     continue;
                 }
 
@@ -1335,6 +1368,7 @@ namespace fcitx {
                     g_isDeleting.store(false, std::memory_order_release);
                 }
 
+                flushCommitBatch();
                 // Remaining keys stay queued for the next replay cycle.
                 performReplacement(diffPart);
                 oldPreBuffer_ = preeditStr;

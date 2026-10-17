@@ -1,5 +1,5 @@
 Name:           fcitx5-lotus
-Version:        5.0.4
+Version:        5
 Release:        1
 Summary:        Vietnamese input method for fcitx5
 License:        GPL-3.0-or-later
@@ -116,9 +116,8 @@ fi
 %service_del_postun fcitx5-lotus-server@.service
 
 %changelog
-* Fri Oct 16 2026 Nguyen Hoang Ky <nhktmdzhg@gmail.com> - 5.0.4-1
-- Fallback to backspace in Select mode when user hold shift
-- Defer commit out of the key event for the dbus frontend
+* Sat Oct 17 2026 Nguyen Hoang Ky <nhktmdzhg@gmail.com> - 5.0.5-1
+- Fix missing character typing error on ibus frontend
 
 %check
 %ctest

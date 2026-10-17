@@ -991,7 +991,7 @@ namespace fcitx {
             currentBackspaceCount_ = 0;
             expectedBackspaces_    = 0;
             if (!bufferedKeys_.empty()) {
-                deferCommits_ = false;
+                deferCommits_ = getFrontendName(&ic_) == "dbus";
                 replayBufferedKeys();
                 flushCommitBatch();
             }
@@ -1231,7 +1231,6 @@ namespace fcitx {
     }
 
     void LotusState::clearAllBuffers() {
-        flushCommitBatch();
         LOTUS_DEBUG("Clear all buffers");
         if (g_isDeleting.load(std::memory_order_acquire)) {
             return;

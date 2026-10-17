@@ -371,6 +371,11 @@ namespace fcitx {
         void scheduleDeferredCommit();
 
         /**
+         * @brief Delivers text that is still waiting for the deferred timer, then the current batch.
+         */
+        void deliverPendingCommits();
+
+        /**
          * @brief Replays keystrokes buffered during replacement.
          *
          * When g_isDeleting is true, non-special keystrokes are buffered

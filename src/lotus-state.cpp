@@ -1152,6 +1152,7 @@ namespace fcitx {
         if (g_isDeleting.load(std::memory_order_acquire)) {
             return;
         }
+        deliverPendingCommits();
         resetMacroSkip();
 
         if (lotusEngine_) {
@@ -1201,6 +1202,7 @@ namespace fcitx {
     }
 
     void LotusState::commitBuffer() {
+        deliverPendingCommits();
         switch (g_realMode) {
             case LotusMode::Preedit: {
                 ic_.inputPanel().reset();
@@ -1231,6 +1233,7 @@ namespace fcitx {
     }
 
     void LotusState::clearAllBuffers() {
+        deliverPendingCommits();
         LOTUS_DEBUG("Clear all buffers");
         if (g_isDeleting.load(std::memory_order_acquire)) {
             return;
@@ -1290,6 +1293,16 @@ namespace fcitx {
         }
         lotus::fcitx_text::commit(&ic_, commitBatch_, lastCommitTime_);
         commitBatch_.clear();
+    }
+
+    void LotusState::deliverPendingCommits() {
+        deferCommits_ = false;
+        if (!deferredCommitText_.empty()) {
+            commitBatch_ += deferredCommitText_;
+            deferredCommitText_.clear();
+            deferredCommitPending_ = false;
+        }
+        flushCommitBatch();
     }
 
     void LotusState::replayBufferedKeys() {

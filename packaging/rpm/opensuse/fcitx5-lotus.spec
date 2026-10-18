@@ -1,5 +1,5 @@
 Name:           fcitx5-lotus
-Version:        5.0.5
+Version:        5.0.6
 Release:        1
 Summary:        Vietnamese input method for fcitx5
 License:        GPL-3.0-or-later
@@ -120,5 +120,7 @@ fi
 %service_del_postun fcitx5-lotus-server@.service
 
 %changelog
-* Sat Oct 17 2026 Nguyen Hoang Ky <nhktmdzhg@gmail.com> - 5.0.5-1
-- Fix missing character typing error on ibus frontend
+* Sun Oct 18 2026 Nguyen Hoang Ky <nhktmdzhg@gmail.com> - 5.0.6-1
+- Keep the sentence state across a client reset so Enter capitalizes
+- Fix: server don't fallback to backspace mode
+- Use symbolic icon on GNOME

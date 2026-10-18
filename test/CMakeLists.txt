@@ -145,3 +145,6 @@ set_tests_properties(executable_path_match PROPERTIES
     LABELS "unit;packaging"
     TIMEOUT 20
 )
+
+# Headless Python unit tests for the settings-gui, one CTest entry per module.
+add_subdirectory(settings-gui)

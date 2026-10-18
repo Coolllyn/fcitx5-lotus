@@ -290,7 +290,7 @@ int main(int argc, char* argv[]) {
 
     SelectShiftPlan selectPlan; ///< Shift plan of the in-flight Select sequence
 
-    const auto      releaseOursIfNobodyHolds = [&]() {
+    const auto      releaseOursIfNobodyHolds = [&] {
         const auto physical = physical_shift.snapshot();
         if (oursLeft && !physical.left) {
             uinput.sendShiftUp(KEY_LEFTSHIFT);

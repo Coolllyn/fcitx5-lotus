@@ -33,11 +33,13 @@ int main(int argc, char** argv) {
     context.focusIn();
     bool                                            ok = true;
 
-    const std::array<std::array<const char*, 2>, 3> modes{{
-        {"Preedit", "fcitx-lotus"},
-        {"OFF", "fcitx-lotus-off"},
-        {"Emoji Picker", "fcitx-lotus-emoji"},
-    }};
+    const std::array<std::array<const char*, 2>, 3> modes{
+        {
+            {"Preedit", "fcitx-lotus"},
+            {"OFF", "fcitx-lotus-off"},
+            {"Emoji Picker", "fcitx-lotus-emoji"},
+        },
+    };
     for (const auto& [mode, base] : modes) {
         for (const auto* theme : {"Auto", "Light", "Dark"}) {
             for (const bool lotusIcons : {false, true}) {

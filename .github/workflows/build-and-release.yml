@@ -77,10 +77,10 @@ jobs:
           gpg-connect-agent reloadagent /bye || true
 
           codename="${{ matrix.codename }}"
-          case "$codename" in
-            sid)      suite="unstable" ;;
-            testing)  suite="testing"  ;;
-            *)        suite="stable"   ;;
+          case "${{ matrix.distro }}" in
+            debian:unstable) suite="unstable" ;;
+            debian:testing)  suite="testing"  ;;
+            *)               suite="stable"   ;;
           esac
 
           mkdir -p "repo/apt/${codename}/conf"

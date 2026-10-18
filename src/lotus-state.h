@@ -89,8 +89,9 @@ namespace fcitx {
 
         /**
          * @brief Clears all internal buffers.
+         * @param keepSentenceState Keep the sentence state (shouldCapitalize_, isPrevPunctuation_)
          */
-        void clearAllBuffers();
+        void clearAllBuffers(bool keepSentenceState = false);
 
         /**
          * @brief Checks if history buffer is empty.

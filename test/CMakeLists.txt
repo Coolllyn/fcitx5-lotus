@@ -15,6 +15,29 @@ target_link_libraries(lotus_test_core PUBLIC
     Pthread::Pthread
 )
 
+# The headless tests compile without PIC while lotus_core_objects builds with
+# -fPIC for the module, and clang rejects a reused PCH whose PIC setting
+# differs from the current file. Host the tests' PCH in an object library
+# whose flags match plain executables instead.
+add_library(lotus_test_pch OBJECT EXCLUDE_FROM_ALL lotus-test-pch.cpp)
+target_include_directories(lotus_test_pch PRIVATE
+    ${PROJECT_BINARY_DIR}
+    ${PROJECT_SOURCE_DIR}/src
+)
+target_link_libraries(lotus_test_pch PRIVATE
+    lotus_test_core
+    Fcitx5::Core
+    Fcitx5::Config
+    Fcitx5::Module::Emoji
+    Pthread::Pthread
+)
+target_compile_definitions(lotus_test_pch PRIVATE
+    FCITX5_LOTUS_SETTINGS_PATH="${CMAKE_INSTALL_FULL_BINDIR}/fcitx5-lotus-settings"
+    LOTUS_SERVER_EXECUTABLE="${LOTUS_SERVER_EXECUTABLE}"
+    LOTUS_ALT_EXECUTABLE_PREFIX="${LOTUS_ALT_EXECUTABLE_PREFIX}"
+)
+target_precompile_headers(lotus_test_pch PRIVATE ${LOTUS_PCH_HEADERS})
+
 # Helper to compile a standalone headless integration test linked with the
 # Lotus engine core.
 #
@@ -24,6 +47,14 @@ target_link_libraries(lotus_test_core PUBLIC
 #   add_lotus_headless_test(my_test my-test.cpp "integration;myfeature")
 function(add_lotus_headless_test target source labels)
     add_executable(${target} ${source})
+    # lotus_test_pch mirrors the executables' flags, so its prebuilt PCH is
+    # reused, not rejected.
+    target_compile_definitions(${target} PRIVATE
+        FCITX5_LOTUS_SETTINGS_PATH="${CMAKE_INSTALL_FULL_BINDIR}/fcitx5-lotus-settings"
+        LOTUS_SERVER_EXECUTABLE="${LOTUS_SERVER_EXECUTABLE}"
+        LOTUS_ALT_EXECUTABLE_PREFIX="${LOTUS_ALT_EXECUTABLE_PREFIX}"
+    )
+    target_precompile_headers(${target} REUSE_FROM lotus_test_pch)
     target_link_libraries(${target} PRIVATE
         lotus_test_core
         Fcitx5::Core
@@ -84,7 +115,19 @@ target_sources(uinput_device PRIVATE ${PROJECT_SOURCE_DIR}/server/lotus-uinput-d
 target_link_libraries(uinput_device PRIVATE PkgConfig::LIBEVDEV)
 target_include_directories(uinput_device PRIVATE ${PROJECT_SOURCE_DIR}/server)
 add_lotus_headless_test(config_enum_names config-enum-names.cpp "unit;config")
+add_lotus_headless_test(status_icon status-icon.cpp "integration;icons")
+add_test(NAME status_icon_gnome COMMAND status_icon gnome)
+set_tests_properties(status_icon_gnome PROPERTIES LABELS "integration;icons" TIMEOUT 20)
 add_lotus_headless_test(key_buffer key-buffer.cpp "unit;buffer")
+add_lotus_headless_test(auto_capitalize_reset auto-capitalize-reset.cpp "integration;capitalize")
+
+add_lotus_headless_test(select_shift_plan select-shift-plan.cpp "unit;server")
+target_sources(select_shift_plan PRIVATE
+    ${PROJECT_SOURCE_DIR}/server/lotus-physical-shift.cpp
+    ${PROJECT_SOURCE_DIR}/server/lotus-logger.cpp
+)
+target_link_libraries(select_shift_plan PRIVATE PkgConfig::LIBEVDEV PkgConfig::LIBINPUT)
+target_include_directories(select_shift_plan PRIVATE ${PROJECT_SOURCE_DIR}/server)
 add_lotus_headless_test(dbus_deferred_commit dbus-deferred-commit.cpp "integration;dbus")
 add_lotus_headless_test(merged_replacement_commit merged-replacement-commit.cpp "integration;smooth")
 
@@ -113,3 +156,6 @@ set_tests_properties(executable_path_match PROPERTIES
     LABELS "unit;packaging"
     TIMEOUT 20
 )
+
+# Headless Python unit tests for the settings-gui, one CTest entry per module.
+add_subdirectory(settings-gui)

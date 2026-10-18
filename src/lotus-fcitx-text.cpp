@@ -9,6 +9,7 @@
  */
 #include "lotus-fcitx-text.h"
 
+#include "lotus-log.h"
 #include "lotus-utils.h"
 #include "utf8.h"
 

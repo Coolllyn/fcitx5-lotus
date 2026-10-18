@@ -20,6 +20,7 @@
 #include <fcitx-config/enum.h>
 #include <fcitx-utils/i18n.h>
 
+#include "lotus-mode.h"
 #include "encoder.h"
 #include "input_method.h"
 #include "types.h"
@@ -27,28 +28,8 @@
 
 namespace fcitx {
 
-    /**
-     * @brief Operating modes for the Lotus input method.
-     */
-    enum class LotusMode : std::uint8_t {
-        Off,
-        Smooth,
-        SuperSmooth,
-        SurroundingText,
-        Preedit,
-        Emoji,
-        Minecraft,
-        Select,
-    };
-
     FCITX_CONFIG_ENUM_NAME_WITH_I18N(LotusMode, N_("OFF"), N_("Uinput (Smooth)"), N_("Uinput (Super Smooth)"), N_("Surrounding Text"), N_("Preedit"), N_("Emoji Picker"),
                                      N_("Minecraft"), N_("Uinput (Select)"));
-
-    /**
-     * @brief Converts LotusMode to int and vice versa.
-     */
-    int       modeToInt(LotusMode mode);
-    LotusMode intToMode(int mode);
 
     /**
      * @brief W2U mode for w to ư conversion, shared with the engine (lotus::W2uMode).
@@ -184,16 +165,6 @@ namespace fcitx {
     FCITX_CONFIGURATION(lotusAppRules,
                         OptionWithAnnotation<std::vector<lotusAppRule>, ListDisplayOptionAnnotation> rules{
                             this, "Rules", _("Rules"), {}, {}, {}, ListDisplayOptionAnnotation("App")};);
-
-    /**
-     * @brief Resolved per-app rule: typing mode plus optional delay overrides (0 = use global default).
-     */
-    struct LotusAppRuleSetting {
-        LotusMode mode              = LotusMode::Smooth; ///< Typing mode for the app
-        int       commitInterval    = 0;                 ///< ms cooldown between commits (KbMsg.preDelay); 0 = default
-        int       backspaceInterval = 0;                 ///< ms between injected keys (KbMsg.interval); 0 = default
-        int       postDelay         = 0;                 ///< ms before the final trigger key (KbMsg.postDelay); 0 = default
-    };
 
     /**
      * @brief Main configuration structure for Lotus input method.

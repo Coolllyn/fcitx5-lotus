@@ -3,7 +3,7 @@ name: Auto Retry Failed Builds
 on:
   workflow_run:
     workflows:
-      ['CI', 'Test Packaging Build', 'Test Packaging Build', 'Build & Release']
+      ['CI', 'Build on Nix', 'Build & Release']
     types: [completed]
 
 permissions:

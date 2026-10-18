@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(fcitx5-lotus VERSION 5.0.5)
+project(fcitx5-lotus VERSION 5.0.6)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(BUILD_TESTING "Build Lotus tests" OFF)
 
@@ -10,6 +10,8 @@ option(BUILD_TESTING "Build Lotus tests" OFF)
 set(fcitx_lotus_core_sources
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lotus-engine.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lotus-fcitx-text.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/lotus-mode.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/lotus-mode-menu.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lotus-state.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lotus-candidates.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lotus-utils.cpp
@@ -32,6 +34,7 @@ find_package(Fcitx5ModuleEmoji REQUIRED)
 find_package(Pthread REQUIRED)
 find_package(Gettext REQUIRED)
 pkg_check_modules(LIBEVDEV REQUIRED IMPORTED_TARGET libevdev)
+pkg_check_modules(LIBINPUT REQUIRED IMPORTED_TARGET libinput)
 
 include("${FCITX_INSTALL_CMAKECONFIG_DIR}/Fcitx5Utils/Fcitx5CompilerSettings.cmake")
 

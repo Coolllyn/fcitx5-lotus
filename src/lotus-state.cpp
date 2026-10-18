@@ -11,8 +11,10 @@
 #include "lotus-engine.h"
 #include "lotus-candidates.h"
 #include "lotus-fcitx-text.h"
+#include "lotus-log.h"
 #include "lotus-utils.h"
 
+#include "emoji.h"
 #include "input_method.h"
 #include "utf8.h"
 
@@ -1156,10 +1158,12 @@ namespace fcitx {
         resetMacroSkip();
 
         if (lotusEngine_) {
-            isPrevSpace_       = false;
-            isPrevHyphen_      = false;
-            shouldCapitalize_  = false;
-            isPrevPunctuation_ = false;
+            isPrevSpace_  = false;
+            isPrevHyphen_ = false;
+            if (isFocusOut) {
+                shouldCapitalize_  = false;
+                isPrevPunctuation_ = false;
+            }
             if (g_realMode == LotusMode::Preedit && isFocusOut) {
                 (*lotusEngine_).commitPreedit();
                 const std::u32string commitText = pullCommitString();
@@ -1172,7 +1176,7 @@ namespace fcitx {
             hasHistory_ = false;
         }
         if (getFrontendName(&ic_) != "dbus")
-            clearAllBuffers();
+            clearAllBuffers(!isFocusOut);
 
         switch (g_realMode) {
             case LotusMode::Preedit: {
@@ -1232,7 +1236,7 @@ namespace fcitx {
         }
     }
 
-    void LotusState::clearAllBuffers() {
+    void LotusState::clearAllBuffers(bool keepSentenceState) {
         deliverPendingCommits();
         LOTUS_DEBUG("Clear all buffers");
         if (g_isDeleting.load(std::memory_order_acquire)) {
@@ -1249,10 +1253,14 @@ namespace fcitx {
         emojiBuffer_.clear();
         emojiCandidates_.clear();
         bufferedKeys_.clear();
-        shouldCapitalize_  = false;
-        isPrevSpace_       = false;
-        isPrevHyphen_      = false;
-        isPrevPunctuation_ = false;
+        if (!keepSentenceState) {
+            shouldCapitalize_ = false;
+        }
+        isPrevSpace_  = false;
+        isPrevHyphen_ = false;
+        if (!keepSentenceState) {
+            isPrevPunctuation_ = false;
+        }
         if (lotusEngine_)
             (*lotusEngine_).reset();
     }

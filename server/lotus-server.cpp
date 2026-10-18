@@ -109,12 +109,12 @@ void UinputDevice::sendDelete() {
     sendTap(KEY_DELETE);
 }
 
-void UinputDevice::sendShiftDown() {
-    sendMod(KEY_LEFTSHIFT, 1);
+void UinputDevice::sendShiftDown(uint16_t code) {
+    sendMod(code, 1);
 }
 
-void UinputDevice::sendShiftUp() {
-    sendMod(KEY_LEFTSHIFT, 0);
+void UinputDevice::sendShiftUp(uint16_t code) {
+    sendMod(code, 0);
 }
 
 void UinputDevice::sendLeft() {
@@ -281,13 +281,29 @@ int main(int argc, char* argv[]) {
         },
     };
 
-    FdGuard          addonFd;
-    FdGuard          kbClientFd;
-    size_t           pendingBackspaces = 0;
-    size_t           pendingSelects    = 0;     ///< remaining Shift+Left events to pace out
-    bool             shiftHeld         = false; ///< Shift pressed for an in-flight selection
-    uint32_t         currentPostDelay  = 0;     ///< stores postDelay from KbMsg
-    uint32_t         currentInterval   = 5;     ///< ms between injected keys within one request
+    FdGuard         addonFd;
+    FdGuard         kbClientFd;
+    size_t          pendingBackspaces = 0;
+    size_t          pendingSelects    = 0;     ///< remaining Shift+Left events to pace out
+    bool            oursLeft          = false; ///< the server holds KEY_LEFTSHIFT on behalf of the user
+    bool            oursRight         = false; ///< the server holds KEY_RIGHTSHIFT on behalf of the user
+
+    SelectShiftPlan selectPlan; ///< Shift plan of the in-flight Select sequence
+
+    const auto      releaseOursIfNobodyHolds = [&] {
+        const auto physical = physical_shift.snapshot();
+        if (oursLeft && !physical.left) {
+            uinput.sendShiftUp(KEY_LEFTSHIFT);
+            oursLeft = false;
+        }
+        if (oursRight && !physical.right) {
+            uinput.sendShiftUp(KEY_RIGHTSHIFT);
+            oursRight = false;
+        }
+    };
+
+    uint32_t         currentPostDelay = 0; ///< stores postDelay from KbMsg
+    uint32_t         currentInterval  = 5; ///< ms between injected keys within one request
 
     struct sigaction sa{};
     sa.sa_handler = signalHandler;
@@ -321,18 +337,32 @@ int main(int argc, char* argv[]) {
                 if (pendingSelects > 1) {
                     uinput.sendLeft();
                     --pendingSelects;
+                } else if (selectPlan.releaseLeft || selectPlan.releaseRight || oursLeft || oursRight) {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                    if (selectPlan.releaseLeft || oursLeft) {
+                        uinput.sendShiftUp(KEY_LEFTSHIFT);
+                        oursLeft = false;
+                    }
+                    if (selectPlan.releaseRight || oursRight) {
+                        uinput.sendShiftUp(KEY_RIGHTSHIFT);
+                        oursRight = false;
+                    }
+                    selectPlan = {};
                 } else {
-                    if (shiftHeld) {
-                        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-                        uinput.sendShiftUp();
-                        shiftHeld = false;
-                    } else {
-                        uinput.sendDelete();
-                        if (currentPostDelay > 0) {
-                            std::this_thread::sleep_for(std::chrono::milliseconds(currentPostDelay));
-                        }
-                        uinput.sendLeft();
-                        --pendingSelects;
+                    uinput.sendDelete();
+                    if (currentPostDelay > 0) {
+                        std::this_thread::sleep_for(std::chrono::milliseconds(currentPostDelay));
+                    }
+                    uinput.sendLeft();
+                    --pendingSelects;
+                    const auto physical = physical_shift.snapshot();
+                    if (physical.left) {
+                        uinput.sendShiftDown(KEY_LEFTSHIFT);
+                        oursLeft = true;
+                    }
+                    if (physical.right) {
+                        uinput.sendShiftDown(KEY_RIGHTSHIFT);
+                        oursRight = true;
                     }
                 }
             }
@@ -361,10 +391,8 @@ int main(int argc, char* argv[]) {
             ssize_t n = recv(fds[kKbClientIndex].fd, &msg, sizeof(msg), 0);
             if (n <= 0) {
                 LotusLogger::instance().warn("Keyboard client disconnected or connection error");
-                if (shiftHeld) {
-                    uinput.sendShiftUp(); // never leave Shift stuck down
-                    shiftHeld = false;
-                }
+                releaseOursIfNobodyHolds(); // never leave Shift stuck down
+                selectPlan     = {};
                 pendingSelects = 0;
                 kbClientFd.reset(-1);
                 fds[kKbClientIndex].fd = -1;
@@ -372,18 +400,21 @@ int main(int argc, char* argv[]) {
                 LotusLogger::instance().warn("Malformed keyboard message (" + std::to_string(n) + " bytes)");
             } else {
                 currentInterval = msg.interval > 0 ? std::min<uint32_t>(msg.interval, 1000) : 5;
-                const KbOp op   = resolveKeyboardOp(msg.op, physical_shift.shiftHeld());
+                releaseOursIfNobodyHolds();
+                const auto physical = physical_shift.snapshot();
+                const KbOp op       = resolveKeyboardOp(msg.op, !physical_shift.tracksKeyboards());
                 if (op != msg.op) {
-                    LotusLogger::instance().info("Shift is held: replacing with Backspace instead of Shift+Left");
+                    LotusLogger::instance().info("Shift state unknown: replacing with Backspace instead of Shift+Left");
                 }
                 if (msg.count > 0 && op == KbOp::Select) {
                     if (msg.preDelay > 0) {
                         std::this_thread::sleep_for(std::chrono::milliseconds(msg.preDelay));
                     }
                     currentPostDelay = msg.postDelay;
-                    if (!shiftHeld) {
-                        uinput.sendShiftDown();
-                        shiftHeld = true;
+                    selectPlan       = planSelectShift(physical, oursLeft, oursRight);
+                    if (selectPlan.pressLeft) {
+                        uinput.sendShiftDown(KEY_LEFTSHIFT);
+                        oursLeft = true;
                     }
                     std::this_thread::sleep_for(std::chrono::milliseconds(currentInterval));
                     uinput.sendLeft();
@@ -394,12 +425,8 @@ int main(int argc, char* argv[]) {
                         std::this_thread::sleep_for(std::chrono::milliseconds(msg.preDelay));
                     }
                     currentPostDelay = msg.postDelay;
-                    if (shiftHeld) {
-                        // A stale in-flight selection must not mix with backspaces.
-                        uinput.sendShiftUp();
-                        shiftHeld      = false;
-                        pendingSelects = 0;
-                    }
+                    selectPlan       = {};
+                    pendingSelects   = 0;
                     pendingBackspaces += msg.count - 1;
                     uinput.sendBackspace();
                 } else if (msg.count > 0) {

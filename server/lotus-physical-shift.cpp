@@ -20,8 +20,8 @@ bool keyBitSet(std::span<const unsigned char> bits, unsigned int code) {
     return (bits[code / 8U] & (1U << (code % 8U))) != 0;
 }
 
-KbOp resolveKeyboardOp(KbOp requested, bool shiftHeld) {
-    return (requested == KbOp::Select && shiftHeld) ? KbOp::Backspace : requested;
+KbOp resolveKeyboardOp(KbOp requested, bool shiftUnknown) {
+    return (requested == KbOp::Select && shiftUnknown) ? KbOp::Backspace : requested;
 }
 
 std::string PhysicalShiftState::devnodeOf(struct libinput_device* device) {
@@ -78,14 +78,23 @@ void PhysicalShiftState::forgetDevice(struct libinput_device* device) {
     std::erase_if(keyboards_, [&devnode](const Keyboard& keyboard) { return keyboard.devnode == devnode; });
 }
 
-bool PhysicalShiftState::keyboardShiftHeld(Keyboard& keyboard) {
-    keyBits_.fill(0);
-    if (ioctl(keyboard.fd.get(), EVIOCGKEY(keyBits_.size()), keyBits_.data()) < 0) {
-        return false;
+PhysicalShiftState::ShiftSnapshot PhysicalShiftState::snapshot() {
+    ShiftSnapshot state;
+    for (Keyboard& keyboard : keyboards_) {
+        keyBits_.fill(0);
+        if (ioctl(keyboard.fd.get(), EVIOCGKEY(keyBits_.size()), keyBits_.data()) < 0) {
+            continue;
+        }
+        state.left  = state.left || keyBitSet(keyBits_, KEY_LEFTSHIFT);
+        state.right = state.right || keyBitSet(keyBits_, KEY_RIGHTSHIFT);
     }
-    return keyBitSet(keyBits_, KEY_LEFTSHIFT) || keyBitSet(keyBits_, KEY_RIGHTSHIFT);
+    return state;
 }
 
-bool PhysicalShiftState::shiftHeld() {
-    return std::ranges::any_of(keyboards_, [this](Keyboard& keyboard) { return keyboardShiftHeld(keyboard); });
+SelectShiftPlan planSelectShift(const PhysicalShiftState::ShiftSnapshot& physical, bool oursLeft, bool oursRight) {
+    SelectShiftPlan plan;
+    plan.pressLeft    = !physical.any() && !oursLeft && !oursRight;
+    plan.releaseLeft  = physical.left || oursLeft;
+    plan.releaseRight = physical.right || oursRight;
+    return plan;
 }

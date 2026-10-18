@@ -45,8 +45,8 @@ class UinputDevice {
     bool initialize();
     void sendBackspace();
     void sendDelete();
-    void sendShiftDown();
-    void sendShiftUp();
+    void sendShiftDown(uint16_t code);
+    void sendShiftUp(uint16_t code);
     void sendLeft();
 
   private:

@@ -117,6 +117,14 @@ target_include_directories(uinput_device PRIVATE ${PROJECT_SOURCE_DIR}/server)
 add_lotus_headless_test(config_enum_names config-enum-names.cpp "unit;config")
 add_lotus_headless_test(key_buffer key-buffer.cpp "unit;buffer")
 add_lotus_headless_test(auto_capitalize_reset auto-capitalize-reset.cpp "integration;capitalize")
+
+add_lotus_headless_test(select_shift_plan select-shift-plan.cpp "unit;server")
+target_sources(select_shift_plan PRIVATE
+    ${PROJECT_SOURCE_DIR}/server/lotus-physical-shift.cpp
+    ${PROJECT_SOURCE_DIR}/server/lotus-logger.cpp
+)
+target_link_libraries(select_shift_plan PRIVATE PkgConfig::LIBEVDEV PkgConfig::LIBINPUT)
+target_include_directories(select_shift_plan PRIVATE ${PROJECT_SOURCE_DIR}/server)
 add_lotus_headless_test(dbus_deferred_commit dbus-deferred-commit.cpp "integration;dbus")
 add_lotus_headless_test(merged_replacement_commit merged-replacement-commit.cpp "integration;smooth")
 

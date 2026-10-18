@@ -34,6 +34,7 @@ find_package(Fcitx5ModuleEmoji REQUIRED)
 find_package(Pthread REQUIRED)
 find_package(Gettext REQUIRED)
 pkg_check_modules(LIBEVDEV REQUIRED IMPORTED_TARGET libevdev)
+pkg_check_modules(LIBINPUT REQUIRED IMPORTED_TARGET libinput)
 
 include("${FCITX_INSTALL_CMAKECONFIG_DIR}/Fcitx5Utils/Fcitx5CompilerSettings.cmake")
 

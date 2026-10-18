@@ -115,6 +115,9 @@ target_sources(uinput_device PRIVATE ${PROJECT_SOURCE_DIR}/server/lotus-uinput-d
 target_link_libraries(uinput_device PRIVATE PkgConfig::LIBEVDEV)
 target_include_directories(uinput_device PRIVATE ${PROJECT_SOURCE_DIR}/server)
 add_lotus_headless_test(config_enum_names config-enum-names.cpp "unit;config")
+add_lotus_headless_test(status_icon status-icon.cpp "integration;icons")
+add_test(NAME status_icon_gnome COMMAND status_icon gnome)
+set_tests_properties(status_icon_gnome PROPERTIES LABELS "integration;icons" TIMEOUT 20)
 add_lotus_headless_test(key_buffer key-buffer.cpp "unit;buffer")
 add_lotus_headless_test(auto_capitalize_reset auto-capitalize-reset.cpp "integration;capitalize")
 

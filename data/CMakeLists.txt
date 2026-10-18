@@ -11,7 +11,10 @@ set(LOTUS_STATUS_ICONS
     fcitx-lotus fcitx-lotus-off fcitx-lotus-emoji
     fcitx-lotus-default fcitx-lotus-default-black
     fcitx-lotus-off-default fcitx-lotus-off-default-black
-    fcitx-lotus-emoji-default fcitx-lotus-emoji-default-black)
+    fcitx-lotus-emoji-default fcitx-lotus-emoji-default-black
+    fcitx-lotus-default-symbolic
+    fcitx-lotus-off-default-symbolic
+    fcitx-lotus-emoji-default-symbolic)
 
 foreach(ICON ${LOTUS_STATUS_ICONS})
     # status/ — system tray (SVG, renderable by most compositors and SNI hosts)

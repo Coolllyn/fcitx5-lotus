@@ -1110,6 +1110,11 @@ namespace fcitx {
                 iconName = baseIconName + "-default-black";
             } else if (iconTheme == IconTheme::Dark) {
                 iconName = baseIconName + "-default";
+            } else if (isGnome_) {
+                // GNOME's panel can be dark while applications prefer light.
+                // Symbolic icons inherit the panel foreground, including when
+                // its Shell theme changes, without guessing from app settings.
+                iconName = baseIconName + "-default-symbolic";
             } else {
                 iconName = baseIconName + (isDarkMode() ? "-default" : "-default-black");
             }

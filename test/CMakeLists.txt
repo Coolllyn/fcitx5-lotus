@@ -128,6 +128,10 @@ target_sources(select_shift_plan PRIVATE
 )
 target_link_libraries(select_shift_plan PRIVATE PkgConfig::LIBEVDEV PkgConfig::LIBINPUT)
 target_include_directories(select_shift_plan PRIVATE ${PROJECT_SOURCE_DIR}/server)
+
+add_lotus_headless_test(shift_watchdog shift-watchdog.cpp "unit;server")
+target_sources(shift_watchdog PRIVATE ${PROJECT_SOURCE_DIR}/server/lotus-shift-watchdog.cpp)
+target_include_directories(shift_watchdog PRIVATE ${PROJECT_SOURCE_DIR}/server)
 add_lotus_headless_test(dbus_deferred_commit dbus-deferred-commit.cpp "integration;dbus")
 add_lotus_headless_test(merged_replacement_commit merged-replacement-commit.cpp "integration;smooth")
 

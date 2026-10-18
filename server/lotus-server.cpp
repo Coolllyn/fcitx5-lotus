@@ -1,6 +1,7 @@
 /*
  * SPDX-FileCopyrightText: 2025 Võ Ngô Hoàng Thành <thanhpy2009@gmail.com>
  * SPDX-FileCopyrightText: 2026 Nguyễn Hoàng Kỳ  <nhktmdzhg@gmail.com>
+ * SPDX-FileCopyrightText: 2026 Nguyễn Quang Minh <minhnbnt@gmail.com>
  *
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
@@ -14,6 +15,7 @@
 #include "common-protocol.h"
 #include "common-socket-name.h"
 #include "lotus-physical-shift.h"
+#include "lotus-shift-watchdog.h"
 
 #include <algorithm>
 #include <array>
@@ -281,16 +283,18 @@ int main(int argc, char* argv[]) {
         },
     };
 
-    FdGuard         addonFd;
-    FdGuard         kbClientFd;
-    size_t          pendingBackspaces = 0;
-    size_t          pendingSelects    = 0;     ///< remaining Shift+Left events to pace out
-    bool            oursLeft          = false; ///< the server holds KEY_LEFTSHIFT on behalf of the user
-    bool            oursRight         = false; ///< the server holds KEY_RIGHTSHIFT on behalf of the user
+    FdGuard           addonFd;
+    FdGuard           kbClientFd;
+    size_t            pendingBackspaces = 0;
+    size_t            pendingSelects    = 0;     ///< remaining Shift+Left events to pace out
+    bool              oursLeft          = false; ///< the server holds KEY_LEFTSHIFT on behalf of the user
+    bool              oursRight         = false; ///< the server holds KEY_RIGHTSHIFT on behalf of the user
 
-    SelectShiftPlan selectPlan; ///< Shift plan of the in-flight Select sequence
+    SelectShiftPlan   selectPlan; ///< Shift plan of the in-flight Select sequence
 
-    const auto      releaseOursIfNobodyHolds = [&] {
+    ShiftHoldWatchdog shiftWatchdog; ///< Debounce timer forcing the server's own Shift up after 5 s of quiet
+
+    const auto        releaseOursIfNobodyHolds = [&] {
         const auto physical = physical_shift.snapshot();
         if (oursLeft && !physical.left) {
             uinput.sendShiftUp(KEY_LEFTSHIFT);
@@ -299,6 +303,19 @@ int main(int argc, char* argv[]) {
         if (oursRight && !physical.right) {
             uinput.sendShiftUp(KEY_RIGHTSHIFT);
             oursRight = false;
+        }
+        if (oursLeft || oursRight) {
+            shiftWatchdog.activity(std::chrono::steady_clock::now());
+        } else {
+            shiftWatchdog.disarm();
+        }
+    };
+
+    const auto syncWatchdog = [&] {
+        if (oursLeft || oursRight) {
+            shiftWatchdog.activity(std::chrono::steady_clock::now());
+        } else {
+            shiftWatchdog.disarm();
         }
     };
 
@@ -313,10 +330,23 @@ int main(int argc, char* argv[]) {
     sigaction(SIGINT, &sa, nullptr);
 
     while (g_running.load(std::memory_order_acquire)) {
+
         int pollTimeout = -1;
         if (pendingBackspaces > 0 || pendingSelects > 0) {
             pollTimeout = static_cast<int>(currentInterval);
         }
+
+        if (shiftWatchdog.armed()) {
+
+            const auto now         = std::chrono::steady_clock::now();
+            const auto remaining   = shiftWatchdog.remaining(now);
+            const auto remainingMs = std::chrono::duration_cast<std::chrono::milliseconds>(remaining).count();
+
+            const int  msUntilExpiry = static_cast<int>(std::max<int64_t>(remainingMs, 0));
+
+            pollTimeout = pollTimeout < 0 ? msUntilExpiry : std::min(pollTimeout, msUntilExpiry);
+        }
+
         int ret = poll(fds.data(), fds.size(), pollTimeout);
 
         if (ret < 0) {
@@ -333,10 +363,12 @@ int main(int argc, char* argv[]) {
                 }
                 uinput.sendBackspace();
                 --pendingBackspaces;
+                syncWatchdog();
             } else if (pendingSelects > 0) {
                 if (pendingSelects > 1) {
                     uinput.sendLeft();
                     --pendingSelects;
+                    syncWatchdog();
                 } else if (selectPlan.releaseLeft || selectPlan.releaseRight || oursLeft || oursRight) {
                     std::this_thread::sleep_for(std::chrono::milliseconds(10));
                     if (selectPlan.releaseLeft || oursLeft) {
@@ -348,6 +380,7 @@ int main(int argc, char* argv[]) {
                         oursRight = false;
                     }
                     selectPlan = {};
+                    syncWatchdog();
                 } else {
                     uinput.sendDelete();
                     if (currentPostDelay > 0) {
@@ -364,8 +397,21 @@ int main(int argc, char* argv[]) {
                         uinput.sendShiftDown(KEY_RIGHTSHIFT);
                         oursRight = true;
                     }
+                    syncWatchdog();
                 }
             }
+        }
+
+        // Last-resort guard: 5 s without fresh activity while the server still holds its own
+        // Shift means every normal release path failed — force the Shift up.
+        if (shiftWatchdog.expired(std::chrono::steady_clock::now())) {
+            LotusLogger::instance().warn("Shift watchdog: releasing the server-held Shift after 5 s of quiet");
+            uinput.sendShiftUp(KEY_LEFTSHIFT);
+            uinput.sendShiftUp(KEY_RIGHTSHIFT);
+            oursLeft   = false;
+            oursRight  = false;
+            selectPlan = {};
+            shiftWatchdog.disarm();
         }
 
         libinput_dispatch(li_ctx.getLi());
@@ -399,7 +445,9 @@ int main(int argc, char* argv[]) {
             } else if (std::cmp_not_equal(n, sizeof(KbMsg)) && std::cmp_not_equal(n, sizeof(int32_t))) {
                 LotusLogger::instance().warn("Malformed keyboard message (" + std::to_string(n) + " bytes)");
             } else {
-                currentInterval = msg.interval > 0 ? std::min<uint32_t>(msg.interval, 1000) : 5;
+                currentInterval = msg.interval > 0 ? std::min<uint32_t>(msg.interval, kMaxInjectedDelayMs) : 5;
+                const std::chrono::milliseconds preDelayMs{capInjectedDelay(msg.preDelay)};
+                const std::chrono::milliseconds postDelayMs{capInjectedDelay(msg.postDelay)};
                 releaseOursIfNobodyHolds();
                 const auto physical = physical_shift.snapshot();
                 const KbOp op       = resolveKeyboardOp(msg.op, !physical_shift.tracksKeyboards());
@@ -407,24 +455,25 @@ int main(int argc, char* argv[]) {
                     LotusLogger::instance().info("Shift state unknown: replacing with Backspace instead of Shift+Left");
                 }
                 if (msg.count > 0 && op == KbOp::Select) {
-                    if (msg.preDelay > 0) {
-                        std::this_thread::sleep_for(std::chrono::milliseconds(msg.preDelay));
+                    if (preDelayMs.count() > 0) {
+                        std::this_thread::sleep_for(preDelayMs);
                     }
-                    currentPostDelay = msg.postDelay;
+                    currentPostDelay = postDelayMs.count();
                     selectPlan       = planSelectShift(physical, oursLeft, oursRight);
                     if (selectPlan.pressLeft) {
                         uinput.sendShiftDown(KEY_LEFTSHIFT);
                         oursLeft = true;
+                        syncWatchdog();
                     }
                     std::this_thread::sleep_for(std::chrono::milliseconds(currentInterval));
                     uinput.sendLeft();
                     pendingSelects += msg.count - 1;
 
                 } else if (msg.count > 0 && op == KbOp::Backspace) {
-                    if (msg.preDelay > 0) {
-                        std::this_thread::sleep_for(std::chrono::milliseconds(msg.preDelay));
+                    if (preDelayMs.count() > 0) {
+                        std::this_thread::sleep_for(preDelayMs);
                     }
-                    currentPostDelay = msg.postDelay;
+                    currentPostDelay = postDelayMs.count();
                     selectPlan       = {};
                     pendingSelects   = 0;
                     pendingBackspaces += msg.count - 1;
@@ -482,6 +531,12 @@ int main(int argc, char* argv[]) {
                 default: break;
             }
         }
+    }
+    if (oursLeft) {
+        uinput.sendShiftUp(KEY_LEFTSHIFT);
+    }
+    if (oursRight) {
+        uinput.sendShiftUp(KEY_RIGHTSHIFT);
     }
     LotusLogger::instance().info("Terminating server...");
     return 0;

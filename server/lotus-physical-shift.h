@@ -69,8 +69,9 @@ class PhysicalShiftState {
      * @brief One live read of the physical Shift keys.
      */
     struct ShiftSnapshot {
-        bool left  = false; ///< KEY_LEFTSHIFT is down on some tracked keyboard
-        bool right = false; ///< KEY_RIGHTSHIFT is down on some tracked keyboard
+        bool left     = false; ///< KEY_LEFTSHIFT is down on some tracked keyboard
+        bool right    = false; ///< KEY_RIGHTSHIFT is down on some tracked keyboard
+        bool readable = false; ///< True when at least one tracked keyboard answered the query
 
         /**
          * @brief Reports whether any Shift key is down.

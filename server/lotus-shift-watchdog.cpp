@@ -1,5 +1,6 @@
 /*
  * SPDX-FileCopyrightText: 2026 Nguyễn Quang Minh <minhnbnt@gmail.com>
+ * SPDX-FileCopyrightText: 2026 Nguyen Hoàng Ky <nhktmdzhg@gmail.com>
  *
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
@@ -7,21 +8,9 @@
 
 #include "lotus-shift-watchdog.h"
 
-#include <algorithm>
-
-namespace {
-
-    constexpr auto kShiftWatchPeriod = std::chrono::seconds(5); ///< quiet time after which held Shift must go up
-
-} // namespace
-
-uint32_t capInjectedDelay(uint32_t ms) {
-    return std::min(ms, kMaxInjectedDelayMs);
-}
-
 void ShiftHoldWatchdog::activity(std::chrono::steady_clock::time_point now) {
     armed_    = true;
-    deadline_ = now + kShiftWatchPeriod;
+    deadline_ = now + kPeriod;
 }
 
 void ShiftHoldWatchdog::disarm() {

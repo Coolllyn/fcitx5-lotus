@@ -292,7 +292,7 @@ int main(int argc, char* argv[]) {
 
     SelectShiftPlan   selectPlan; ///< Shift plan of the in-flight Select sequence
 
-    ShiftHoldWatchdog shiftWatchdog; ///< Debounce timer forcing the server's own Shift up after 5 s of quiet
+    ShiftHoldWatchdog shiftWatchdog; ///< Deadline that lets the loop release the server's own Shift
 
     const auto        releaseOursIfNobodyHolds = [&] {
         const auto physical = physical_shift.snapshot();
@@ -304,16 +304,13 @@ int main(int argc, char* argv[]) {
             uinput.sendShiftUp(KEY_RIGHTSHIFT);
             oursRight = false;
         }
-        if (oursLeft || oursRight) {
-            shiftWatchdog.activity(std::chrono::steady_clock::now());
-        } else {
-            shiftWatchdog.disarm();
-        }
     };
 
     const auto syncWatchdog = [&] {
-        if (oursLeft || oursRight) {
-            shiftWatchdog.activity(std::chrono::steady_clock::now());
+        if ((oursLeft || oursRight) && pendingSelects == 0 && pendingBackspaces == 0) {
+            if (!shiftWatchdog.armed()) {
+                shiftWatchdog.activity(std::chrono::steady_clock::now());
+            }
         } else {
             shiftWatchdog.disarm();
         }
@@ -330,6 +327,8 @@ int main(int argc, char* argv[]) {
     sigaction(SIGINT, &sa, nullptr);
 
     while (g_running.load(std::memory_order_acquire)) {
+
+        syncWatchdog();
 
         int pollTimeout = -1;
         if (pendingBackspaces > 0 || pendingSelects > 0) {
@@ -363,12 +362,10 @@ int main(int argc, char* argv[]) {
                 }
                 uinput.sendBackspace();
                 --pendingBackspaces;
-                syncWatchdog();
             } else if (pendingSelects > 0) {
                 if (pendingSelects > 1) {
                     uinput.sendLeft();
                     --pendingSelects;
-                    syncWatchdog();
                 } else if (selectPlan.releaseLeft || selectPlan.releaseRight || oursLeft || oursRight) {
                     std::this_thread::sleep_for(std::chrono::milliseconds(10));
                     if (selectPlan.releaseLeft || oursLeft) {
@@ -380,7 +377,6 @@ int main(int argc, char* argv[]) {
                         oursRight = false;
                     }
                     selectPlan = {};
-                    syncWatchdog();
                 } else {
                     uinput.sendDelete();
                     if (currentPostDelay > 0) {
@@ -397,21 +393,29 @@ int main(int argc, char* argv[]) {
                         uinput.sendShiftDown(KEY_RIGHTSHIFT);
                         oursRight = true;
                     }
-                    syncWatchdog();
                 }
             }
         }
 
-        // Last-resort guard: 5 s without fresh activity while the server still holds its own
-        // Shift means every normal release path failed — force the Shift up.
+        // Last-resort guard: the server holds a Shift on behalf of the user and cannot observe the
+        // release of their physical key, so re-read the keyboards and let the Shift go once nobody
+        // holds it any more. A failed read counts as held: releasing over the user would steal it.
         if (shiftWatchdog.expired(std::chrono::steady_clock::now())) {
-            LotusLogger::instance().warn("Shift watchdog: releasing the server-held Shift after 5 s of quiet");
-            uinput.sendShiftUp(KEY_LEFTSHIFT);
-            uinput.sendShiftUp(KEY_RIGHTSHIFT);
-            oursLeft   = false;
-            oursRight  = false;
-            selectPlan = {};
-            shiftWatchdog.disarm();
+            const auto physical = physical_shift.snapshot();
+            if (physical.any() || !physical.readable) {
+                shiftWatchdog.activity(std::chrono::steady_clock::now());
+            } else {
+                if (oursLeft) {
+                    uinput.sendShiftUp(KEY_LEFTSHIFT);
+                    oursLeft = false;
+                }
+                if (oursRight) {
+                    uinput.sendShiftUp(KEY_RIGHTSHIFT);
+                    oursRight = false;
+                }
+                shiftWatchdog.disarm();
+                LotusLogger::instance().info("Shift watchdog: released the Shift the server held after the user let go");
+            }
         }
 
         libinput_dispatch(li_ctx.getLi());
@@ -445,9 +449,7 @@ int main(int argc, char* argv[]) {
             } else if (std::cmp_not_equal(n, sizeof(KbMsg)) && std::cmp_not_equal(n, sizeof(int32_t))) {
                 LotusLogger::instance().warn("Malformed keyboard message (" + std::to_string(n) + " bytes)");
             } else {
-                currentInterval = msg.interval > 0 ? std::min<uint32_t>(msg.interval, kMaxInjectedDelayMs) : 5;
-                const std::chrono::milliseconds preDelayMs{capInjectedDelay(msg.preDelay)};
-                const std::chrono::milliseconds postDelayMs{capInjectedDelay(msg.postDelay)};
+                currentInterval = msg.interval > 0 ? std::min<uint32_t>(msg.interval, 1000) : 5;
                 releaseOursIfNobodyHolds();
                 const auto physical = physical_shift.snapshot();
                 const KbOp op       = resolveKeyboardOp(msg.op, !physical_shift.tracksKeyboards());
@@ -455,25 +457,24 @@ int main(int argc, char* argv[]) {
                     LotusLogger::instance().info("Shift state unknown: replacing with Backspace instead of Shift+Left");
                 }
                 if (msg.count > 0 && op == KbOp::Select) {
-                    if (preDelayMs.count() > 0) {
-                        std::this_thread::sleep_for(preDelayMs);
+                    if (msg.preDelay > 0) {
+                        std::this_thread::sleep_for(std::chrono::milliseconds(msg.preDelay));
                     }
-                    currentPostDelay = postDelayMs.count();
+                    currentPostDelay = msg.postDelay;
                     selectPlan       = planSelectShift(physical, oursLeft, oursRight);
                     if (selectPlan.pressLeft) {
                         uinput.sendShiftDown(KEY_LEFTSHIFT);
                         oursLeft = true;
-                        syncWatchdog();
                     }
                     std::this_thread::sleep_for(std::chrono::milliseconds(currentInterval));
                     uinput.sendLeft();
                     pendingSelects += msg.count - 1;
 
                 } else if (msg.count > 0 && op == KbOp::Backspace) {
-                    if (preDelayMs.count() > 0) {
-                        std::this_thread::sleep_for(preDelayMs);
+                    if (msg.preDelay > 0) {
+                        std::this_thread::sleep_for(std::chrono::milliseconds(msg.preDelay));
                     }
-                    currentPostDelay = postDelayMs.count();
+                    currentPostDelay = msg.postDelay;
                     selectPlan       = {};
                     pendingSelects   = 0;
                     pendingBackspaces += msg.count - 1;

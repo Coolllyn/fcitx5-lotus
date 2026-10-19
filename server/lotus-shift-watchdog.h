@@ -1,5 +1,6 @@
 /*
  * SPDX-FileCopyrightText: 2026 Nguyễn Quang Minh <minhnbnt@gmail.com>
+ * SPDX-FileCopyrightText: 2026 Nguyen Hoàng Ky <nhktmdzhg@gmail.com>
  *
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
@@ -7,75 +8,60 @@
 
 /**
  * @file lotus-shift-watchdog.h
- * @brief Debounce timer that keeps the server from holding an injected Shift forever.
+ * @brief Last-resort deadline that keeps the server from holding an injected Shift forever.
  */
 
 #ifndef _LOTUS_SHIFT_WATCHDOG_H_
 #define _LOTUS_SHIFT_WATCHDOG_H_
 
 #include <chrono>
-#include <cstdint>
 
 /**
- * @brief Longest one keyboard request may keep the main loop asleep while Shift is held.
+ * @brief Deadline for the Shift the server presses on behalf of the user.
  *
- * The addon already paces keys with `interval`, capped at 1000 ms in lotus-server.cpp;
- * preDelay and postDelay get the same cap so the loop cannot be stalled past the watchdog
- * period while the server holds Shift.
- */
-constexpr uint32_t kMaxInjectedDelayMs = 1000; ///< ms, matches the interval cap
-
-/**
- * @brief Clamps one addon-provided delay so the main loop stays responsive.
- * @param ms Delay in milliseconds requested by the addon.
- * @return The delay capped at kMaxInjectedDelayMs.
- */
-uint32_t capInjectedDelay(uint32_t ms);
-
-/**
- * @brief Debounce timer for the Shift keys the server injected itself.
- *
- * Every press or injected key while holding re-arms the deadline (debounce); releasing the
- * server's own Shift cancels the timer. When the timer expires without fresh activity, the
- * server must release the Shift it holds — the last-resort guard against a Shift stuck
- * down forever.
+ * After a Select sequence the server presses a Shift again while the user is still holding theirs,
+ * and it cannot observe the release of that physical key. A deadline brings the main loop back:
+ * once the settle period passed, the loop re-reads the keyboards and lets the server's own Shift go
+ * when nobody holds Shift any more.
  */
 class ShiftHoldWatchdog {
   public:
+    static constexpr std::chrono::milliseconds kPeriod{50};
+
     /**
-     * @brief Re-arms the deadline with one fresh activity.
+     * @brief Arms or re-arms the deadline with one fresh activity.
      * @param now Current monotonic time.
      */
     void activity(std::chrono::steady_clock::time_point now);
 
     /**
-     * @brief Cancels the timer because the server no longer holds Shift.
+     * @brief Cancels the deadline because the server no longer holds Shift.
      */
     void disarm();
 
     /**
-     * @brief Reports whether the server is still on the watch.
-     * @return True while the timer is armed.
+     * @brief Reports whether the deadline is on.
+     * @return True while armed.
      */
     [[nodiscard]] bool armed() const;
 
     /**
-     * @brief Reports whether the watch period elapsed without fresh activity.
+     * @brief Reports whether the settle period elapsed without fresh activity.
      * @param now Current monotonic time.
-     * @return True when armed and `now` reached the deadline.
+     * @return True when armed and @p now reached the deadline.
      */
     [[nodiscard]] bool expired(std::chrono::steady_clock::time_point now) const;
 
     /**
-     * @brief Time left before the timer expires.
+     * @brief Time left before the deadline.
      * @param now Current monotonic time.
-     * @return Remaining duration; zero when disarmed or already expired.
+     * @return Remaining duration; zero when disarmed or already due.
      */
     [[nodiscard]] std::chrono::steady_clock::duration remaining(std::chrono::steady_clock::time_point now) const;
 
   private:
-    bool                                  armed_ = false; ///< True while the server holds its own Shift
-    std::chrono::steady_clock::time_point deadline_;      ///< Last activity plus the watch period
+    bool                                  armed_ = false; ///< True while the deadline is on
+    std::chrono::steady_clock::time_point deadline_;      ///< Last activity plus the settle period
 };
 
 #endif // _LOTUS_SHIFT_WATCHDOG_H_

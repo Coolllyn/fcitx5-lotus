@@ -42,28 +42,50 @@ target_precompile_headers(lotus_test_pch PRIVATE ${LOTUS_PCH_HEADERS})
 # Lotus engine core.
 #
 # Usage:
-#   add_lotus_headless_test(<target_name> <source_file> "<labels>")
+#   add_lotus_headless_test(TARGET <target_name> SOURCES <source_files...> LABELS "<labels>" [INCLUDE_DIRECTORIES <dirs...>] [LINK_LIBRARIES <libs...>])
 # Example:
-#   add_lotus_headless_test(my_test my-test.cpp "integration;myfeature")
-function(add_lotus_headless_test target source labels)
-    add_executable(${target} ${source})
+#   add_lotus_headless_test(TARGET my_test SOURCES my-test.cpp LABELS "integration;myfeature")
+function(add_lotus_headless_test)
+    set(options)
+    set(oneValueArgs TARGET)
+    set(multiValueArgs SOURCES INCLUDE_DIRECTORIES LINK_LIBRARIES LABELS)
+    cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+    if(ARG_UNPARSED_ARGUMENTS)
+        message(FATAL_ERROR "add_lotus_headless_test: Unrecognized arguments: '${ARG_UNPARSED_ARGUMENTS}'")
+    endif()
+
+    if(NOT ARG_TARGET)
+        message(FATAL_ERROR "add_lotus_headless_test: Missing TARGET!")
+    endif()
+    if(NOT ARG_SOURCES)
+        message(FATAL_ERROR "add_lotus_headless_test: Target '${ARG_TARGET}' is missing SOURCES!")
+    endif()
+
+    add_executable(${ARG_TARGET} ${ARG_SOURCES})
     # lotus_test_pch mirrors the executables' flags, so its prebuilt PCH is
     # reused, not rejected.
-    target_compile_definitions(${target} PRIVATE
+    target_compile_definitions(${ARG_TARGET} PRIVATE
         FCITX5_LOTUS_SETTINGS_PATH="${CMAKE_INSTALL_FULL_BINDIR}/fcitx5-lotus-settings"
         LOTUS_SERVER_EXECUTABLE="${LOTUS_SERVER_EXECUTABLE}"
         LOTUS_ALT_EXECUTABLE_PREFIX="${LOTUS_ALT_EXECUTABLE_PREFIX}"
     )
-    target_precompile_headers(${target} REUSE_FROM lotus_test_pch)
-    target_link_libraries(${target} PRIVATE
+    target_precompile_headers(${ARG_TARGET} REUSE_FROM lotus_test_pch)
+    target_link_libraries(${ARG_TARGET} PRIVATE
         lotus_test_core
         Fcitx5::Core
         Fcitx5::Config
         Fcitx5::Module::Emoji
         Pthread::Pthread
+        ${ARG_LINK_LIBRARIES}
     )
-    add_test(NAME ${target} COMMAND ${target})
-    set_tests_properties(${target} PROPERTIES LABELS "${labels}" TIMEOUT 20)
+    if(ARG_INCLUDE_DIRECTORIES)
+        target_include_directories(${ARG_TARGET} PRIVATE
+            ${ARG_INCLUDE_DIRECTORIES}
+        )
+    endif()
+    add_test(NAME ${ARG_TARGET} COMMAND ${ARG_TARGET})
+    set_tests_properties(${ARG_TARGET} PROPERTIES LABELS "${ARG_LABELS}" TIMEOUT 20)
 endfunction()
 
 # One binary runs every engine unit test group via "--run <fn>"; ctest keeps
@@ -97,55 +119,53 @@ add_lotus_unit_test(lotus_rebuild rebuild lotus-rebuild-test.cpp "unit;lotus;reb
 add_lotus_unit_test(lotus_macro_dictionary macro_dictionary lotus-macro-dictionary-test.cpp "unit;lotus;macro")
 add_lotus_unit_test(lotus_key_processor key_processor lotus-key-processor-test.cpp "unit;lotus;key-processor")
 add_lotus_unit_test(lotus_golden_smoke golden_smoke lotus-golden-smoke.cpp "unit;lotus;golden")
+add_lotus_unit_test(numeric_macro_case_preservation numeric_macro_case numeric-macro-case-preservation.cpp "unit;macro")
 
-add_lotus_headless_test(preedit_lifecycle preedit-lifecycle.cpp "integration;preedit")
-add_lotus_headless_test(app_rule_reset app-rule-reset.cpp "integration;apprule")
-add_lotus_headless_test(preedit_smoke_client preedit-smoke-client.cpp "integration;preedit")
-add_lotus_headless_test(preedit_smoke_server preedit-smoke-server.cpp "integration;preedit")
-add_lotus_headless_test(smooth_buffered_key_replay
-    smooth-buffered-key-replay.cpp "integration;smooth")
-add_lotus_headless_test(select_mode_replacement
-    select-mode-replacement.cpp "integration;select")
-add_lotus_headless_test(app_rule_delays app-rule-delays.cpp "integration;apprule")
-add_lotus_headless_test(replacement_delays replacement-delays.cpp "integration;smooth")
-add_lotus_headless_test(app_rule_delay_wire app-rule-delay-wire.cpp "integration;apprule")
-add_lotus_headless_test(dict_reload dict-reload.cpp "integration;dictionary")
-add_lotus_headless_test(uinput_device uinput-device.cpp "unit;server")
-target_sources(uinput_device PRIVATE ${PROJECT_SOURCE_DIR}/server/lotus-uinput-device.cpp)
-target_link_libraries(uinput_device PRIVATE PkgConfig::LIBEVDEV)
-target_include_directories(uinput_device PRIVATE ${PROJECT_SOURCE_DIR}/server)
-add_lotus_headless_test(config_enum_names config-enum-names.cpp "unit;config")
-add_lotus_headless_test(status_icon status-icon.cpp "integration;icons")
+add_lotus_headless_test(TARGET preedit_lifecycle SOURCES preedit-lifecycle.cpp LABELS "integration;preedit")
+add_lotus_headless_test(TARGET preedit_smoke_client SOURCES preedit-smoke-client.cpp LABELS "integration;preedit")
+add_lotus_headless_test(TARGET preedit_smoke_server SOURCES preedit-smoke-server.cpp LABELS "integration;preedit")
+add_lotus_headless_test(TARGET app_rule_reset SOURCES app-rule-reset.cpp LABELS "integration;apprule")
+add_lotus_headless_test(TARGET app_rule_delays SOURCES app-rule-delays.cpp LABELS "integration;apprule")
+add_lotus_headless_test(TARGET app_rule_delay_wire SOURCES app-rule-delay-wire.cpp LABELS "integration;apprule")
+add_lotus_headless_test(TARGET smooth_buffered_key_replay SOURCES smooth-buffered-key-replay.cpp LABELS "integration;smooth")
+add_lotus_headless_test(TARGET select_mode_replacement SOURCES select-mode-replacement.cpp LABELS "integration;select")
+add_lotus_headless_test(TARGET replacement_delays SOURCES replacement-delays.cpp LABELS "integration;smooth")
+add_lotus_headless_test(TARGET merged_replacement_commit SOURCES merged-replacement-commit.cpp LABELS "integration;smooth")
+add_lotus_headless_test(TARGET dict_reload SOURCES dict-reload.cpp LABELS "integration;dictionary")
+add_lotus_headless_test(TARGET config_enum_names SOURCES config-enum-names.cpp LABELS "unit;config")
+add_lotus_headless_test(
+    TARGET uinput_device
+    SOURCES
+        uinput-device.cpp
+        ${PROJECT_SOURCE_DIR}/server/lotus-uinput-device.cpp
+    LABELS "unit;server"
+    INCLUDE_DIRECTORIES ${PROJECT_SOURCE_DIR}/server
+    LINK_LIBRARIES PkgConfig::LIBEVDEV
+)
+add_lotus_headless_test(
+    TARGET select_shift_plan
+    SOURCES
+        select-shift-plan.cpp
+        ${PROJECT_SOURCE_DIR}/server/lotus-physical-shift.cpp
+        ${PROJECT_SOURCE_DIR}/server/lotus-logger.cpp
+    LABELS "unit;server"
+    INCLUDE_DIRECTORIES ${PROJECT_SOURCE_DIR}/server
+    LINK_LIBRARIES PkgConfig::LIBEVDEV PkgConfig::LIBINPUT
+)
+add_lotus_headless_test(TARGET status_icon SOURCES status-icon.cpp LABELS "integration;icons")
 add_test(NAME status_icon_gnome COMMAND status_icon gnome)
 set_tests_properties(status_icon_gnome PROPERTIES LABELS "integration;icons" TIMEOUT 20)
-add_lotus_headless_test(key_buffer key-buffer.cpp "unit;buffer")
-add_lotus_headless_test(auto_capitalize_reset auto-capitalize-reset.cpp "integration;capitalize")
-
-add_lotus_headless_test(select_shift_plan select-shift-plan.cpp "unit;server")
-target_sources(select_shift_plan PRIVATE
-    ${PROJECT_SOURCE_DIR}/server/lotus-physical-shift.cpp
-    ${PROJECT_SOURCE_DIR}/server/lotus-logger.cpp
-)
-target_link_libraries(select_shift_plan PRIVATE PkgConfig::LIBEVDEV PkgConfig::LIBINPUT)
-target_include_directories(select_shift_plan PRIVATE ${PROJECT_SOURCE_DIR}/server)
-add_lotus_headless_test(dbus_deferred_commit dbus-deferred-commit.cpp "integration;dbus")
-add_lotus_headless_test(merged_replacement_commit merged-replacement-commit.cpp "integration;smooth")
+add_lotus_headless_test(TARGET key_buffer SOURCES key-buffer.cpp LABELS "unit;buffer")
+add_lotus_headless_test(TARGET auto_capitalize_reset SOURCES auto-capitalize-reset.cpp LABELS "integration;capitalize")
+add_lotus_headless_test(TARGET dbus_deferred_commit SOURCES dbus-deferred-commit.cpp LABELS "integration;dbus")
+add_lotus_headless_test(TARGET modifier_key_bypasses_surrounding_text SOURCES modifier-key-bypasses-surrounding-text.cpp LABELS "integration;surrounding")
+add_lotus_headless_test(TARGET runtime_safety SOURCES runtime-safety.cpp LABELS "integration;raii")
+add_lotus_headless_test(TARGET emoji_history_page_navigation SOURCES emoji-history-page-navigation.cpp LABELS "integration;emoji")
 
 string(MD5 LOTUS_CTEST_SOCKET_NAMESPACE "${PROJECT_BINARY_DIR}")
-set_tests_properties(smooth_buffered_key_replay select_mode_replacement replacement_delays app_rule_delay_wire dbus_deferred_commit merged_replacement_commit
+set_tests_properties(smooth_buffered_key_replay select_mode_replacement replacement_delays app_rule_delay_wire dbus_deferred_commit merged_replacement_commit runtime_safety
     PROPERTIES RESOURCE_LOCK lotus_kb_socket
     ENVIRONMENT "LOTUS_SOCKET_NAMESPACE=ctest-${LOTUS_CTEST_SOCKET_NAMESPACE}")
-add_lotus_headless_test(modifier_key_bypasses_surrounding_text
-    modifier-key-bypasses-surrounding-text.cpp "integration;surrounding")
-add_lotus_headless_test(runtime_safety
-    runtime-safety.cpp "integration;raii")
-set_tests_properties(runtime_safety
-    PROPERTIES RESOURCE_LOCK lotus_kb_socket
-    ENVIRONMENT "LOTUS_SOCKET_NAMESPACE=ctest-${LOTUS_CTEST_SOCKET_NAMESPACE}")
-add_lotus_headless_test(emoji_history_page_navigation
-    emoji-history-page-navigation.cpp "integration;emoji")
-add_lotus_unit_test(numeric_macro_case_preservation numeric_macro_case
-    numeric-macro-case-preservation.cpp "unit;macro")
 
 add_executable(executable_path_match
     executable-path-match.cpp

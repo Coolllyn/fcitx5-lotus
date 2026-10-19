@@ -17,7 +17,7 @@ Build-Depends: debhelper-compat (= 13),
                libudev-dev,
                pkg-config,
                python3
-Standards-Version: 4.6.0
+Standards-Version: 4.7.4
 
 Package: fcitx5-lotus
 Architecture: any

@@ -26,7 +26,6 @@
 #include <array>
 #include <chrono>
 
-// Global variables
 std::atomic<fcitx::LotusMode> g_realMode{fcitx::LotusMode::Smooth};
 std::atomic<bool>             g_mouseClicked{false};
 std::atomic<bool>             g_isDeleting{false};

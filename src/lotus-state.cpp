@@ -153,7 +153,7 @@ namespace fcitx {
         const unsigned int anchor  = s.anchor();
         const size_t       textLen = u32Text.length();
 
-        // Fix that surrounding text is delay update
+        // Surrounding text can lag behind IME state, so confirm oldPreBuffer_ is still near the cursor before trusting it.
         const size_t buffLen    = oldPreBuffer_.length();
         const size_t pb         = u32Text.find(oldPreBuffer_);
         size_t       rangeStart = static_cast<size_t>(cursor) >= buffLen ? static_cast<size_t>(cursor) - buffLen : 0;
@@ -877,7 +877,6 @@ namespace fcitx {
         const std::u32string commitStr = pullCommitString();
         if (processed && !commitStr.empty()) {
 
-            // Determine if this is a macro expansion or just confirmed typed text
             bool isMacroExpansion = false;
             if (keyText.empty()) {
                 isMacroExpansion = (commitStr != oldPreBuffer_);
@@ -915,7 +914,6 @@ namespace fcitx {
             return;
         }
 
-        // 8. No commit or engine rejected the key
         if (processed || !commitStr.empty()) {
             // Engine processed the key (building shadow state)
             // OR engine rejected the key but committed old text (non-processable key)

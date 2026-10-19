@@ -1065,10 +1065,8 @@ namespace fcitx {
         ic->inputPanel().setCandidateList(std::move(candidateList));
         ic->updateUserInterface(UserInterfaceComponent::InputPanel);
 
-        // Cancel previous timer if any
         cycleModeNotificationTimer_.reset();
 
-        // Schedule auto-close using EventLoop::addTimeEvent
         auto& eventLoop   = instance_.eventLoop();
         auto  nowTime     = ::fcitx::now(CLOCK_MONOTONIC);
         auto  timeoutTime = nowTime + kCycleModeNotificationTimeoutUsec;

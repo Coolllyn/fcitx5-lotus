@@ -370,7 +370,6 @@ int main(int argc, char* argv[]) {
 
         libinput_dispatch(li_ctx.getLi());
 
-        // handle socket (backspace)
         if ((static_cast<unsigned>(fds[kKeyboardServerIndex].revents) & static_cast<unsigned>(POLLIN)) != 0) {
             FdGuard candidate(accept4(serverFd.get(), nullptr, nullptr, SOCK_NONBLOCK));
             if (candidate.isValid()) {
@@ -435,7 +434,6 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        // connect to mouse socket
         if ((static_cast<unsigned>(fds[kMouseServerIndex].revents) & static_cast<unsigned>(POLLIN)) != 0) {
             FdGuard candidate(accept4(mouseServerFd.get(), nullptr, nullptr, SOCK_NONBLOCK));
             if (candidate.isValid()) {
@@ -448,7 +446,6 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        // handle mouse (libinput)
         // libinput_dispatch() may have already consumed the fd in an iteration where
         // the libinput revents were 0 (poll timeout, or another fd woke us up).  Always
         // drain the queue; libinput_get_event() returns nullptr when it is empty.

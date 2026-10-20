@@ -29,6 +29,8 @@
  */
 class LOTUS_EXPORT EmojiLoader {
   public:
+    /// Maximum entries kept in (and written back to) the emoji history file.
+    static constexpr std::size_t kMaxEmojiHistory = 9;
     /// Upper bound on results returned by search().
     /// Keeps per-keystroke allocation/sort cheap; the UI still paginates 9/page.
     static constexpr std::size_t kMaxEmojiSearchResults = 100;

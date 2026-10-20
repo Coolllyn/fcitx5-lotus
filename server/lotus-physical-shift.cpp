@@ -85,8 +85,9 @@ PhysicalShiftState::ShiftSnapshot PhysicalShiftState::snapshot() {
         if (ioctl(keyboard.fd.get(), EVIOCGKEY(keyBits_.size()), keyBits_.data()) < 0) {
             continue;
         }
-        state.left  = state.left || keyBitSet(keyBits_, KEY_LEFTSHIFT);
-        state.right = state.right || keyBitSet(keyBits_, KEY_RIGHTSHIFT);
+        state.readable = true;
+        state.left     = state.left || keyBitSet(keyBits_, KEY_LEFTSHIFT);
+        state.right    = state.right || keyBitSet(keyBits_, KEY_RIGHTSHIFT);
     }
     return state;
 }

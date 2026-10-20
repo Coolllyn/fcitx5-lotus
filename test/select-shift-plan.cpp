@@ -57,6 +57,13 @@ int main() {
     bits[KEY_RIGHTSHIFT / 8U] |= static_cast<unsigned char>(1U << (KEY_RIGHTSHIFT % 8U));
     check("right bit only", keyBitSet(bits, KEY_RIGHTSHIFT) && !keyBitSet(bits, KEY_LEFTSHIFT));
 
+    // No keyboard tracked: the snapshot is empty and says so, so the watchdog can tell "nobody
+    // holds Shift" from "the query failed".
+    PhysicalShiftState shiftState;
+    check("no keyboard tracked", !shiftState.tracksKeyboards());
+    const auto snapshot = shiftState.snapshot();
+    check("unreadable snapshot is empty and marked unreadable", !snapshot.any() && !snapshot.readable);
+
     if (failures != 0) {
         std::printf("%d failure(s)\n", failures);
         return 1;

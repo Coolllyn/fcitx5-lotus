@@ -1,6 +1,7 @@
 /*
  * SPDX-FileCopyrightText: 2025 Võ Ngô Hoàng Thành <thanhpy2009@gmail.com>
  * SPDX-FileCopyrightText: 2026 Nguyễn Hoàng Kỳ  <nhktmdzhg@gmail.com>
+ * SPDX-FileCopyrightText: 2026 Nguyễn Quang Minh <minhnbnt@gmail.com>
  *
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
@@ -14,6 +15,7 @@
 #include "common-protocol.h"
 #include "common-socket-name.h"
 #include "lotus-physical-shift.h"
+#include "lotus-shift-watchdog.h"
 
 #include <algorithm>
 #include <array>
@@ -281,16 +283,18 @@ int main(int argc, char* argv[]) {
         },
     };
 
-    FdGuard         addonFd;
-    FdGuard         kbClientFd;
-    size_t          pendingBackspaces = 0;
-    size_t          pendingSelects    = 0;     ///< remaining Shift+Left events to pace out
-    bool            oursLeft          = false; ///< the server holds KEY_LEFTSHIFT on behalf of the user
-    bool            oursRight         = false; ///< the server holds KEY_RIGHTSHIFT on behalf of the user
+    FdGuard           addonFd;
+    FdGuard           kbClientFd;
+    size_t            pendingBackspaces = 0;
+    size_t            pendingSelects    = 0;     ///< remaining Shift+Left events to pace out
+    bool              oursLeft          = false; ///< the server holds KEY_LEFTSHIFT on behalf of the user
+    bool              oursRight         = false; ///< the server holds KEY_RIGHTSHIFT on behalf of the user
 
-    SelectShiftPlan selectPlan; ///< Shift plan of the in-flight Select sequence
+    SelectShiftPlan   selectPlan; ///< Shift plan of the in-flight Select sequence
 
-    const auto      releaseOursIfNobodyHolds = [&] {
+    ShiftHoldWatchdog shiftWatchdog; ///< Deadline that lets the loop release the server's own Shift
+
+    const auto        releaseOursIfNobodyHolds = [&] {
         const auto physical = physical_shift.snapshot();
         if (oursLeft && !physical.left) {
             uinput.sendShiftUp(KEY_LEFTSHIFT);
@@ -299,6 +303,16 @@ int main(int argc, char* argv[]) {
         if (oursRight && !physical.right) {
             uinput.sendShiftUp(KEY_RIGHTSHIFT);
             oursRight = false;
+        }
+    };
+
+    const auto syncWatchdog = [&] {
+        if ((oursLeft || oursRight) && pendingSelects == 0 && pendingBackspaces == 0) {
+            if (!shiftWatchdog.armed()) {
+                shiftWatchdog.activity(std::chrono::steady_clock::now());
+            }
+        } else {
+            shiftWatchdog.disarm();
         }
     };
 
@@ -313,10 +327,25 @@ int main(int argc, char* argv[]) {
     sigaction(SIGINT, &sa, nullptr);
 
     while (g_running.load(std::memory_order_acquire)) {
+
+        syncWatchdog();
+
         int pollTimeout = -1;
         if (pendingBackspaces > 0 || pendingSelects > 0) {
             pollTimeout = static_cast<int>(currentInterval);
         }
+
+        if (shiftWatchdog.armed()) {
+
+            const auto now         = std::chrono::steady_clock::now();
+            const auto remaining   = shiftWatchdog.remaining(now);
+            const auto remainingMs = std::chrono::duration_cast<std::chrono::milliseconds>(remaining).count();
+
+            const int  msUntilExpiry = static_cast<int>(std::max<int64_t>(remainingMs, 0));
+
+            pollTimeout = pollTimeout < 0 ? msUntilExpiry : std::min(pollTimeout, msUntilExpiry);
+        }
+
         int ret = poll(fds.data(), fds.size(), pollTimeout);
 
         if (ret < 0) {
@@ -365,6 +394,27 @@ int main(int argc, char* argv[]) {
                         oursRight = true;
                     }
                 }
+            }
+        }
+
+        // Last-resort guard: the server holds a Shift on behalf of the user and cannot observe the
+        // release of their physical key, so re-read the keyboards and let the Shift go once nobody
+        // holds it any more. A failed read counts as held: releasing over the user would steal it.
+        if (shiftWatchdog.expired(std::chrono::steady_clock::now())) {
+            const auto physical = physical_shift.snapshot();
+            if (physical.any() || !physical.readable) {
+                shiftWatchdog.activity(std::chrono::steady_clock::now());
+            } else {
+                if (oursLeft) {
+                    uinput.sendShiftUp(KEY_LEFTSHIFT);
+                    oursLeft = false;
+                }
+                if (oursRight) {
+                    uinput.sendShiftUp(KEY_RIGHTSHIFT);
+                    oursRight = false;
+                }
+                shiftWatchdog.disarm();
+                LotusLogger::instance().info("Shift watchdog: released the Shift the server held after the user let go");
             }
         }
 
@@ -482,6 +532,12 @@ int main(int argc, char* argv[]) {
                 default: break;
             }
         }
+    }
+    if (oursLeft) {
+        uinput.sendShiftUp(KEY_LEFTSHIFT);
+    }
+    if (oursRight) {
+        uinput.sendShiftUp(KEY_RIGHTSHIFT);
     }
     LotusLogger::instance().info("Terminating server...");
     return 0;

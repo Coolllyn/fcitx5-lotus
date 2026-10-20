@@ -157,6 +157,14 @@ add_test(NAME status_icon_gnome COMMAND status_icon gnome)
 set_tests_properties(status_icon_gnome PROPERTIES LABELS "integration;icons" TIMEOUT 20)
 add_lotus_headless_test(TARGET key_buffer SOURCES key-buffer.cpp LABELS "unit;buffer")
 add_lotus_headless_test(TARGET auto_capitalize_reset SOURCES auto-capitalize-reset.cpp LABELS "integration;capitalize")
+add_lotus_headless_test(
+    TARGET shift_watchdog
+    SOURCES
+        shift-watchdog.cpp
+        ${PROJECT_SOURCE_DIR}/server/lotus-shift-watchdog.cpp
+    LABELS "unit;server"
+    INCLUDE_DIRECTORIES ${PROJECT_SOURCE_DIR}/server
+)
 add_lotus_headless_test(TARGET dbus_deferred_commit SOURCES dbus-deferred-commit.cpp LABELS "integration;dbus")
 add_lotus_headless_test(TARGET modifier_key_bypasses_surrounding_text SOURCES modifier-key-bypasses-surrounding-text.cpp LABELS "integration;surrounding")
 add_lotus_headless_test(TARGET runtime_safety SOURCES runtime-safety.cpp LABELS "integration;raii")

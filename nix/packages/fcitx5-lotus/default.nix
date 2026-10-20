@@ -10,6 +10,7 @@
   kdePackages,
   libevdev,
   libinput,
+  libnotify,
   nix-update-script,
   pkg-config,
   python3,
@@ -56,6 +57,7 @@ stdenv.mkDerivation (finalAttrs: {
     kdePackages.extra-cmake-modules
     libevdev
     libinput
+    libnotify
     pythonEnv
     qt6.qtbase
     qt6.qtsvg

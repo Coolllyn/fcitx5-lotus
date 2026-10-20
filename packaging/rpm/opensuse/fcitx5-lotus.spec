@@ -13,6 +13,7 @@ BuildRequires:  glibc-devel
 BuildRequires:  fcitx5-devel
 BuildRequires:  libinput-devel
 BuildRequires:  libevdev-devel
+BuildRequires:  libnotify-devel
 BuildRequires:  systemd-devel
 
 BuildRequires:  sysuser-tools

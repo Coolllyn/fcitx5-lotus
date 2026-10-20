@@ -13,6 +13,7 @@ BuildRequires:  gettext-devel
 BuildRequires:  cmake(Fcitx5Core)
 BuildRequires:  libinput-devel
 BuildRequires:  libevdev-devel
+BuildRequires:  libnotify-devel
 BuildRequires:  pkgconfig(libudev)
 
 BuildRequires:  python3-devel

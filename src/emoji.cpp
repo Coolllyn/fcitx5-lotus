@@ -10,10 +10,14 @@
 #include <algorithm>
 #include <cctype>
 #include <cstdint>
+#include <cstdio>
+#include <cstdlib>
 #include <emoji_public.h>
 #include <fcitx-utils/standardpath.h>
 #include <fstream>
 #include <string_view>
+#include <unistd.h>
+#include <utility>
 
 EmojiLoader::EmojiLoader(fcitx::AddonManager* addonManager) {
     if (addonManager != nullptr) {
@@ -47,9 +51,9 @@ void EmojiLoader::recordHistory(const EmojiEntry& entry) {
 
     historyList.insert(historyList.begin(), entry);
 
-    // Keep only last 9
-    if (historyList.size() > 9) {
-        historyList.resize(9);
+    // Keep only the newest entries.
+    if (historyList.size() > kMaxEmojiHistory) {
+        historyList.resize(kMaxEmojiHistory);
     }
 
     saveHistory();
@@ -64,29 +68,77 @@ void EmojiLoader::loadHistory() {
 
     std::string line;
     while (std::getline(file, line)) {
-        if (line.empty())
+        if (line.empty()) {
             continue;
-        auto pos = line.find('=');
-        if (pos != std::string::npos) {
-            EmojiEntry entry;
-            entry.trigger = line.substr(0, pos);
-            entry.output  = line.substr(pos + 1);
-            historyList.push_back(entry);
+        }
+        // Lines are "trigger=output"; anything else is malformed. Bytes
+        // (including UTF-8) are preserved verbatim.
+        const auto pos = line.find('=');
+        if (pos == std::string::npos) {
+            continue;
+        }
+        std::string output = line.substr(pos + 1);
+        if (output.empty()) {
+            continue;
+        }
+        // File order is newest-first: keep the first entry per emoji.
+        const bool seen = std::ranges::any_of(historyList, [&](const auto& e) { return e.output == output; });
+        if (seen) {
+            continue;
+        }
+        EmojiEntry entry;
+        entry.trigger = line.substr(0, pos);
+        entry.output  = std::move(output);
+        historyList.push_back(std::move(entry));
+        if (historyList.size() >= kMaxEmojiHistory) {
+            break;
         }
     }
-    file.close();
 }
 
 void EmojiLoader::saveHistory() {
-    std::ofstream file(historyPath_, std::ios::trunc);
-    if (!file.is_open()) {
+    // Replace the history file only after the temporary file is fully written.
+    // mkstemp gives each call a unique name, so concurrent writers never share
+    // a temporary file; rename() then swaps it into place atomically.
+    std::string templatePath = historyPath_ + ".tmp.XXXXXX";
+    const int   fd           = ::mkstemp(templatePath.data());
+    if (fd < 0) {
         return;
     }
-
-    for (const auto& entry : historyList) {
-        file << entry.trigger << "=" << entry.output << "\n";
+    ::close(fd);
+    const std::string tmpPath = templatePath;
+    {
+        std::ofstream file(tmpPath, std::ios::trunc);
+        if (!file.is_open()) {
+            std::remove(tmpPath.c_str());
+            return;
+        }
+        size_t written = 0;
+        for (const auto& entry : historyList) {
+            if (written >= kMaxEmojiHistory) {
+                break;
+            }
+            if (entry.output.empty()) {
+                continue;
+            }
+            file << entry.trigger << "=" << entry.output << "\n";
+            if (!file) {
+                file.close();
+                std::remove(tmpPath.c_str());
+                return;
+            }
+            ++written;
+        }
+        file.flush();
+        file.close();
+        if (!file) {
+            std::remove(tmpPath.c_str());
+            return;
+        }
     }
-    file.close();
+    if (std::rename(tmpPath.c_str(), historyPath_.c_str()) != 0) {
+        std::remove(tmpPath.c_str());
+    }
 }
 
 namespace {

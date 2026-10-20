@@ -31,12 +31,13 @@
 #include <sys/un.h>
 
 namespace fcitx {
-    constexpr int kMaxScanLength = 15;
+    constexpr int     kMaxScanLength         = 15;
+    constexpr int64_t kReplacementAckSlackMs = 200;
 
-    constexpr int kMinDelayMs = 1;
-    constexpr int kMaxDelayMs = 1000;
+    constexpr int     kMinDelayMs = 1;
+    constexpr int     kMaxDelayMs = 1000;
 
-    int           clampDelay(int value) {
+    int               clampDelay(int value) {
         return std::clamp(value, kMinDelayMs, kMaxDelayMs);
     }
 
@@ -433,6 +434,7 @@ namespace fcitx {
         deferCommits_          = getFrontendName(&ic_) == "dbus";
         expectedBackspaces_    = 0;
         currentBackspaceCount_ = 0;
+        replacementDeadlineMs_ = 0;
         event.filterAndAccept();
         g_isDeleting.store(false, std::memory_order_release);
         if (deferCommits_) {
@@ -495,7 +497,10 @@ namespace fcitx {
             }
         }
         g_isDeleting.store(true, std::memory_order_release);
-        const auto postDelay = static_cast<uint32_t>(clampDelay(appRuleSetting_.postDelay > 0 ? appRuleSetting_.postDelay : *engine_.config().defaultPostDelay));
+        const auto    postDelay = static_cast<uint32_t>(clampDelay(appRuleSetting_.postDelay > 0 ? appRuleSetting_.postDelay : *engine_.config().defaultPostDelay));
+
+        const int64_t injectMs = static_cast<int64_t>(expectedBackspaces_ > 0 ? expectedBackspaces_ - 1 : 0) * static_cast<int64_t>(interval);
+        replacementDeadlineMs_ = nowMs() + static_cast<int64_t>(preDelay) + injectMs + static_cast<int64_t>(postDelay) + kReplacementAckSlackMs;
         // Select mode: the uinput server selects with Shift+Left instead. The
         // trigger-key compensation above still applies because the last echoed
         // Left is swallowed; autofill compensation does not, see above.
@@ -514,6 +519,7 @@ namespace fcitx {
             g_isDeleting.store(false, std::memory_order_release);
             expectedBackspaces_    = 0;
             currentBackspaceCount_ = 0;
+            replacementDeadlineMs_ = 0;
             pendingCommitString_.clear();
             hasHistory_ = false;
             (*lotusEngine_).reset();
@@ -957,6 +963,7 @@ namespace fcitx {
             return;
         ensureUinputConnection();
         completePendingReplacement();
+        finishOverdueReplacement();
 
         if (g_mouseClicked.load(std::memory_order_acquire) && !g_isDeleting.load(std::memory_order_acquire)) {
             g_mouseClicked.store(false, std::memory_order_release);
@@ -990,11 +997,41 @@ namespace fcitx {
             g_isDeleting.store(false);
             currentBackspaceCount_ = 0;
             expectedBackspaces_    = 0;
+            replacementDeadlineMs_ = 0;
             if (!bufferedKeys_.empty()) {
                 deferCommits_ = getFrontendName(&ic_) == "dbus";
                 replayBufferedKeys();
                 flushCommitBatch();
             }
+        }
+    }
+
+    void LotusState::finishOverdueReplacement() {
+        if (replacementDeadlineMs_ == 0 || nowMs() < replacementDeadlineMs_) {
+            return;
+        }
+        replacementDeadlineMs_ = 0;
+        if (!g_isDeleting.load(std::memory_order_acquire)) {
+            return;
+        }
+
+        LOTUS_WARN("Replacement ack timed out, finishing without the remaining backspace echoes");
+        appendCommit(pendingCommitString_);
+        pendingCommitString_.clear();
+        expectedBackspaces_    = 0;
+        currentBackspaceCount_ = 0;
+        deletionInterruptedAt_ = 0;
+        g_isDeleting.store(false, std::memory_order_release);
+
+        (*lotusEngine_).reset();
+        oldPreBuffer_.clear();
+        hasHistory_   = false;
+        deferCommits_ = getFrontendName(&ic_) == "dbus";
+        if (deferCommits_) {
+            flushCommitBatch();
+        } else {
+            replayBufferedKeys();
+            flushCommitBatch();
         }
     }
 
@@ -1270,6 +1307,7 @@ namespace fcitx {
         if (!g_isDeleting.load(std::memory_order_acquire)) {
             expectedBackspaces_    = 0;
             currentBackspaceCount_ = 0;
+            replacementDeadlineMs_ = 0;
             pendingCommitString_.clear();
         }
         emojiBuffer_.clear();

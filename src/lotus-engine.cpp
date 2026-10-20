@@ -406,7 +406,8 @@ namespace fcitx {
 
         updateCharsetAction(event.inputContext());
 
-        auto*      state = ic->propertyFor(&factory_);
+        auto* state = ic->propertyFor(&factory_);
+        state->finishOverdueReplacement();
 
         const bool uinputMode         = isUinputMode(targetMode);
         const bool focusBounce        = uinputMode && state->lastDeactivateTime_ > 0 && nowMs() - state->lastDeactivateTime_ < 100;

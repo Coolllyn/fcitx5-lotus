@@ -82,14 +82,11 @@ namespace lotus {
             }
         }
         if (vowelIndexes.empty()) {
-            // First consonant only.
             return !firstConsonantIndexes.empty();
         }
         if (!lastConsonantIndexes.empty()) {
-            // Vowel + last consonant.
             return isValidVC(vowelIndexes, lastConsonantIndexes);
         }
-        // Vowel only.
         return true;
     }
 

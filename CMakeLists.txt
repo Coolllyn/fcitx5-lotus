@@ -18,6 +18,7 @@ set(fcitx_lotus_core_sources
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lotus-monitor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lotus-plasma-theme.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lotus-key-buffer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/lotus-notify.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/emoji.cpp
 )
 
@@ -35,6 +36,7 @@ find_package(Pthread REQUIRED)
 find_package(Gettext REQUIRED)
 pkg_check_modules(LIBEVDEV REQUIRED IMPORTED_TARGET libevdev)
 pkg_check_modules(LIBINPUT REQUIRED IMPORTED_TARGET libinput)
+pkg_check_modules(LIBNOTIFY REQUIRED IMPORTED_TARGET libnotify)
 
 include("${FCITX_INSTALL_CMAKECONFIG_DIR}/Fcitx5Utils/Fcitx5CompilerSettings.cmake")
 

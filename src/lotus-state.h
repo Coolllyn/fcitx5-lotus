@@ -153,12 +153,6 @@ namespace fcitx {
         void resetNow(bool isFocusOut);
 
         /**
-         * @brief Connects to the uinput server.
-         * @return True if connection successful.
-         */
-        static bool connectUinputServer();
-
-        /**
          * @brief Sets up uinput device.
          * @return File descriptor or -1 on error.
          */

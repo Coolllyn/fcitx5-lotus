@@ -122,7 +122,7 @@ LibinputContext::LibinputContext(const struct libinput_interface* interface) : u
 
 void signalHandler(int sig) {
     if (sig == SIGTERM || sig == SIGINT) {
-        g_running.store(false);
+        g_running.store(false, std::memory_order_release);
     }
 }
 

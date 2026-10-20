@@ -29,7 +29,7 @@
 namespace fcitx {
 
     FCITX_CONFIG_ENUM_NAME_WITH_I18N(LotusMode, N_("OFF"), N_("Uinput (Smooth)"), N_("Uinput (Super Smooth)"), N_("Surrounding Text"), N_("Preedit"), N_("Emoji Picker"),
-                                     N_("Minecraft"), N_("Uinput (Select)"));
+                                     N_("Uinput (Select)"));
 
     /**
      * @brief W2U mode for w to ư conversion, shared with the engine (lotus::W2uMode).
@@ -202,8 +202,6 @@ namespace fcitx {
         Option<std::string> shortcutSmooth{this, "ShortcutSmooth", _("Shortcut for Uinput (Smooth)"), "1"};
         Option<bool>        showModeSuperSmooth{this, "ShowModeSuperSmooth", _("Show Uinput (Super Smooth)"), true};
         Option<std::string> shortcutSuperSmooth{this, "ShortcutSuperSmooth", _("Shortcut for Uinput (Super Smooth)"), "a"};
-        Option<bool>        showModeMinecraft{this, "ShowModeMinecraft", _("Show Minecraft"), true};
-        Option<std::string> shortcutMinecraft{this, "ShortcutMinecraft", _("Shortcut for Minecraft"), "3"};
         Option<bool>        showModeSelect{this, "ShowModeSelect", _("Show Uinput (Select)"), true};
         Option<std::string> shortcutSelect{this, "ShortcutSelect", _("Shortcut for Uinput (Select)"), "2"};
         Option<bool>        showModeSurroundingText{this, "ShowModeSurroundingText", _("Show Surrounding Text"), true};
@@ -218,7 +216,7 @@ namespace fcitx {
         Option<int>         defaultCommitInterval{this, "DefaultCommitInterval", std::string(_("Default Commit Interval")) + " (ms)", 20};
         Option<int>         defaultBackspaceInterval{this, "DefaultBackspaceInterval", std::string(_("Default Backspace Interval")) + " (ms)", 5};
         Option<int>         defaultPostDelay{this, "DefaultPostDelay", std::string(_("Default Post Delay")) + " (ms)", 10};
-        Option<std::string> modeOrder{this, "ModeOrder", _("Mode Order"), "Smooth,Minecraft,Select,SurroundingText,Preedit,Emoji,Off,SuperSmooth,Default"};
+        Option<std::string> modeOrder{this, "ModeOrder", _("Mode Order"), "Smooth,Select,SurroundingText,Preedit,Emoji,Off,SuperSmooth,Default"};
         OptionWithAnnotation<std::string, TimeFormatAnnotation>  timeFormat{this, "TimeFormat", _("Time Format ($TIME in macro)"), "%H:%M", {}, {}, TimeFormatAnnotation()};
         OptionWithAnnotation<std::string, DateFormatAnnotation>  dateFormat{this, "DateFormat", _("Date Format ($DATE in macro)"), "%d/%m/%Y", {}, {}, DateFormatAnnotation()};
 

@@ -132,7 +132,6 @@ bool isUinputMode(fcitx::LotusMode mode) {
     static const std::array<fcitx::LotusMode, 4> modes = {
         fcitx::LotusMode::Smooth,
         fcitx::LotusMode::SuperSmooth,
-        fcitx::LotusMode::Minecraft,
         fcitx::LotusMode::Select,
     };
     return std::ranges::find(modes, mode) != modes.end();

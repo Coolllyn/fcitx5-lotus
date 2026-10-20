@@ -875,7 +875,7 @@ namespace fcitx {
 
         file << "# Lotus Per-App Configuration\n";
         file << "# 0 = Off, 1 = Uinput (Smooth), 2 = Uinput (Smooth, legacy), 3 = Uinput (Super Smooth), 4 = Surrounding Text, 5 = Preedit,\n";
-        file << "# 6 = Emoji Picker, 7 = Uinput (Select), 8 = Minecraft\n";
+        file << "# 6 = Emoji Picker, 7 = Uinput (Select)\n";
         file << "# app=mode[,commit_interval_ms[,backspace_interval_ms[,post_delay_ms]]]   0/omitted = use defaults\n";
         std::scoped_lock lock(appRulesMutex_);
         for (const auto& pair : appRules_) {

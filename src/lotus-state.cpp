@@ -1124,7 +1124,6 @@ namespace fcitx {
     void LotusState::handleActiveMode(KeyEvent& keyEvent, KeySym currentSym) {
         switch (currentMode()) {
             case LotusMode::Smooth:
-            case LotusMode::Minecraft:
             case LotusMode::SuperSmooth:
             case LotusMode::Select: {
                 handleUinputMode(keyEvent, currentSym);
@@ -1204,7 +1203,6 @@ namespace fcitx {
             }
             case LotusMode::SurroundingText:
             case LotusMode::Smooth:
-            case LotusMode::Minecraft:
             case LotusMode::SuperSmooth:
             case LotusMode::Select: {
                 ic_.inputPanel().reset();
@@ -1251,7 +1249,6 @@ namespace fcitx {
             }
             case LotusMode::Smooth:
             case LotusMode::SurroundingText:
-            case LotusMode::Minecraft:
             case LotusMode::SuperSmooth:
             case LotusMode::Select: {
                 if (lotusEngine_) {

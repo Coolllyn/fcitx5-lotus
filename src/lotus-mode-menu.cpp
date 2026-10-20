@@ -28,7 +28,6 @@ namespace fcitx {
         switch (mode) {
             case LotusMode::Smooth: return *config.showModeSmooth;
             case LotusMode::SuperSmooth: return *config.showModeSuperSmooth;
-            case LotusMode::Minecraft: return *config.showModeMinecraft;
             case LotusMode::Select: return *config.showModeSelect;
             case LotusMode::SurroundingText: return *config.showModeSurroundingText;
             case LotusMode::Preedit: return *config.showModePreedit;
@@ -42,7 +41,6 @@ namespace fcitx {
         switch (mode) {
             case LotusMode::Smooth: return shortcutKey(*config.shortcutSmooth);
             case LotusMode::SuperSmooth: return shortcutKey(*config.shortcutSuperSmooth);
-            case LotusMode::Minecraft: return shortcutKey(*config.shortcutMinecraft);
             case LotusMode::Select: return shortcutKey(*config.shortcutSelect);
             case LotusMode::SurroundingText: return shortcutKey(*config.shortcutSurroundingText);
             case LotusMode::Preedit: return shortcutKey(*config.shortcutPreedit);

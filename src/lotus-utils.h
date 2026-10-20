@@ -120,7 +120,7 @@ uint32_t engineKeyValue(uint32_t sym);
 /**
  * @brief Whether a mode delivers text through the uinput (fake backspace) path.
  * @param mode Mode to check.
- * @return True for Uinput, Smooth, SuperSmooth, Minecraft and Select.
+ * @return True for Uinput, Smooth, SuperSmooth and Select.
  */
 bool isUinputMode(fcitx::LotusMode mode);
 

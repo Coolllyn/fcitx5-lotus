@@ -42,6 +42,15 @@ namespace {
         engine.activate(entry, in);
     }
 
+    // Back-to-back focus bounces with no sleep: Brave's ibus IC re-reports focus-out/focus-in
+    // on (nearly) every key, sometimes several times per key.
+    void bounceFocus(fcitx::LotusEngine& engine, const fcitx::InputMethodEntry& entry, TestInputContext& context, int times) {
+        for (int i = 0; i < times; ++i) {
+            loseFocus(engine, entry, context);
+            gainFocus(engine, entry, context);
+        }
+    }
+
     // Reads the replacement request and acknowledges it with the n+1 backspaces the addon expects.
     bool completeReplacement(fcitx::LotusEngine& engine, const fcitx::InputMethodEntry& entry, TestInputContext& context, KbSocketListener& listener, const char* meaning) {
         KbMsg msg{};
@@ -80,13 +89,22 @@ int main() {
 
     fcitx::InputMethodEntry entry("lotus", "Lotus", "vi", "lotus");
     auto                    context = std::make_unique<TestInputContext>(&testInstance.instance);
+    // #610 fidelity: Brave on Wayland drives Lotus through an ibus context.
+    // Note: engine branches on frontend == "dbus" (lotus-engine.cpp:394,735) and on
+    // surroundingText().isValid() (:393-394,431,743). Uinput Smooth mode does not use
+    // surrounding text, so leaving capabilities unset (surrvalid=false) matches the
+    // Brave uinput path; "ibus" vs "test" takes the same branch here by design.
+    context->setFrontendName("ibus");
     gainFocus(engine, entry, *context);
 
-    // Bounce: t u, then focus loss + focus regain within milliseconds, like Brave's ibus IC does.
-    if (!send(engine, entry, *context, FcitxKey_t, false) || !send(engine, entry, *context, FcitxKey_u, false))
+    // Per-key bounce: Brave's ibus IC reports focus-out/focus-in on nearly every key, so bounce
+    // after EACH of 't' and 'u' (multiple back-to-back rounds, no sleep) before typing 'w'.
+    if (!send(engine, entry, *context, FcitxKey_t, false))
         return 1;
-    loseFocus(engine, entry, *context);
-    gainFocus(engine, entry, *context);
+    bounceFocus(engine, entry, *context, 2);
+    if (!send(engine, entry, *context, FcitxKey_u, false))
+        return 1;
+    bounceFocus(engine, entry, *context, 3);
 
     if (!send(engine, entry, *context, FcitxKey_w, true))
         return 1;
@@ -102,12 +120,42 @@ int main() {
         return 1;
     }
 
-    // Real focus move: past the bounce window activate() flushes the deferred reset, so the next
-    // word starts from scratch and 'a' + 's' must replace only that fresh word.
+    // Real focus move A -> B: lose A, wait past the 100ms bounce window
+    // (lotus-engine.cpp:412), then gain B. No gainFocus(A) here: A's deferred reset
+    // stays pending until A is re-entered, which is the true handoff.
     loseFocus(engine, entry, *context);
     std::this_thread::sleep_for(std::chrono::milliseconds(150));
-    gainFocus(engine, entry, *context);
+    // Two-context isolation: a second ibus context composes 'a' + 's' independently; nothing may
+    // leak across contexts and contextA must still hold only the bounced word.
+    auto contextB = std::make_unique<TestInputContext>(&testInstance.instance);
+    contextB->setFrontendName("ibus");
+    gainFocus(engine, entry, *contextB);
 
+    if (!send(engine, entry, *contextB, FcitxKey_a, false) || !send(engine, entry, *contextB, FcitxKey_s, true))
+        return 1;
+    if (!completeReplacement(engine, entry, *contextB, listener, "a second context must replace its own word independently"))
+        return 1;
+
+    if (context->commits() != expected) {
+        std::string actual = "commits=";
+        for (const auto& commit : context->commits())
+            actual += "['" + commit + "']";
+        reportFailure("cross-context isolation", "contextA commits=['ư']", actual, "typing on contextB leaked into contextA");
+        return 1;
+    }
+    const std::vector<std::string> expectedB{"á"};
+    if (contextB->commits() != expectedB) {
+        std::string actual = "commits=";
+        for (const auto& commit : contextB->commits())
+            actual += "['" + commit + "']";
+        reportFailure("independent word on contextB", "contextB commits=['á']", actual, "contextB must compose its own word without contextA state");
+        return 1;
+    }
+    // Return B -> A: A's deferred reset flushes on re-entry (elapsed >100ms), so the next
+    // word on A starts from scratch.
+    loseFocus(engine, entry, *contextB);
+    gainFocus(engine, entry, *context);
+    // Same-context fresh word after the real move: 'a' + 's' must replace only that fresh word.
     if (!send(engine, entry, *context, FcitxKey_a, false) || !send(engine, entry, *context, FcitxKey_s, true))
         return 1;
     if (!completeReplacement(engine, entry, *context, listener, "the word after a real focus move must be replaced from scratch"))

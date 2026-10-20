@@ -128,6 +128,7 @@ add_lotus_headless_test(TARGET app_rule_reset SOURCES app-rule-reset.cpp LABELS 
 add_lotus_headless_test(TARGET app_rule_delays SOURCES app-rule-delays.cpp LABELS "integration;apprule")
 add_lotus_headless_test(TARGET app_rule_delay_wire SOURCES app-rule-delay-wire.cpp LABELS "integration;apprule")
 add_lotus_headless_test(TARGET smooth_buffered_key_replay SOURCES smooth-buffered-key-replay.cpp LABELS "integration;smooth")
+add_lotus_headless_test(TARGET focus_bounce_word_survival SOURCES focus-bounce-word-survival.cpp LABELS "integration;smooth")
 add_lotus_headless_test(TARGET select_mode_replacement SOURCES select-mode-replacement.cpp LABELS "integration;select")
 add_lotus_headless_test(TARGET replacement_delays SOURCES replacement-delays.cpp LABELS "integration;smooth")
 add_lotus_headless_test(TARGET merged_replacement_commit SOURCES merged-replacement-commit.cpp LABELS "integration;smooth")
@@ -171,7 +172,7 @@ add_lotus_headless_test(TARGET runtime_safety SOURCES runtime-safety.cpp LABELS 
 add_lotus_headless_test(TARGET emoji_history_page_navigation SOURCES emoji-history-page-navigation.cpp LABELS "integration;emoji")
 
 string(MD5 LOTUS_CTEST_SOCKET_NAMESPACE "${PROJECT_BINARY_DIR}")
-set_tests_properties(smooth_buffered_key_replay select_mode_replacement replacement_delays app_rule_delay_wire dbus_deferred_commit merged_replacement_commit runtime_safety
+set_tests_properties(smooth_buffered_key_replay focus_bounce_word_survival select_mode_replacement replacement_delays app_rule_delay_wire dbus_deferred_commit merged_replacement_commit runtime_safety
     PROPERTIES RESOURCE_LOCK lotus_kb_socket
     ENVIRONMENT "LOTUS_SOCKET_NAMESPACE=ctest-${LOTUS_CTEST_SOCKET_NAMESPACE}")
 

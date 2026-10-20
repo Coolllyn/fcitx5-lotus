@@ -1145,6 +1145,18 @@ namespace fcitx {
     }
 
     void LotusState::reset(bool isFocusOut) {
+        if (isFocusOut && isUinputMode(g_realMode)) {
+            deferredFocusOut_ = true;
+            deliverPendingCommits();
+            resetMacroSkip();
+            ic_.inputPanel().reset();
+            return;
+        }
+        deferredFocusOut_ = false;
+        resetNow(isFocusOut);
+    }
+
+    void LotusState::resetNow(bool isFocusOut) {
         const auto& surrounding = ic_.surroundingText();
         const auto& text        = surrounding.text();
         size_t      textLen     = utf8::length(text);
@@ -1201,6 +1213,18 @@ namespace fcitx {
                 break;
             }
         }
+    }
+
+    void LotusState::flushDeferredFocusOut() {
+        if (!deferredFocusOut_) {
+            return;
+        }
+        deferredFocusOut_ = false;
+        resetNow(true);
+    }
+
+    void LotusState::cancelDeferredFocusOut() {
+        deferredFocusOut_ = false;
     }
 
     void LotusState::commitBuffer() {

@@ -418,10 +418,12 @@ namespace fcitx {
         }
 
         if (focusBounce) {
+            state->cancelDeferredFocusOut();
             g_realMode = targetMode;
             ic->updateUserInterface(UserInterfaceComponent::StatusArea);
             LOTUS_INFO("Focus bounce: keep word buffers");
         } else {
+            state->flushDeferredFocusOut();
             setMode(targetMode, event.inputContext());
         }
         if (event.type() == EventType::InputContextFocusIn && isDbus && !surrvalid) {
@@ -738,9 +740,8 @@ namespace fcitx {
             if (event.type() == EventType::InputContextFocusOut && isDbus && !surrvalid) {
                 state->lastDeactivateTime_ = nowMs();
                 LOTUS_INFO("Skip clearAllBuffers");
-            } else {
-                if (surrvalid && !state->oldPreBuffer_.empty())
-                    state->clearAllBuffers();
+            } else if ((!uinputMode || event.type() != EventType::InputContextFocusOut) && surrvalid && !state->oldPreBuffer_.empty()) {
+                state->clearAllBuffers();
             }
 
             g_isDeleting.store(false, std::memory_order_release);

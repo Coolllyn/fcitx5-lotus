@@ -60,19 +60,20 @@ int main() {
     auto                    context = std::make_unique<TestInputContext>(&testInstance.instance);
     gainFocus(engine, entry, *context);
 
-    // a, s: Telex turns the word into "á", which needs 1 deleted char + 1 anchor backspace.
-    if (!send(engine, entry, *context, FcitxKey_a, false) || !send(engine, entry, *context, FcitxKey_s, true))
+    // a, n, g then f: Telex adds the huyền tone, so the engine replaces "ng" of "ang" with "àng".
+    if (!send(engine, entry, *context, FcitxKey_a, false) || !send(engine, entry, *context, FcitxKey_n, false) || !send(engine, entry, *context, FcitxKey_g, false) ||
+        !send(engine, entry, *context, FcitxKey_f, true))
         return 1;
     KbMsg msg{};
     if (!listener.receive(msg, "the Telex replacement request did not arrive"))
         return 1;
-    if (msg.op != KbOp::Backspace || msg.count != 2) {
-        reportFailure("receive replacement request", "op=backspace, count=2", "op=" + std::to_string(static_cast<int>(msg.op)) + ", count=" + std::to_string(msg.count),
+    if (msg.op != KbOp::Backspace || msg.count != 3) {
+        reportFailure("receive replacement request", "op=backspace, count=3", "op=" + std::to_string(static_cast<int>(msg.op)) + ", count=" + std::to_string(msg.count),
                       "the replacement never started");
         return 1;
     }
 
-    // Only the first echo arrives; the second one is lost while the context is unfocused.
+    // Only the first echo of the three arrives; the rest are lost while the context is unfocused.
     if (!send(engine, entry, *context, FcitxKey_BackSpace, false))
         return 1;
 
@@ -97,8 +98,8 @@ int main() {
     std::string committed;
     for (const auto& commit : context->commits())
         committed += commit;
-    if (committed != "áq") {
-        reportFailure("finish the overdue replacement", "committed text 'áq' ('á' + replayed 'q')", "committed='" + committed + "'",
+    if (committed != "àngq") {
+        reportFailure("finish the overdue replacement", "committed text 'àngq' ('àng' + replayed 'q')", "committed='" + committed + "'",
                       "the replacement stayed stuck in the deleting state after the backspace echo was lost");
         return 1;
     }

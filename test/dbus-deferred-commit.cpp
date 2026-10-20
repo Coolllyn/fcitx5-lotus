@@ -70,9 +70,11 @@ namespace {
         if (!receiveBackspaceRequest(listener, backspaces, "the Telex replacement request did not arrive"))
             return nullptr;
         for (size_t i = 0; i < backspaces; ++i) {
-            if (!send(engine, entry, *context, FcitxKey_BackSpace, i + 1 == backspaces))
+            if (!send(engine, entry, *context, FcitxKey_BackSpace, false))
                 return nullptr;
         }
+        if (!send(engine, entry, *context, FcitxKey_F24, true))
+            return nullptr;
         return context;
     }
 

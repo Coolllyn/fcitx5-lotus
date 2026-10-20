@@ -452,12 +452,11 @@ namespace fcitx {
         // In Select mode the uinput server emits Shift+Left, so the echoed Left
         // presses are the selection signal. The final one is swallowed in
         // finishReplacement so the app only sees the count it should select.
-        const bool isSelectEcho = g_realMode == LotusMode::Select && currentSym == FcitxKey_Left;
-        if (!isBackspace(currentSym) && !isSelectEcho) {
+        if (!isBackspace(currentSym) && (g_realMode != LotusMode::Select || currentSym != FcitxKey_Left) && !(currentSym == FcitxKey_F24)) {
             return false;
         }
         currentBackspaceCount_ += 1;
-        if (currentBackspaceCount_ < expectedBackspaces_) {
+        if (currentBackspaceCount_ <= expectedBackspaces_) {
             return false; // Allow intermediate backspaces/lefts to reach the app to clear autofill/old text / extend the selection.
         }
         finishReplacement(event);
@@ -482,24 +481,13 @@ namespace fcitx {
         expectedBackspaces_            = diffPart.deletedPart.size();
         const auto& surrounding        = ic_.surroundingText();
         bool        isAutofillCertain_ = isAutofillCertain(surrounding);
-        if (g_realMode != LotusMode::Minecraft) {
+        if (g_realMode != LotusMode::SuperSmooth && isAutofillCertain_) {
             ++expectedBackspaces_;
-            // Enable Autofill detection for all frontends (Wayland/IBus).
-            // This fixes the "toôi" duplication bug in Chromium-based search bars.
-            // The isAutofillCertain function has been optimized to differentiate
-            // between browser autofill and AI ghost text.
-            // Skipped for Select: the app only sees expectedBackspaces_ - 1
-            // arrows, and the autofill suffix is already selected, so the one
-            // arrow reaches the character being replaced and the commit swaps
-            // both at once.
-            if (g_realMode != LotusMode::SuperSmooth && isAutofillCertain_) {
-                ++expectedBackspaces_;
-            }
         }
         g_isDeleting.store(true, std::memory_order_release);
         const auto    postDelay = static_cast<uint32_t>(clampDelay(appRuleSetting_.postDelay > 0 ? appRuleSetting_.postDelay : *engine_.config().defaultPostDelay));
 
-        const int64_t injectMs = static_cast<int64_t>(expectedBackspaces_ > 0 ? expectedBackspaces_ - 1 : 0) * static_cast<int64_t>(interval);
+        const int64_t injectMs = static_cast<int64_t>(expectedBackspaces_) * static_cast<int64_t>(interval);
         replacementDeadlineMs_ = nowMs() + static_cast<int64_t>(preDelay) + injectMs + static_cast<int64_t>(postDelay) + kReplacementAckSlackMs;
         // Select mode: the uinput server selects with Shift+Left instead. The
         // trigger-key compensation above still applies because the last echoed
@@ -993,7 +981,7 @@ namespace fcitx {
     }
 
     void LotusState::completePendingReplacement() {
-        if (currentBackspaceCount_ >= expectedBackspaces_ && g_isDeleting.load()) {
+        if (currentBackspaceCount_ > expectedBackspaces_ && g_isDeleting.load()) {
             g_isDeleting.store(false);
             currentBackspaceCount_ = 0;
             expectedBackspaces_    = 0;
@@ -1038,7 +1026,7 @@ namespace fcitx {
     void LotusState::applyAutoCapitalize(KeyEvent& keyEvent, KeySym& currentSym) {
         if (*engine_.config().autoCapitalizeAfterPunctuation && g_realMode != LotusMode::Off) {
             // Ignore auto-capitalize side-effects if we're processing automated replacement backspaces
-            bool isAutomatedBackspace = g_isDeleting.load(std::memory_order_acquire) && isBackspace(currentSym);
+            bool isAutomatedBackspace = (g_isDeleting.load(std::memory_order_acquire) && isBackspace(currentSym)) || currentSym == FcitxKey_F24;
 
             if (!isAutomatedBackspace) {
                 if (shouldCapitalize_) {
@@ -1085,6 +1073,9 @@ namespace fcitx {
                 if (handleUInputKeyPress(keyEvent, currentSym)) {
                     return true;
                 }
+            } else if (currentSym == FcitxKey_F24) {
+                handleUInputKeyPress(keyEvent, currentSym);
+                return true;
             } else if (g_realMode == LotusMode::Select && (currentSym == FcitxKey_Left || currentSym == FcitxKey_Delete)) {
                 if (currentSym == FcitxKey_Left) {
                     // Echoed left arrow extends the selection in the app: consume it as

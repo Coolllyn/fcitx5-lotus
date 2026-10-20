@@ -62,10 +62,10 @@ namespace {
             return false;
         }
         for (std::size_t i = 0; i < msg.count; ++i) {
-            if (!send(engine, entry, context, FcitxKey_BackSpace, i + 1 == msg.count))
+            if (!send(engine, entry, context, FcitxKey_BackSpace, false))
                 return false;
         }
-        return true;
+        return send(engine, entry, context, FcitxKey_F24, true);
     }
 
 } // namespace

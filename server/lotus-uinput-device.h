@@ -38,7 +38,7 @@ inline constexpr uint16_t kLotusUinputProduct = 0x5678;
 /**
  * @brief Keys the virtual keyboard can emit, in the order they are enabled.
  */
-inline constexpr std::array<unsigned int, 5> kLotusUinputKeys = {KEY_BACKSPACE, KEY_LEFT, KEY_LEFTSHIFT, KEY_RIGHTSHIFT, KEY_DELETE};
+inline constexpr std::array<unsigned int, 6> kLotusUinputKeys = {KEY_BACKSPACE, KEY_LEFT, KEY_LEFTSHIFT, KEY_RIGHTSHIFT, KEY_DELETE, KEY_F24};
 
 /**
  * @brief Frees a libevdev device.

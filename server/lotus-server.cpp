@@ -103,24 +103,12 @@ void UinputDevice::sendMod(uint16_t code, int value) {
     }
 }
 
-void UinputDevice::sendBackspace() {
-    sendTap(KEY_BACKSPACE);
-}
-
-void UinputDevice::sendDelete() {
-    sendTap(KEY_DELETE);
-}
-
 void UinputDevice::sendShiftDown(uint16_t code) {
     sendMod(code, 1);
 }
 
 void UinputDevice::sendShiftUp(uint16_t code) {
     sendMod(code, 0);
-}
-
-void UinputDevice::sendLeft() {
-    sendTap(KEY_LEFT);
 }
 
 LibinputContext::LibinputContext(const struct libinput_interface* interface) : udev_(udev_new()) {
@@ -285,10 +273,12 @@ int main(int argc, char* argv[]) {
 
     FdGuard           addonFd;
     FdGuard           kbClientFd;
-    size_t            pendingBackspaces = 0;
-    size_t            pendingSelects    = 0;     ///< remaining Shift+Left events to pace out
-    bool              oursLeft          = false; ///< the server holds KEY_LEFTSHIFT on behalf of the user
-    bool              oursRight         = false; ///< the server holds KEY_RIGHTSHIFT on behalf of the user
+    size_t            pendingBackspaces   = 0;
+    size_t            pendingSelects      = 0;     ///< remaining Shift+Left events to pace out
+    bool              pendingAnchor       = false; ///< anchor key still to be injected after the backspace burst
+    bool              pendingSelectAnchor = false; ///< Shift release + Delete + anchor still to run after the left burst
+    bool              oursLeft            = false; ///< the server holds KEY_LEFTSHIFT on behalf of the user
+    bool              oursRight           = false; ///< the server holds KEY_RIGHTSHIFT on behalf of the user
 
     SelectShiftPlan   selectPlan; ///< Shift plan of the in-flight Select sequence
 
@@ -327,11 +317,10 @@ int main(int argc, char* argv[]) {
     sigaction(SIGINT, &sa, nullptr);
 
     while (g_running.load(std::memory_order_acquire)) {
-
         syncWatchdog();
 
         int pollTimeout = -1;
-        if (pendingBackspaces > 0 || pendingSelects > 0) {
+        if (pendingBackspaces > 0 || pendingSelects > 0 || pendingAnchor || pendingSelectAnchor) {
             pollTimeout = static_cast<int>(currentInterval);
         }
 
@@ -357,16 +346,19 @@ int main(int argc, char* argv[]) {
 
         if (ret == 0) {
             if (pendingBackspaces > 0) {
-                if (pendingBackspaces == 1 && currentPostDelay > 0) {
+                uinput.sendTap(KEY_BACKSPACE);
+                --pendingBackspaces;
+            } else if (pendingAnchor) {
+                if (currentPostDelay > 0) {
                     std::this_thread::sleep_for(std::chrono::milliseconds(currentPostDelay));
                 }
-                uinput.sendBackspace();
-                --pendingBackspaces;
+                uinput.sendTap(KEY_F24);
+                pendingAnchor = false;
             } else if (pendingSelects > 0) {
-                if (pendingSelects > 1) {
-                    uinput.sendLeft();
-                    --pendingSelects;
-                } else if (selectPlan.releaseLeft || selectPlan.releaseRight || oursLeft || oursRight) {
+                uinput.sendTap(KEY_LEFT);
+                --pendingSelects;
+            } else if (pendingSelectAnchor) {
+                if (selectPlan.releaseLeft || selectPlan.releaseRight || oursLeft || oursRight) {
                     std::this_thread::sleep_for(std::chrono::milliseconds(10));
                     if (selectPlan.releaseLeft || oursLeft) {
                         uinput.sendShiftUp(KEY_LEFTSHIFT);
@@ -378,12 +370,12 @@ int main(int argc, char* argv[]) {
                     }
                     selectPlan = {};
                 } else {
-                    uinput.sendDelete();
+                    uinput.sendTap(KEY_DELETE);
                     if (currentPostDelay > 0) {
                         std::this_thread::sleep_for(std::chrono::milliseconds(currentPostDelay));
                     }
-                    uinput.sendLeft();
-                    --pendingSelects;
+                    uinput.sendTap(KEY_F24);
+                    pendingSelectAnchor = false;
                     const auto physical = physical_shift.snapshot();
                     if (physical.left) {
                         uinput.sendShiftDown(KEY_LEFTSHIFT);
@@ -461,23 +453,27 @@ int main(int argc, char* argv[]) {
                     }
                     currentPostDelay = msg.postDelay;
                     selectPlan       = planSelectShift(physical, oursLeft, oursRight);
+                    pendingAnchor    = false;
                     if (selectPlan.pressLeft) {
                         uinput.sendShiftDown(KEY_LEFTSHIFT);
                         oursLeft = true;
                     }
                     std::this_thread::sleep_for(std::chrono::milliseconds(currentInterval));
-                    uinput.sendLeft();
-                    pendingSelects += msg.count - 1;
+                    uinput.sendTap(KEY_LEFT);
+                    pendingSelects      = msg.count - 1;
+                    pendingSelectAnchor = true;
 
                 } else if (msg.count > 0 && op == KbOp::Backspace) {
                     if (msg.preDelay > 0) {
                         std::this_thread::sleep_for(std::chrono::milliseconds(msg.preDelay));
                     }
-                    currentPostDelay = msg.postDelay;
-                    selectPlan       = {};
-                    pendingSelects   = 0;
+                    currentPostDelay    = msg.postDelay;
+                    selectPlan          = {};
+                    pendingSelects      = 0;
+                    pendingSelectAnchor = false;
+                    pendingAnchor       = true;
                     pendingBackspaces += msg.count - 1;
-                    uinput.sendBackspace();
+                    uinput.sendTap(KEY_BACKSPACE);
                 } else if (msg.count > 0) {
                     LotusLogger::instance().warn("Unknown keyboard message op: " + std::to_string(static_cast<int>(msg.op)));
                 }

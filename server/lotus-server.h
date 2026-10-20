@@ -43,19 +43,16 @@ class UinputDevice {
     UinputDevice() = default;
 
     bool initialize();
-    void sendBackspace();
-    void sendDelete();
     void sendShiftDown(uint16_t code);
     void sendShiftUp(uint16_t code);
-    void sendLeft();
-
-  private:
     /**
      * @brief Emits a press+release batch for one key (press, SYN, release, SYN),
      *        same style as the original backspace write.
      * @param code Linux KEY_* code.
      */
     void sendTap(uint16_t code);
+
+  private:
     /**
      * @brief Emits a single modifier-style event with its SYN.
      * @param code Linux KEY_* code.

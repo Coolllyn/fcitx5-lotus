@@ -16,8 +16,8 @@
  * @brief Keyboard socket operation requested by the fcitx5 addon.
  */
 enum class KbOp : int8_t {
-    Backspace = 0, ///< emit count BackSpace key events
-    Select    = 1, ///< select count characters via Shift+Left
+    Backspace = 0, ///< emit count BackSpace key events, then the anchor key
+    Select    = 1, ///< select count characters via Shift+Left, then Delete, then the anchor key
 };
 
 /**
@@ -25,7 +25,7 @@ enum class KbOp : int8_t {
  */
 struct KbMsg {
     KbOp     op;        ///< requested operation
-    size_t   count;     ///< number of backspaces / characters to select
+    size_t   count;     ///< characters to delete/select (autofill included)
     uint32_t preDelay;  ///< ms to wait BEFORE sending any key (commit_interval: cooldown between commits)
     uint32_t interval;  ///< ms between consecutive injected keys (backspace_interval)
     uint32_t postDelay; ///< ms to wait BEFORE sending the final trigger key (to let DOM expand selection)

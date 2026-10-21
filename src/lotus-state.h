@@ -143,7 +143,8 @@ namespace fcitx {
         bool                                  deferredFocusOut_      = false; ///< uinput focus-out reset waiting for activate()
         bool                                  trackingModifierTap_   = false; ///< Selected modifier held, waiting for consecutive keyup
         bool                                  macroSkip_             = false; ///< Macro disabled for the current word
-        int64_t                               replacementDeadlineMs_ = 0;     ///< ms by which every injected backspace must be echoed (0 = no replacement in flight)
+        bool                                  isLibreoffice          = false;
+        int64_t                               replacementDeadlineMs_ = 0; ///< ms by which every injected backspace must be echoed (0 = no replacement in flight)
         std::chrono::steady_clock::time_point lastCommitTime_;
 
         /**

@@ -408,7 +408,8 @@ namespace fcitx {
 
         updateCharsetAction(event.inputContext());
 
-        auto* state = ic->propertyFor(&factory_);
+        auto* state          = ic->propertyFor(&factory_);
+        state->isLibreoffice = (appName == "soffice");
         state->finishOverdueReplacement();
 
         const bool uinputMode         = isUinputMode(targetMode);

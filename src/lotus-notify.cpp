@@ -12,6 +12,7 @@
 #include <fcitx-utils/i18n.h>
 #include <libnotify/notify.h>
 
+#include <format>
 #include <memory>
 #include <string>
 
@@ -78,10 +79,12 @@ void notifyMissingUinputServer() {
         LOTUS_WARN("Cannot initialise libnotify");
         return;
     }
-    NotificationPtr notification{notify_notification_new(_("Lotus: the uinput server is not running"),
-                                                         _("Uinput modes need the Lotus uinput server. See https://lotusinputmethod.github.io to learn how to enable the "
-                                                           "server service for your distribution and init system."),
-                                                         "fcitx5-lotus")};
+    constexpr std::string_view kLotusDocUrl = "https://lotusinputmethod.github.io";
+    std::string                body         = std::vformat(_("Uinput modes need the Lotus uinput server. See {0} to learn how to enable the "
+                                                             "server service for your distribution and init system."),
+                                                           std::make_format_args(kLotusDocUrl));
+
+    NotificationPtr            notification{notify_notification_new(_("Lotus: the uinput server is not running"), body.c_str(), "fcitx5-lotus")};
     if (notification == nullptr) {
         LOTUS_WARN("Cannot create the uinput server notification");
         return;

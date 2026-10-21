@@ -177,8 +177,12 @@ namespace fcitx {
     }
 
     void LotusState::handlePreeditMode(KeyEvent& keyEvent, KeySym currentSym) {
-        if (lotusEngine_->processKey(engineKeyValue(currentSym), lotus::keyStatesFromBits(static_cast<uint32_t>(keyEvent.rawKey().states()))))
+        const uint32_t keyVal = engineKeyValue(currentSym);
+        if (lotusEngine_->processKey(keyVal, lotus::keyStatesFromBits(static_cast<uint32_t>(keyEvent.rawKey().states())))) {
             keyEvent.filterAndAccept();
+        } else {
+            LOTUS_DEBUG("Preedit: key not processed, forwarding (sym=" + std::to_string(currentSym) + ", keyVal=" + std::to_string(keyVal) + ")");
+        }
         const std::u32string commitText = pullCommitString();
         lotus::fcitx_text::commit(&ic_, commitText, lastCommitTime_);
         ic_.inputPanel().reset();

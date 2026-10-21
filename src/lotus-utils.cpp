@@ -102,7 +102,7 @@ bool isBackspace(uint32_t sym) {
 
 uint32_t engineKeyValue(uint32_t sym) {
     const uint32_t codePoint = fcitx::Key::keySymToUnicode(static_cast<fcitx::KeySym>(sym));
-    return codePoint != 0U ? codePoint : sym;
+    return codePoint >= 0x20U ? codePoint : sym;
 }
 
 bool ensureUinputServerConnected() {

@@ -97,7 +97,7 @@ int main() {
     }
     if (!send(engine, entry, *context, FcitxKey_Delete, false))
         return 1;
-    if (!send(engine, entry, *context, FcitxKey_F24, true))
+    if (!send(engine, entry, *context, FcitxKey_Pause, true))
         return 1;
     const std::vector<std::string> afterFirst{"á"};
     if (context->commits() != afterFirst) {
@@ -119,7 +119,7 @@ int main() {
     }
     if (!send(engine, entry, *context, FcitxKey_Delete, false))
         return 1;
-    if (!send(engine, entry, *context, FcitxKey_F24, true))
+    if (!send(engine, entry, *context, FcitxKey_Pause, true))
         return 1;
 
     const std::vector<std::string> expected{"á", "ã"};

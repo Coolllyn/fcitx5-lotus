@@ -65,7 +65,7 @@ namespace {
             if (!send(engine, entry, context, FcitxKey_BackSpace, false))
                 return false;
         }
-        return send(engine, entry, context, FcitxKey_F24, true);
+        return send(engine, entry, context, FcitxKey_Pause, true);
     }
 
 } // namespace

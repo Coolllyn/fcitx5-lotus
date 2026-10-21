@@ -431,7 +431,7 @@ namespace fcitx {
         // In Select mode the uinput server emits Shift+Left, so the echoed Left
         // presses are the selection signal. The final one is swallowed in
         // finishReplacement so the app only sees the count it should select.
-        if (!isBackspace(currentSym) && (currentMode() != LotusMode::Select || currentSym != FcitxKey_Left) && !(currentSym == FcitxKey_F24)) {
+        if (!isBackspace(currentSym) && (currentMode() != LotusMode::Select || currentSym != FcitxKey_Left) && !(currentSym == FcitxKey_Pause)) {
             return false;
         }
         currentBackspaceCount_ += 1;
@@ -1005,7 +1005,7 @@ namespace fcitx {
     void LotusState::applyAutoCapitalize(KeyEvent& keyEvent, KeySym& currentSym) {
         if (*engine_.config().autoCapitalizeAfterPunctuation && currentMode() != LotusMode::Off) {
             // Ignore auto-capitalize side-effects if we're processing automated replacement backspaces
-            bool isAutomatedBackspace = (g_isDeleting.load(std::memory_order_acquire) && isBackspace(currentSym)) || currentSym == FcitxKey_F24;
+            bool isAutomatedBackspace = (g_isDeleting.load(std::memory_order_acquire) && isBackspace(currentSym)) || currentSym == FcitxKey_Pause;
 
             if (!isAutomatedBackspace) {
                 if (shouldCapitalize_) {
@@ -1052,7 +1052,7 @@ namespace fcitx {
                 if (handleUInputKeyPress(keyEvent, currentSym)) {
                     return true;
                 }
-            } else if (currentSym == FcitxKey_F24) {
+            } else if (currentSym == FcitxKey_Pause) {
                 handleUInputKeyPress(keyEvent, currentSym);
                 return true;
             } else if (currentMode() == LotusMode::Select && (currentSym == FcitxKey_Left || currentSym == FcitxKey_Delete)) {

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // The addon sends the number of characters to delete; the uinput server emits exactly that many
-// BackSpace keys and then an anchor KEY_F24. The anchor is a real key, so the kernel orders it after
+// BackSpace keys and then an anchor KEY_PAUSE. The anchor is a real key, so the kernel orders it after
 // the whole burst, but no app, terminal or WM binds it: when it lands in an app (the app is out of
 // the addon's key path) it does nothing. A standard app never sees it because the addon swallows it.
 #include "kb-socket-listener.h"
@@ -71,7 +71,7 @@ int main() {
                       "the replacement committed before the anchor key arrived");
         return 1;
     }
-    if (!send(engine, entry, *context, FcitxKey_F24, true))
+    if (!send(engine, entry, *context, FcitxKey_Pause, true))
         return 1;
     const std::vector<std::string> expected{"á"};
     if (context->commits() != expected) {
@@ -83,7 +83,7 @@ int main() {
     }
 
     // A later anchor must not reach the app: it is a no-op key, forwarded and never committed.
-    if (!send(engine, entry, *context, FcitxKey_F24, false))
+    if (!send(engine, entry, *context, FcitxKey_Pause, false))
         return 1;
     if (context->commits() != expected) {
         reportFailure("anchor leak", "commits unchanged", "commits=" + std::to_string(context->commits().size()), "the anchor key produced text");

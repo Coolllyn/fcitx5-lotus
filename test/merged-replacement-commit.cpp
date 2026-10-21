@@ -79,7 +79,7 @@ namespace {
             if (!send(engine, entry, *context, FcitxKey_BackSpace, false))
                 return nullptr;
         }
-        if (!send(engine, entry, *context, FcitxKey_F24, true))
+        if (!send(engine, entry, *context, FcitxKey_Pause, true))
             return nullptr;
         return context;
     }

@@ -312,7 +312,7 @@ int main(int argc, char* argv[]) {
                 if (currentPostDelay > 0) {
                     std::this_thread::sleep_for(std::chrono::milliseconds(currentPostDelay));
                 }
-                uinput.sendTap(KEY_F24);
+                uinput.sendTap(KEY_PAUSE);
                 pendingAnchor = false;
             } else if (pendingSelects > 0) {
                 uinput.sendTap(KEY_LEFT);
@@ -327,7 +327,7 @@ int main(int argc, char* argv[]) {
                     if (currentPostDelay > 0) {
                         std::this_thread::sleep_for(std::chrono::milliseconds(currentPostDelay));
                     }
-                    uinput.sendTap(KEY_F24);
+                    uinput.sendTap(KEY_PAUSE);
                     pendingSelectAnchor = false;
                 }
             }

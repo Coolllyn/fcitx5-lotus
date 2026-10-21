@@ -94,7 +94,7 @@ int main() {
         if (!send(engine, entry, *context, FcitxKey_BackSpace, false))
             return 1;
     }
-    if (!send(engine, entry, *context, FcitxKey_F24, true))
+    if (!send(engine, entry, *context, FcitxKey_Pause, true))
         return 1;
 
     KbMsg second{};
@@ -109,7 +109,7 @@ int main() {
         if (!send(engine, entry, *context, FcitxKey_BackSpace, false))
             return 1;
     }
-    if (!send(engine, entry, *context, FcitxKey_F24, true))
+    if (!send(engine, entry, *context, FcitxKey_Pause, true))
         return 1;
     return 0;
 }

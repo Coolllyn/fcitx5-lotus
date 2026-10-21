@@ -15,7 +15,7 @@ LotusLogger& LotusLogger::instance() {
 }
 
 LotusLogger::LotusLogger(LogLevel level) {
-    level_.store(level);
+    level_.store(level, std::memory_order_release);
     openlog("fcitx5-lotus-server", LOG_PID, LOG_DAEMON);
 }
 
@@ -24,11 +24,11 @@ LotusLogger::~LotusLogger() {
 }
 
 void LotusLogger::setLevel(LogLevel level) {
-    level_.store(level);
+    level_.store(level, std::memory_order_release);
 }
 
 bool LotusLogger::isEnabled(LogLevel level) const {
-    return level >= level_.load();
+    return level >= level_.load(std::memory_order_acquire);
 }
 
 void LotusLogger::log(LogLevel level, std::string_view message) {

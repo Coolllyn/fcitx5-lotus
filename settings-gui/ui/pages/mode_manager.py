@@ -41,7 +41,6 @@ MODE_SUPER_SMOOTH = 3
 MODE_SURROUNDING = 4
 MODE_PREEDIT = 5
 MODE_EMOJI = 6
-MODE_MINECRAFT = 8
 MODE_SELECT = 7
 MODE_DEFAULT = -1  # UI special value for "Use Global Default"
 
@@ -53,7 +52,6 @@ MODE_INFO = {
     MODE_SURROUNDING: {"title": "Surrounding Text", "icon": "text-field"},
     MODE_PREEDIT: {"title": "Preedit", "icon": "text-field"},
     MODE_EMOJI: {"title": "Emoji Picker", "icon": "face-smile"},
-    MODE_MINECRAFT: {"title": "Minecraft", "icon": "onboard"},
     MODE_SELECT: {"title": "Uinput (Select)", "icon": "edit-select"},
 }
 
@@ -61,7 +59,6 @@ MODE_INFO = {
 SELECTABLE_MODES = [
     MODE_SMOOTH,
     MODE_SUPER_SMOOTH,
-    MODE_MINECRAFT,
     MODE_SELECT,
     MODE_SURROUNDING,
     MODE_PREEDIT,

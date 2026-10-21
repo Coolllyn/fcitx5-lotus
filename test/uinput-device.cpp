@@ -41,6 +41,7 @@ int runUinputDevice() {
         check("declared key is enabled", libevdev_has_event_code(device.get(), EV_KEY, code) != 0);
     }
     check("no unrelated key", libevdev_has_event_code(device.get(), EV_KEY, KEY_A) == 0);
+    check("anchor key enabled", libevdev_has_event_code(device.get(), EV_KEY, KEY_PAUSE) != 0);
     check("no unrelated event type", libevdev_has_event_type(device.get(), EV_REL) == 0);
 
     if (failures != 0) {

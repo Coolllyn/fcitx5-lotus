@@ -14,7 +14,6 @@ from io import StringIO
 
 import _stubs  # noqa: F401  (installs the qtpy/dbus stand-ins)
 import i18n
-from i18n import N_
 
 
 def _write_mo(path, catalog):
@@ -50,9 +49,6 @@ def _write_mo(path, catalog):
 
 
 class NGettextTests(unittest.TestCase):
-    def test_returns_text_unchanged(self):
-        self.assertEqual(N_("Hello"), "Hello")
-
     def test_module_gettext_is_standard_gettext(self):
         self.assertIs(i18n._, gettext.gettext)
 

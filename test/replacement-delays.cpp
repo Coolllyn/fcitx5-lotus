@@ -91,9 +91,11 @@ int main() {
         return 1;
     }
     for (size_t i = 0; i < first.count; ++i) {
-        if (!send(engine, entry, *context, FcitxKey_BackSpace, i + 1 == first.count))
+        if (!send(engine, entry, *context, FcitxKey_BackSpace, false))
             return 1;
     }
+    if (!send(engine, entry, *context, FcitxKey_Pause, true))
+        return 1;
 
     KbMsg second{};
     if (!receiveBackspaceRequest(listener, second, "buffered key was not replayed after deletion", "buffered x replay starts another replacement request within 5000 ms"))
@@ -104,8 +106,10 @@ int main() {
         return 1;
     }
     for (size_t i = 0; i < second.count; ++i) {
-        if (!send(engine, entry, *context, FcitxKey_BackSpace, i + 1 == second.count))
+        if (!send(engine, entry, *context, FcitxKey_BackSpace, false))
             return 1;
     }
+    if (!send(engine, entry, *context, FcitxKey_Pause, true))
+        return 1;
     return 0;
 }

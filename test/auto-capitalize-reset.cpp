@@ -7,9 +7,11 @@
 #include "lotus-engine.h"
 #include "test-input-context.h"
 
+#include <chrono>
 #include <cstdio>
 #include <memory>
 #include <string>
+#include <thread>
 
 namespace {
 
@@ -70,9 +72,16 @@ int main() {
         return 1;
     }
 
-    // Phase B: a focus-out is a real context switch and must clear the sentence state.
+    // Phase B: a focus-out is a real context switch and must clear the sentence state. uinput modes
+    // defer that reset to the next activation, so the next context activates after the bounce window.
     sendKey(engine, entry, *context, FcitxKey_Return);
-    sendReset(engine, entry, *context, fcitx::EventType::InputContextFocusOut);
+    fcitx::InputContextEvent out(context.get(), fcitx::EventType::InputContextFocusOut);
+    engine.deactivate(entry, out);
+    engine.reset(entry, out);
+    std::this_thread::sleep_for(std::chrono::milliseconds(150));
+    context->focusIn();
+    fcitx::InputContextEvent focusIn(context.get(), fcitx::EventType::InputContextFocusIn);
+    engine.activate(entry, focusIn);
     const fcitx::KeySym afterFocusOut = sendKey(engine, entry, *context, FcitxKey_t);
     if (afterFocusOut != FcitxKey_t) {
         reportFailure("sentence state cleared on focus out", "t (lowercase)", fcitx::Key(afterFocusOut).toString(),

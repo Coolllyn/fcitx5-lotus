@@ -83,6 +83,21 @@ namespace fcitx {
         void reset(bool isFocusOut = false);
 
         /**
+         * @brief Applies the reset that a focus-out deferred in uinput modes (the focus really moved away).
+         */
+        void flushDeferredFocusOut();
+
+        /**
+         * @brief Drops the reset deferred by a focus-out (the focus-out was a bounce).
+         */
+        void cancelDeferredFocusOut();
+
+        /**
+         * @brief Finishes a replacement whose backspace echoes were lost (focus-out mid pump).
+         */
+        void finishOverdueReplacement();
+
+        /**
          * @brief Commits the current buffer.
          */
         void commitBuffer();
@@ -125,15 +140,17 @@ namespace fcitx {
         bool                                  isPrevPunctuation_     = false;
         int64_t                               lastDeactivateTime_    = 0;
         int64_t                               deletionInterruptedAt_ = 0;     ///< when deactivate() cut an in-flight replacement (0 = none)
+        bool                                  deferredFocusOut_      = false; ///< uinput focus-out reset waiting for activate()
         bool                                  trackingModifierTap_   = false; ///< Selected modifier held, waiting for consecutive keyup
         bool                                  macroSkip_             = false; ///< Macro disabled for the current word
+        int64_t                               replacementDeadlineMs_ = 0;     ///< ms by which every injected backspace must be echoed (0 = no replacement in flight)
         std::chrono::steady_clock::time_point lastCommitTime_;
 
         /**
-         * @brief Connects to the uinput server.
-         * @return True if connection successful.
+         * @brief Performs a reset without the uinput focus-out deferral.
+         * @param isFocusOut True when the reset comes from a focus-out event.
          */
-        static bool connectUinputServer();
+        void resetNow(bool isFocusOut);
 
         /**
          * @brief Sets up uinput device.

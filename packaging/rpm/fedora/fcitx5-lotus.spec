@@ -1,5 +1,5 @@
 Name:           fcitx5-lotus
-Version:        5.0.6
+Version:        6.0.0
 Release:        1
 Summary:        Vietnamese input method for fcitx5
 License:        GPL-3.0-or-later
@@ -13,6 +13,7 @@ BuildRequires:  gettext-devel
 BuildRequires:  cmake(Fcitx5Core)
 BuildRequires:  libinput-devel
 BuildRequires:  libevdev-devel
+BuildRequires:  libnotify-devel
 BuildRequires:  pkgconfig(libudev)
 
 BuildRequires:  python3-devel
@@ -113,7 +114,9 @@ fi
 %systemd_postun_with_restart fcitx5-lotus-server@.service
 
 %changelog
-* Sun Oct 18 2026 Nguyen Hoang Ky <nhktmdzhg@gmail.com> - 5.0.6-1
-- Keep the sentence state across a client reset so Enter capitalizes
-- Fix: server don't fallback to backspace mode
-- Use symbolic icon on GNOME
+* Wed Oct 21 2026 Nguyen Hoang Ky <nhktmdzhg@gmail.com> - 6.0.0-1
+- Warn when a uinput mode is selected but the uinput server is down
+- Fix bug backspace in preedit mode is commit the buffer
+- Fix bug lost replacement backspace when client is focus out
+- Fix bug focus bounce when deleting
+- Remove Minecraft mode

@@ -87,8 +87,10 @@ int main() {
         return 1;
     }
     for (size_t i = 0; i < msg.count; ++i) {
-        if (!send(engine, entry, *context, FcitxKey_BackSpace, i + 1 == msg.count))
+        if (!send(engine, entry, *context, FcitxKey_BackSpace, false))
             return 1;
     }
+    if (!send(engine, entry, *context, FcitxKey_Pause, true))
+        return 1;
     return 0;
 }

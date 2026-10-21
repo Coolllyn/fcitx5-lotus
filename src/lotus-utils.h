@@ -44,6 +44,19 @@ extern std::atomic<int>                           g_uinputClientFd;  ///< Uinput
 extern std::atomic<unsigned int>                  g_realTextLen;     ///< Current text length
 extern std::atomic<int>                           g_mouseSocketFd;   ///< Mouse socket file descriptor
 
+/**
+ * @brief Current input mode, read with acquire ordering.
+ */
+inline fcitx::LotusMode currentMode() {
+    return g_realMode.load(std::memory_order_acquire);
+}
+
+/**
+ * @brief Stores the active input mode with release ordering.
+ * @param mode Mode to store.
+ */
+void setRealMode(fcitx::LotusMode mode);
+
 struct DiffPart {
     std::u32string_view deletedPart;
     std::u32string_view addedPart;
@@ -73,7 +86,7 @@ int makeAbstractUnixSocket(std::string_view name, struct sockaddr_un& addr, sock
 /**
  * @brief Closes the uinput client socket and marks the client as disconnected.
  */
-void closeUinputClient();
+void LOTUS_EXPORT closeUinputClient();
 
 /**
  * @brief Returns the fcitx5 configuration directory of the current user.
@@ -107,9 +120,15 @@ uint32_t engineKeyValue(uint32_t sym);
 /**
  * @brief Whether a mode delivers text through the uinput (fake backspace) path.
  * @param mode Mode to check.
- * @return True for Uinput, Smooth, SuperSmooth, Minecraft and Select.
+ * @return True for Uinput, Smooth, SuperSmooth and Select.
  */
 bool isUinputMode(fcitx::LotusMode mode);
+
+/**
+ * @brief Connects to the uinput server when the addon has no live connection yet.
+ * @return True when a connection to the server is available.
+ */
+bool LOTUS_EXPORT ensureUinputServerConnected();
 
 /**
  * @brief Compares two texts and computes diff.

@@ -24,9 +24,8 @@
 namespace lotus {
 
     Composition rebuildCompositionFromText(std::u32string_view text, bool stdStyle) {
-        Composition composition;
+        Composition                       composition;
 
-        // Split text into words by word break symbols (punctuation, spaces, etc.).
         const std::vector<std::u32string> words = splitTextIntoWords(text);
 
         for (const std::u32string& word : words) {
@@ -78,16 +77,14 @@ namespace lotus {
         }
 
         for (const char32_t ch : word) {
-            const char32_t lowerCh     = case_map::toLower(ch);
-            const bool     isUpperCase = case_map::isUpper(ch);
+            const char32_t            lowerCh     = case_map::toLower(ch);
+            const bool                isUpperCase = case_map::isUpper(ch);
 
-            // Decompose the character into root + mark + tone.
             const Tone                tone    = utils::findToneFromChar(lowerCh);
             const std::optional<Mark> mark    = utils::findMarkFromChar(lowerCh);
             const bool                hasMark = mark.has_value() && *mark != Mark::None;
 
-            // Get the root character (no tone, no mark).
-            char32_t rootChar = lowerCh;
+            char32_t                  rootChar = lowerCh;
             if (tone != Tone::None) {
                 rootChar = utils::addToneToChar(rootChar, Tone::None);
             }
@@ -95,7 +92,6 @@ namespace lotus {
                 rootChar = utils::addMarkToChar(rootChar, Mark::None);
             }
 
-            // Create the base Appending transformation for the root character.
             auto appendTrans             = std::make_shared<Transformation>();
             appendTrans->isUpperCase     = isUpperCase;
             appendTrans->rule.key        = rootChar;
@@ -116,7 +112,6 @@ namespace lotus {
             }
         }
 
-        // Apply tones.
         Tone lastTone = Tone::None;
         for (const char32_t ch : word) {
             const Tone tone = utils::findToneFromChar(case_map::toLower(ch));

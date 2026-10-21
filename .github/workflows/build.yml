@@ -65,14 +65,14 @@ jobs:
       - name: Install dependencies (glibc)
         if: matrix.install == 'arch'
         run: |
-          pacman -Syu --noconfirm base-devel clang cmake ninja extra-cmake-modules libuv git libinput libevdev systemd-libs python
+          pacman -Syu --noconfirm base-devel clang cmake ninja extra-cmake-modules libuv git libinput libevdev libnotify systemd-libs python
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           git config --global --add safe.directory "$GITHUB_WORKSPACE/fcitx5-lotus"
           git config --global --add safe.directory "$GITHUB_WORKSPACE/fcitx5"
       - name: Install dependencies (musl)
         if: matrix.install == 'alpine'
         run: |
-          apk add --no-cache build-base cmake ninja extra-cmake-modules libuv-dev git libinput-dev libevdev-dev python3 zlib-dev gettext-dev util-linux-dev tar clang linux-headers
+          apk add --no-cache build-base cmake ninja extra-cmake-modules libuv-dev git libinput-dev libevdev-dev libnotify-dev python3 zlib-dev gettext-dev util-linux-dev tar clang linux-headers
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           git config --global --add safe.directory "$GITHUB_WORKSPACE/fcitx5-lotus"
           git config --global --add safe.directory "$GITHUB_WORKSPACE/fcitx5"
@@ -99,7 +99,7 @@ jobs:
           fetch-depth: 0
       - name: Init CodeQL
         if: matrix.distro == 'glibc' && matrix.compiler == 'gcc'
-        uses: github/codeql-action/init@v4.38.3
+        uses: github/codeql-action/init@v4.39.0
         with:
           languages: cpp
           source-root: fcitx5-lotus
@@ -140,7 +140,7 @@ jobs:
           fi
       - name: CodeQL Analysis
         if: matrix.distro == 'glibc' && matrix.compiler == 'gcc'
-        uses: github/codeql-action/analyze@v4.38.3
+        uses: github/codeql-action/analyze@v4.39.0
         with:
           checkout_path: fcitx5-lotus
 

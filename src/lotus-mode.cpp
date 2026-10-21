@@ -23,7 +23,6 @@ namespace fcitx {
             case LotusMode::Preedit: return 5;
             case LotusMode::Emoji: return 6;
             case LotusMode::Select: return 7;
-            case LotusMode::Minecraft: return 8;
             default: return 0;
         }
     }
@@ -38,7 +37,6 @@ namespace fcitx {
             case 5: return LotusMode::Preedit;
             case 6: return LotusMode::Emoji;
             case 7: return LotusMode::Select;
-            case 8: return LotusMode::Minecraft;
             default: return LotusMode::Off;
         }
     }

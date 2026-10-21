@@ -20,8 +20,8 @@ bool keyBitSet(std::span<const unsigned char> bits, unsigned int code) {
     return (bits[code / 8U] & (1U << (code % 8U))) != 0;
 }
 
-KbOp resolveKeyboardOp(KbOp requested, bool shiftUnknown) {
-    return (requested == KbOp::Select && shiftUnknown) ? KbOp::Backspace : requested;
+KbOp resolveKeyboardOp(KbOp requested, ShiftState state) {
+    return (requested == KbOp::Select && state != ShiftState::Released) ? KbOp::Backspace : requested;
 }
 
 std::string PhysicalShiftState::devnodeOf(struct libinput_device* device) {
@@ -29,22 +29,24 @@ std::string PhysicalShiftState::devnodeOf(struct libinput_device* device) {
     return sysname == nullptr ? std::string{} : std::string("/dev/input/") + sysname;
 }
 
-PhysicalShiftState::Keyboard PhysicalShiftState::openKeyboard(const std::string& devnode) {
+std::optional<PhysicalShiftState::Keyboard> PhysicalShiftState::openKeyboard(const std::string& devnode) {
     Keyboard  keyboard;
-    FdGuard   fd(open(devnode.c_str(), O_RDONLY | O_NONBLOCK | O_CLOEXEC));
-    libevdev* raw    = nullptr;
+    const int fd     = open(devnode.c_str(), O_RDONLY | O_NONBLOCK | O_CLOEXEC);
     keyboard.devnode = devnode;
-    if (!fd.isValid()) {
+    if (fd < 0) {
         return keyboard;
     }
-    if (libevdev_new_from_fd(fd.get(), &raw) != 0 || raw == nullptr) {
-        return keyboard;
+    keyboard.fd   = FdGuard(fd);
+    libevdev* raw = nullptr;
+    if (libevdev_new_from_fd(keyboard.fd.get(), &raw) != 0 || raw == nullptr) {
+        Keyboard invalid;
+        invalid.devnode = devnode;
+        return invalid;
     }
     LibevdevDevice dev(raw);
     if (libevdev_has_event_code(dev.get(), EV_KEY, KEY_LEFTSHIFT) == 0 && libevdev_has_event_code(dev.get(), EV_KEY, KEY_RIGHTSHIFT) == 0) {
-        return keyboard;
+        return std::nullopt;
     }
-    keyboard.fd  = std::move(fd);
     keyboard.dev = std::move(dev);
     return keyboard;
 }
@@ -61,11 +63,19 @@ void PhysicalShiftState::trackDevice(struct libinput_device* device) {
     if (devnode.empty() || std::ranges::any_of(keyboards_, [&devnode](const Keyboard& keyboard) { return keyboard.devnode == devnode; })) {
         return;
     }
-    Keyboard keyboard = openKeyboard(devnode);
+    std::optional<Keyboard> keyboardOpt = openKeyboard(devnode);
+    if (!keyboardOpt) {
+        return;
+    }
+    Keyboard keyboard = std::move(*keyboardOpt);
     if (!keyboard.fd.isValid()) {
+        if (!std::ranges::any_of(unreadableDevnodes_, [&devnode](const std::string& node) { return node == devnode; })) {
+            unreadableDevnodes_.push_back(devnode);
+        }
         LotusLogger::instance().warn("Not tracking Shift keys of " + devnode);
         return;
     }
+    std::erase_if(unreadableDevnodes_, [&devnode](const std::string& node) { return node == devnode; });
     keyboards_.push_back(std::move(keyboard));
     LotusLogger::instance().info("Tracking Shift keys of " + devnode);
 }
@@ -76,25 +86,36 @@ void PhysicalShiftState::forgetDevice(struct libinput_device* device) {
         return;
     }
     std::erase_if(keyboards_, [&devnode](const Keyboard& keyboard) { return keyboard.devnode == devnode; });
+    std::erase_if(unreadableDevnodes_, [&devnode](const std::string& node) { return node == devnode; });
 }
 
-PhysicalShiftState::ShiftSnapshot PhysicalShiftState::snapshot() {
-    ShiftSnapshot state;
-    for (Keyboard& keyboard : keyboards_) {
-        keyBits_.fill(0);
-        if (ioctl(keyboard.fd.get(), EVIOCGKEY(keyBits_.size()), keyBits_.data()) < 0) {
-            continue;
-        }
-        state.left  = state.left || keyBitSet(keyBits_, KEY_LEFTSHIFT);
-        state.right = state.right || keyBitSet(keyBits_, KEY_RIGHTSHIFT);
+ShiftState PhysicalShiftState::keyboardShiftHeld(Keyboard& keyboard) {
+    keyBits_.fill(0);
+    if (ioctl(keyboard.fd.get(), EVIOCGKEY(keyBits_.size()), keyBits_.data()) < 0) {
+        LotusLogger::instance().warn("Failed to read Shift key state of " + keyboard.devnode);
+        return ShiftState::Unknown;
     }
-    return state;
+    if (keyBitSet(keyBits_, KEY_LEFTSHIFT) || keyBitSet(keyBits_, KEY_RIGHTSHIFT)) {
+        return ShiftState::Held;
+    }
+    return ShiftState::Released;
 }
 
-SelectShiftPlan planSelectShift(const PhysicalShiftState::ShiftSnapshot& physical, bool oursLeft, bool oursRight) {
-    SelectShiftPlan plan;
-    plan.pressLeft    = !physical.any() && !oursLeft && !oursRight;
-    plan.releaseLeft  = physical.left || oursLeft;
-    plan.releaseRight = physical.right || oursRight;
-    return plan;
+ShiftState mergeShiftStates(std::span<const ShiftState> states, bool hasUntracked) {
+    if (std::ranges::any_of(states, [](ShiftState state) { return state == ShiftState::Held; })) {
+        return ShiftState::Held;
+    }
+    if (states.empty() || hasUntracked || std::ranges::any_of(states, [](ShiftState state) { return state == ShiftState::Unknown; })) {
+        return ShiftState::Unknown;
+    }
+    return ShiftState::Released;
+}
+
+ShiftState PhysicalShiftState::shiftHeld() {
+    std::vector<ShiftState> states;
+    states.reserve(keyboards_.size());
+    for (Keyboard& keyboard : keyboards_) {
+        states.push_back(keyboardShiftHeld(keyboard));
+    }
+    return mergeShiftStates(states, !unreadableDevnodes_.empty());
 }

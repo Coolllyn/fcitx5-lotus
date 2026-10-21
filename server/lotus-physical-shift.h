@@ -18,7 +18,9 @@
 #include "lotus-uinput-device.h"
 
 #include <array>
+#include <cstdint>
 #include <linux/input.h>
+#include <optional>
 #include <span>
 #include <string>
 #include <vector>
@@ -34,12 +36,35 @@ struct libinput_device;
 bool keyBitSet(std::span<const unsigned char> bits, unsigned int code);
 
 /**
- * @brief Resolves the operation the server executes for one keyboard request.
- * @param requested Operation asked by the addon.
- * @param shiftUnknown True when no physical keyboard is readable, so the user's Shift state is unknown.
- * @return KbOp::Backspace when a Shift+Left selection cannot be trusted to keep the user's modifier, requested otherwise.
+ * @brief Physical Shift key state, distinguishing a known release from an unknown reading.
+ *
+ * Unknown covers ioctl(EVIOCGKEY) failures and the no-keyboard case, so callers can
+ * fail safe instead of treating an unreadable state as released.
  */
-KbOp resolveKeyboardOp(KbOp requested, bool shiftUnknown);
+enum class ShiftState : std::uint8_t {
+    Released,
+    Held,
+    Unknown,
+};
+
+/**
+ * @brief Merges per-keyboard Shift states into one fail-safe state.
+ * @param states One ShiftState per tracked keyboard.
+ * @param hasUntracked True when at least one keyboard exists but cannot be tracked.
+ * @return Held when any state is Held; Unknown when no state is given, an untracked
+ *         keyboard exists, or any state is Unknown; Released otherwise.
+ */
+ShiftState mergeShiftStates(std::span<const ShiftState> states, bool hasUntracked);
+
+/**
+ * @brief Resolves a keyboard request using physical Shift state.
+ * @param requested Operation asked by the addon.
+ * @param state Live physical Shift key state.
+ * @return Backspace for Select unless Shift is confirmed released,
+ *         avoiding Shift+Left when the physical modifier is held or unknown.
+ *         Other operations are unchanged.
+ */
+KbOp resolveKeyboardOp(KbOp requested, ShiftState state);
 
 /**
  * @brief The physical keyboards the server tracks to know whether Shift is held.
@@ -66,34 +91,11 @@ class PhysicalShiftState {
     void forgetDevice(struct libinput_device* device);
 
     /**
-     * @brief One live read of the physical Shift keys.
+     * @brief Aggregates physical Shift state across keyboards.
+     * @return Held if any Shift is pressed; Unknown if no Shift is pressed
+     *         but some state is unavailable; Released otherwise.
      */
-    struct ShiftSnapshot {
-        bool left  = false; ///< KEY_LEFTSHIFT is down on some tracked keyboard
-        bool right = false; ///< KEY_RIGHTSHIFT is down on some tracked keyboard
-
-        /**
-         * @brief Reports whether any Shift key is down.
-         * @return True when left or right is down.
-         */
-        [[nodiscard]] bool any() const {
-            return left || right;
-        }
-    };
-
-    /**
-     * @brief Reads both Shift keys of every tracked keyboard.
-     * @return Live state; all false when no keyboard can be read.
-     */
-    ShiftSnapshot snapshot();
-
-    /**
-     * @brief Reports whether any physical keyboard is tracked.
-     * @return True when snapshot() reflects real keyboards.
-     */
-    [[nodiscard]] bool tracksKeyboards() const {
-        return !keyboards_.empty();
-    }
+    ShiftState shiftHeld();
 
   private:
     /**
@@ -115,30 +117,24 @@ class PhysicalShiftState {
     /**
      * @brief Opens one keyboard for Shift state queries.
      * @param devnode Device node to open.
-     * @return Tracked keyboard with an invalid descriptor when the device is not usable as a keyboard.
+     * @return std::nullopt when the device is confirmed to have neither KEY_LEFTSHIFT nor
+     *         KEY_RIGHTSHIFT, an engaged Keyboard with an invalid descriptor when the device
+     *         cannot be opened or read via libevdev, an engaged tracked Keyboard with a
+     *         valid descriptor otherwise.
      */
-    static Keyboard                                openKeyboard(const std::string& devnode);
+    static std::optional<Keyboard> openKeyboard(const std::string& devnode);
+
+    /**
+     * @brief Reads the live kernel key state of one tracked keyboard.
+     * @param keyboard Keyboard to query.
+     * @return Held when that keyboard holds a Shift key down, Unknown when its state
+     *         cannot be read via ioctl(EVIOCGKEY), Released otherwise.
+     */
+    ShiftState                                     keyboardShiftHeld(Keyboard& keyboard);
 
     std::vector<Keyboard>                          keyboards_;
-    std::array<unsigned char, (KEY_MAX + 7U) / 8U> keyBits_{}; ///< One EVIOCGKEY answer
+    std::vector<std::string>                       unreadableDevnodes_; ///< Keyboards whose Shift state cannot be tracked
+    std::array<unsigned char, (KEY_MAX + 7U) / 8U> keyBits_{};          ///< One EVIOCGKEY answer
 };
-
-/**
- * @brief Which Shift keys one Select sequence must press and release.
- */
-struct SelectShiftPlan {
-    bool pressLeft{false};    ///< press KEY_LEFTSHIFT before the selection (nothing is effectively down)
-    bool releaseLeft{false};  ///< KEY_LEFTSHIFT is effectively down and must be released before the Delete
-    bool releaseRight{false}; ///< KEY_RIGHTSHIFT is effectively down and must be released before the Delete
-};
-
-/**
- * @brief Builds the Shift plan of one Select sequence.
- * @param physical Live physical Shift state.
- * @param oursLeft True when the server already holds KEY_LEFTSHIFT from an earlier sequence.
- * @param oursRight True when the server already holds KEY_RIGHTSHIFT from an earlier sequence.
- * @return Plan for this sequence: press only when nothing is effectively down, release everything that is.
- */
-SelectShiftPlan planSelectShift(const PhysicalShiftState::ShiftSnapshot& physical, bool oursLeft, bool oursRight);
 
 #endif // _LOTUS_PHYSICAL_SHIFT_H_

@@ -91,13 +91,13 @@ int main() {
 
     // Echoed left arrows: every press but the last passes through so the app can
     // extend the selection; the last one is swallowed and commits the replacement.
-    for (size_t i = 0; i < selects - 1; ++i) {
+    for (size_t i = 0; i < selects; ++i) {
         if (!send(engine, entry, *context, FcitxKey_Left, false))
             return 1;
     }
     if (!send(engine, entry, *context, FcitxKey_Delete, false))
         return 1;
-    if (!send(engine, entry, *context, FcitxKey_Left, true))
+    if (!send(engine, entry, *context, FcitxKey_Pause, true))
         return 1;
     const std::vector<std::string> afterFirst{"á"};
     if (context->commits() != afterFirst) {
@@ -113,13 +113,13 @@ int main() {
     if (!receiveSelectRequest(listener, replaySelects, "buffered key was not replayed after the selection completed",
                               "buffered x replay starts another selection request within 5000 ms"))
         return 1;
-    for (size_t i = 0; i < replaySelects - 1; ++i) {
+    for (size_t i = 0; i < replaySelects; ++i) {
         if (!send(engine, entry, *context, FcitxKey_Left, false))
             return 1;
     }
     if (!send(engine, entry, *context, FcitxKey_Delete, false))
         return 1;
-    if (!send(engine, entry, *context, FcitxKey_Left, true))
+    if (!send(engine, entry, *context, FcitxKey_Pause, true))
         return 1;
 
     const std::vector<std::string> expected{"á", "ã"};

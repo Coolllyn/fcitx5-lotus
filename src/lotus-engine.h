@@ -383,6 +383,12 @@ namespace fcitx {
         void setMode(LotusMode mode, InputContext* ic);
 
         /**
+         * @brief Warns through the desktop when a uinput mode is selected but the server is down.
+         * @param mode Mode that was just selected.
+         */
+        static void checkServerForMode(LotusMode mode);
+
+        /**
          * @brief Get name of current program
          * @param ic Current input context.
          * @return Name of current program

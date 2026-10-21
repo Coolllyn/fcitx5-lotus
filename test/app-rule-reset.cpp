@@ -42,7 +42,6 @@ namespace {
             case fcitx::LotusMode::SuperSmooth: return "SuperSmooth";
             case fcitx::LotusMode::SurroundingText: return "SurroundingText";
             case fcitx::LotusMode::Emoji: return "Emoji";
-            case fcitx::LotusMode::Minecraft: return "Minecraft";
             default: return "Unknown";
         }
     }

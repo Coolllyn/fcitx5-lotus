@@ -1,6 +1,7 @@
 /*
  * SPDX-FileCopyrightText: 2025 Võ Ngô Hoàng Thành <thanhpy2009@gmail.com>
  * SPDX-FileCopyrightText: 2026 Nguyễn Hoàng Kỳ  <nhktmdzhg@gmail.com>
+ * SPDX-FileCopyrightText: 2026 Nguyễn Quang Minh <minhnbnt@gmail.com>
  *
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
@@ -8,6 +9,7 @@
 
 #include "lotus-abstract-socket.h"
 #include "lotus-server.h"
+#include "lotus-server-socket.h"
 #include "lotus-logger.h"
 #include "common-executable-path.h"
 #include "common-fd-guard.h"
@@ -101,24 +103,12 @@ void UinputDevice::sendMod(uint16_t code, int value) {
     }
 }
 
-void UinputDevice::sendBackspace() {
-    sendTap(KEY_BACKSPACE);
-}
-
-void UinputDevice::sendDelete() {
-    sendTap(KEY_DELETE);
-}
-
 void UinputDevice::sendShiftDown(uint16_t code) {
     sendMod(code, 1);
 }
 
 void UinputDevice::sendShiftUp(uint16_t code) {
     sendMod(code, 0);
-}
-
-void UinputDevice::sendLeft() {
-    sendTap(KEY_LEFT);
 }
 
 LibinputContext::LibinputContext(const struct libinput_interface* interface) : udev_(udev_new()) {
@@ -133,7 +123,7 @@ LibinputContext::LibinputContext(const struct libinput_interface* interface) : u
 
 void signalHandler(int sig) {
     if (sig == SIGTERM || sig == SIGINT) {
-        g_running.store(false);
+        g_running.store(false, std::memory_order_release);
     }
 }
 
@@ -249,18 +239,20 @@ int main(int argc, char* argv[]) {
     FdGuard serverFd(socket(AF_UNIX, SOCK_SEQPACKET | SOCK_NONBLOCK, 0));
     FdGuard mouseServerFd(socket(AF_UNIX, SOCK_SEQPACKET | SOCK_NONBLOCK, 0));
 
-    if (bind(serverFd.get(), kbSocket.asSockaddr(), kbSocket.length) != 0) {
-        LotusLogger::instance().error("Failed to bind socket");
+    if (!bindServerSocket(serverFd.get(), kbSocket, "keyboard socket")) {
         return 1;
     }
 
-    if (bind(mouseServerFd.get(), mouseSocket.asSockaddr(), mouseSocket.length) != 0) {
-        LotusLogger::instance().error("Failed to bind socket");
+    if (!bindServerSocket(mouseServerFd.get(), mouseSocket, "mouse socket")) {
         return 1;
     }
 
-    listen(serverFd.get(), 5);
-    listen(mouseServerFd.get(), 5);
+    if (!listenServerSocket(serverFd.get(), "keyboard socket")) {
+        return 1;
+    }
+    if (!listenServerSocket(mouseServerFd.get(), "mouse socket")) {
+        return 1;
+    }
 
     LibinputContext li_ctx(&interface);
     if (!li_ctx.isValid()) {
@@ -281,26 +273,13 @@ int main(int argc, char* argv[]) {
         },
     };
 
-    FdGuard         addonFd;
-    FdGuard         kbClientFd;
-    size_t          pendingBackspaces = 0;
-    size_t          pendingSelects    = 0;     ///< remaining Shift+Left events to pace out
-    bool            oursLeft          = false; ///< the server holds KEY_LEFTSHIFT on behalf of the user
-    bool            oursRight         = false; ///< the server holds KEY_RIGHTSHIFT on behalf of the user
-
-    SelectShiftPlan selectPlan; ///< Shift plan of the in-flight Select sequence
-
-    const auto      releaseOursIfNobodyHolds = [&] {
-        const auto physical = physical_shift.snapshot();
-        if (oursLeft && !physical.left) {
-            uinput.sendShiftUp(KEY_LEFTSHIFT);
-            oursLeft = false;
-        }
-        if (oursRight && !physical.right) {
-            uinput.sendShiftUp(KEY_RIGHTSHIFT);
-            oursRight = false;
-        }
-    };
+    FdGuard          addonFd;
+    FdGuard          kbClientFd;
+    size_t           pendingBackspaces   = 0;
+    size_t           pendingSelects      = 0;     ///< remaining Shift+Left events to pace out
+    bool             pendingAnchor       = false; ///< anchor key still to be injected after the backspace burst
+    bool             pendingSelectAnchor = false; ///< Shift release + Delete + anchor still to run after the left burst
+    bool             shiftHeld           = false; ///< the server pressed KEY_LEFTSHIFT for an in-flight selection
 
     uint32_t         currentPostDelay = 0; ///< stores postDelay from KbMsg
     uint32_t         currentInterval  = 5; ///< ms between injected keys within one request
@@ -312,11 +291,15 @@ int main(int argc, char* argv[]) {
     sigaction(SIGTERM, &sa, nullptr);
     sigaction(SIGINT, &sa, nullptr);
 
+    int exitCode = 0;
+
     while (g_running.load(std::memory_order_acquire)) {
+
         int pollTimeout = -1;
-        if (pendingBackspaces > 0 || pendingSelects > 0) {
+        if (pendingBackspaces > 0 || pendingSelects > 0 || pendingAnchor || pendingSelectAnchor) {
             pollTimeout = static_cast<int>(currentInterval);
         }
+
         int ret = poll(fds.data(), fds.size(), pollTimeout);
 
         if (ret < 0) {
@@ -328,49 +311,40 @@ int main(int argc, char* argv[]) {
 
         if (ret == 0) {
             if (pendingBackspaces > 0) {
-                if (pendingBackspaces == 1 && currentPostDelay > 0) {
+                uinput.sendTap(KEY_BACKSPACE);
+                --pendingBackspaces;
+            } else if (pendingAnchor) {
+                if (currentPostDelay > 0) {
                     std::this_thread::sleep_for(std::chrono::milliseconds(currentPostDelay));
                 }
-                uinput.sendBackspace();
-                --pendingBackspaces;
+                uinput.sendTap(KEY_PAUSE);
+                pendingAnchor = false;
             } else if (pendingSelects > 0) {
-                if (pendingSelects > 1) {
-                    uinput.sendLeft();
-                    --pendingSelects;
-                } else if (selectPlan.releaseLeft || selectPlan.releaseRight || oursLeft || oursRight) {
+                uinput.sendTap(KEY_LEFT);
+                --pendingSelects;
+            } else if (pendingSelectAnchor) {
+                if (shiftHeld) {
                     std::this_thread::sleep_for(std::chrono::milliseconds(10));
-                    if (selectPlan.releaseLeft || oursLeft) {
-                        uinput.sendShiftUp(KEY_LEFTSHIFT);
-                        oursLeft = false;
-                    }
-                    if (selectPlan.releaseRight || oursRight) {
-                        uinput.sendShiftUp(KEY_RIGHTSHIFT);
-                        oursRight = false;
-                    }
-                    selectPlan = {};
+                    uinput.sendShiftUp(KEY_LEFTSHIFT);
+                    shiftHeld = false;
                 } else {
-                    uinput.sendDelete();
+                    uinput.sendTap(KEY_DELETE);
                     if (currentPostDelay > 0) {
                         std::this_thread::sleep_for(std::chrono::milliseconds(currentPostDelay));
                     }
-                    uinput.sendLeft();
-                    --pendingSelects;
-                    const auto physical = physical_shift.snapshot();
-                    if (physical.left) {
-                        uinput.sendShiftDown(KEY_LEFTSHIFT);
-                        oursLeft = true;
-                    }
-                    if (physical.right) {
-                        uinput.sendShiftDown(KEY_RIGHTSHIFT);
-                        oursRight = true;
-                    }
+                    uinput.sendTap(KEY_PAUSE);
+                    pendingSelectAnchor = false;
                 }
             }
         }
 
-        libinput_dispatch(li_ctx.getLi());
+        const int dispatchRc = libinput_dispatch(li_ctx.getLi());
+        if (dispatchRc != 0) {
+            LotusLogger::instance().error("Failed to dispatch libinput events: " + std::string(strerror(-dispatchRc)));
+            exitCode = 1;
+            break;
+        }
 
-        // handle socket (backspace)
         if ((static_cast<unsigned>(fds[kKeyboardServerIndex].revents) & static_cast<unsigned>(POLLIN)) != 0) {
             FdGuard candidate(accept4(serverFd.get(), nullptr, nullptr, SOCK_NONBLOCK));
             if (candidate.isValid()) {
@@ -391,51 +365,62 @@ int main(int argc, char* argv[]) {
             ssize_t n = recv(fds[kKbClientIndex].fd, &msg, sizeof(msg), 0);
             if (n <= 0) {
                 LotusLogger::instance().warn("Keyboard client disconnected or connection error");
-                releaseOursIfNobodyHolds(); // never leave Shift stuck down
-                selectPlan     = {};
-                pendingSelects = 0;
+                if (shiftHeld) {
+                    uinput.sendShiftUp(KEY_LEFTSHIFT); // never leave Shift stuck down
+                    shiftHeld = false;
+                }
+                pendingSelects      = 0;
+                pendingSelectAnchor = false;
                 kbClientFd.reset(-1);
                 fds[kKbClientIndex].fd = -1;
             } else if (std::cmp_not_equal(n, sizeof(KbMsg)) && std::cmp_not_equal(n, sizeof(int32_t))) {
                 LotusLogger::instance().warn("Malformed keyboard message (" + std::to_string(n) + " bytes)");
             } else {
-                currentInterval = msg.interval > 0 ? std::min<uint32_t>(msg.interval, 1000) : 5;
-                releaseOursIfNobodyHolds();
-                const auto physical = physical_shift.snapshot();
-                const KbOp op       = resolveKeyboardOp(msg.op, !physical_shift.tracksKeyboards());
+                currentInterval             = msg.interval > 0 ? std::min<uint32_t>(msg.interval, 1000) : 5;
+                const ShiftState shiftState = physical_shift.shiftHeld();
+                const KbOp       op         = resolveKeyboardOp(msg.op, shiftState);
                 if (op != msg.op) {
-                    LotusLogger::instance().info("Shift state unknown: replacing with Backspace instead of Shift+Left");
+                    if (shiftState == ShiftState::Held) {
+                        LotusLogger::instance().info("Shift is held: replacing with Backspace instead of Shift+Left");
+                    } else {
+                        LotusLogger::instance().info("Shift state unknown, using safe Backspace fallback instead of Shift+Left");
+                    }
                 }
                 if (msg.count > 0 && op == KbOp::Select) {
                     if (msg.preDelay > 0) {
                         std::this_thread::sleep_for(std::chrono::milliseconds(msg.preDelay));
                     }
                     currentPostDelay = msg.postDelay;
-                    selectPlan       = planSelectShift(physical, oursLeft, oursRight);
-                    if (selectPlan.pressLeft) {
+                    if (!shiftHeld) {
                         uinput.sendShiftDown(KEY_LEFTSHIFT);
-                        oursLeft = true;
+                        shiftHeld = true;
                     }
                     std::this_thread::sleep_for(std::chrono::milliseconds(currentInterval));
-                    uinput.sendLeft();
-                    pendingSelects += msg.count - 1;
+                    uinput.sendTap(KEY_LEFT);
+                    pendingSelects      = msg.count - 1;
+                    pendingSelectAnchor = true;
+                    pendingAnchor       = false;
 
                 } else if (msg.count > 0 && op == KbOp::Backspace) {
                     if (msg.preDelay > 0) {
                         std::this_thread::sleep_for(std::chrono::milliseconds(msg.preDelay));
                     }
                     currentPostDelay = msg.postDelay;
-                    selectPlan       = {};
-                    pendingSelects   = 0;
+                    if (shiftHeld) {
+                        uinput.sendShiftUp(KEY_LEFTSHIFT);
+                        shiftHeld           = false;
+                        pendingSelects      = 0;
+                        pendingSelectAnchor = false;
+                    }
+                    pendingAnchor = true;
                     pendingBackspaces += msg.count - 1;
-                    uinput.sendBackspace();
+                    uinput.sendTap(KEY_BACKSPACE);
                 } else if (msg.count > 0) {
                     LotusLogger::instance().warn("Unknown keyboard message op: " + std::to_string(static_cast<int>(msg.op)));
                 }
             }
         }
 
-        // connect to mouse socket
         if ((static_cast<unsigned>(fds[kMouseServerIndex].revents) & static_cast<unsigned>(POLLIN)) != 0) {
             FdGuard candidate(accept4(mouseServerFd.get(), nullptr, nullptr, SOCK_NONBLOCK));
             if (candidate.isValid()) {
@@ -448,7 +433,6 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        // handle mouse (libinput)
         // libinput_dispatch() may have already consumed the fd in an iteration where
         // the libinput revents were 0 (poll timeout, or another fd woke us up).  Always
         // drain the queue; libinput_get_event() returns nullptr when it is empty.
@@ -483,6 +467,9 @@ int main(int argc, char* argv[]) {
             }
         }
     }
+    if (shiftHeld) {
+        uinput.sendShiftUp(KEY_LEFTSHIFT);
+    }
     LotusLogger::instance().info("Terminating server...");
-    return 0;
+    return exitCode;
 }

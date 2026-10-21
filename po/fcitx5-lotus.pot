@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-15 10:35+0700\n"
+"POT-Creation-Date: 2026-10-21 08:19+0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -33,7 +33,7 @@ msgstr ""
 msgid "&Reset"
 msgstr ""
 
-#: src/lotus-config.h:181 src/lotus-config.h:182 src/lotus-config.h:183
+#: src/lotus-config.h:162 src/lotus-config.h:163 src/lotus-config.h:164
 msgid "(ms, 0 = default)"
 msgstr ""
 
@@ -62,7 +62,7 @@ msgstr ""
 #: settings-gui/ui/pages/keymap_editor.py:275
 #: settings-gui/ui/pages/keymap_editor.py:435
 #: settings-gui/ui/pages/macro_editor.py:188
-#: settings-gui/ui/pages/macro_editor.py:468
+#: settings-gui/ui/pages/macro_editor.py:468 test/settings-gui/test_i18n.py:87
 msgid "Add"
 msgstr ""
 
@@ -71,15 +71,15 @@ msgstr ""
 msgid "Add Keymap"
 msgstr ""
 
-#: src/lotus-config.h:246
+#: src/lotus-config.h:215
 msgid "Allow Macro in Off Mode"
 msgstr ""
 
-#: src/lotus-config.h:223
+#: src/lotus-config.h:194
 msgid "Allow Type With More Freedom"
 msgstr ""
 
-#: src/lotus-config.h:224
+#: src/lotus-config.h:195
 msgid "Allow dd To Produce đ When Auto Restore Invalid Words Is On"
 msgstr ""
 
@@ -89,19 +89,19 @@ msgid ""
 "When disabled, macros are only available in active typing modes."
 msgstr ""
 
-#: src/lotus-config.h:76
+#: src/lotus-config.h:57
 msgid "Alt"
 msgstr ""
 
-#: src/lotus-config.h:180
+#: src/lotus-config.h:161
 msgid "App"
 msgstr ""
 
-#: src/lotus-config.h:209
+#: src/lotus-config.h:180
 msgid "App Rules"
 msgstr ""
 
-#: src/lotus-engine.cpp:1144
+#: src/lotus-engine.cpp:1047
 msgid "App: "
 msgstr ""
 
@@ -114,7 +114,7 @@ msgstr ""
 msgid "Application Rules"
 msgstr ""
 
-#: settings-gui/ui/pages/mode_manager.py:198 settings-gui/ui/main_window.py:218
+#: settings-gui/ui/pages/mode_manager.py:195 settings-gui/ui/main_window.py:218
 msgid "Applications"
 msgstr ""
 
@@ -128,24 +128,24 @@ msgid ""
 "current configuration."
 msgstr ""
 
-#: settings-gui/ui/pages/dynamic_settings.py:90
+#: settings-gui/ui/pages/dynamic_settings.py:89
 msgid ""
 "Assign hotkeys to open the mode menu or quickly cycle through enabled modes."
 msgstr ""
 
-#: src/lotus-config.h:87
+#: src/lotus-config.h:68
 msgid "Auto"
 msgstr ""
 
-#: src/lotus-engine.cpp:297 src/lotus-engine.cpp:450
+#: src/lotus-engine.cpp:196 src/lotus-engine.cpp:350
 msgid "Auto Non-VN Restore"
 msgstr ""
 
-#: src/lotus-config.h:221 src/lotus-engine.cpp:297
+#: src/lotus-config.h:192 src/lotus-engine.cpp:196
 msgid "Auto Restore Invalid Words"
 msgstr ""
 
-#: src/lotus-config.h:218
+#: src/lotus-config.h:189
 msgid "Auto capitalize after sentence-ending punctuation (. ! ? Enter)"
 msgstr ""
 
@@ -167,7 +167,7 @@ msgid ""
 "mixed text."
 msgstr ""
 
-#: src/lotus-config.h:182
+#: src/lotus-config.h:163
 msgid "Backspace Interval"
 msgstr ""
 
@@ -199,11 +199,11 @@ msgid ""
 "format first."
 msgstr ""
 
-#: src/lotus-config.h:215 src/lotus-engine.cpp:295 src/lotus-engine.cpp:449
+#: src/lotus-config.h:186 src/lotus-engine.cpp:194 src/lotus-engine.cpp:349
 msgid "Capitalize Macro"
 msgstr ""
 
-#: src/lotus-engine.cpp:266
+#: src/lotus-engine.cpp:165
 msgid "Charset"
 msgstr ""
 
@@ -211,7 +211,7 @@ msgstr ""
 msgid "Clear hotkey"
 msgstr ""
 
-#: src/lotus-config.h:181
+#: src/lotus-config.h:162
 msgid "Commit Interval"
 msgstr ""
 
@@ -219,7 +219,7 @@ msgstr ""
 msgid "Configure Fcitx5 Lotus Input Method"
 msgstr ""
 
-#: settings-gui/ui/pages/dynamic_settings.py:80
+#: settings-gui/ui/pages/dynamic_settings.py:79
 msgid "Configure basic input method settings and behaviors."
 msgstr ""
 
@@ -227,7 +227,7 @@ msgstr ""
 msgid "Confirm"
 msgstr ""
 
-#: settings-gui/ui/pages/mode_manager.py:529
+#: settings-gui/ui/pages/mode_manager.py:526
 msgid "Confirm Remove"
 msgstr ""
 
@@ -239,15 +239,15 @@ msgstr ""
 msgid "Confirm Restore"
 msgstr ""
 
-#: src/lotus-config.h:76
+#: src/lotus-config.h:57
 msgid "Ctrl"
 msgstr ""
 
-#: src/lotus-config.h:227 src/lotus-engine.cpp:299 src/lotus-engine.cpp:451
+#: src/lotus-config.h:198 src/lotus-engine.cpp:198 src/lotus-engine.cpp:351
 msgid "Custom Dictionary"
 msgstr ""
 
-#: src/lotus-config.h:178 src/lotus-config.h:228 src/lotus-config.h:255
+#: src/lotus-config.h:159 src/lotus-config.h:199 src/lotus-config.h:224
 msgid "Custom Keymap"
 msgstr ""
 
@@ -256,19 +256,19 @@ msgstr ""
 msgid "Custom Keymaps"
 msgstr ""
 
-#: settings-gui/ui/pages/dynamic_settings.py:82
+#: settings-gui/ui/pages/dynamic_settings.py:81
 msgid "Customize the look and feel of the Lotus status icons and theme."
 msgstr ""
 
-#: src/lotus-config.h:208
+#: src/lotus-config.h:179
 msgid "Cycle Mode Hotkey"
 msgstr ""
 
-#: src/lotus-config.h:87
+#: src/lotus-config.h:68
 msgid "Dark"
 msgstr ""
 
-#: src/lotus-config.h:252
+#: src/lotus-config.h:221
 msgid "Date Format ($DATE in macro)"
 msgstr ""
 
@@ -276,23 +276,23 @@ msgstr ""
 msgid "Date Format:"
 msgstr ""
 
-#: settings-gui/ui/pages/mode_manager.py:492
+#: settings-gui/ui/pages/mode_manager.py:489
 msgid "Default"
 msgstr ""
 
-#: src/lotus-config.h:248
+#: src/lotus-config.h:217
 msgid "Default Backspace Interval"
 msgstr ""
 
-#: src/lotus-config.h:247
+#: src/lotus-config.h:216
 msgid "Default Commit Interval"
 msgstr ""
 
-#: src/lotus-config.h:249
+#: src/lotus-config.h:218
 msgid "Default Post Delay"
 msgstr ""
 
-#: src/lotus-engine.cpp:113
+#: src/lotus-mode-menu.cpp:54
 msgid "Default Typing"
 msgstr ""
 
@@ -304,38 +304,38 @@ msgstr ""
 msgid "Dictionary"
 msgstr ""
 
-#: src/lotus-config.h:57 src/lotus-config.h:64 src/lotus-config.h:76
+#: src/lotus-config.h:38 src/lotus-config.h:45 src/lotus-config.h:57
 msgid "Disabled"
 msgstr ""
 
-#: src/lotus-config.h:220
+#: src/lotus-config.h:191
 msgid "Double Hyphen to Em-Dash (--)"
 msgstr ""
 
-#: src/lotus-config.h:219
+#: src/lotus-config.h:190
 msgid "Double Space to Period"
 msgstr ""
 
-#: settings-gui/ui/pages/dynamic_settings.py:253
+#: settings-gui/ui/pages/dynamic_settings.py:250
 msgid ""
 "Drag the handle on the left to reorder modes in the menu. Use checkboxes to "
 "toggle visibility, and click the buttons to reassign shortcuts."
 msgstr ""
 
-#: settings-gui/ui/pages/dynamic_settings.py:566
+#: settings-gui/ui/pages/dynamic_settings.py:563
 #, python-brace-format
 msgid "Duplicate shortcut '{}' used for multiple enabled modes."
 msgstr ""
 
-#: src/lotus-config.h:44
+#: src/lotus-config.h:31
 msgid "Emoji Picker"
 msgstr ""
 
-#: src/lotus-config.h:214
+#: src/lotus-config.h:185
 msgid "Enable Macro"
 msgstr ""
 
-#: src/lotus-config.h:214
+#: src/lotus-config.h:185
 msgid "Enable Spell Check Using Dictionary"
 msgstr ""
 
@@ -346,7 +346,7 @@ msgstr ""
 msgid "Error"
 msgstr ""
 
-#: src/lotus-config.h:57 src/lotus-config.h:64
+#: src/lotus-config.h:38 src/lotus-config.h:45
 msgid "Everywhere"
 msgstr ""
 
@@ -374,7 +374,7 @@ msgstr ""
 msgid "Failed to export backup:\n"
 msgstr ""
 
-#: settings-gui/ui/pages/dynamic_settings.py:212
+#: settings-gui/ui/pages/dynamic_settings.py:209
 msgid "Failed to load configuration."
 msgstr ""
 
@@ -416,7 +416,7 @@ msgstr ""
 msgid "Fcitx5 Lotus Settings"
 msgstr ""
 
-#: settings-gui/ui/pages/dynamic_settings.py:84
+#: settings-gui/ui/pages/dynamic_settings.py:83
 msgid "Fine-tune spelling corrections and advanced typing options."
 msgstr ""
 
@@ -428,11 +428,11 @@ msgstr ""
 msgid "General"
 msgstr ""
 
-#: settings-gui/ui/pages/mode_manager.py:205
+#: settings-gui/ui/pages/mode_manager.py:202
 msgid "Global Default Mode:"
 msgstr ""
 
-#: src/lotus-config.h:256
+#: src/lotus-config.h:225
 msgid "Icon Color"
 msgstr ""
 
@@ -440,7 +440,7 @@ msgstr ""
 msgid "Import Backup..."
 msgstr ""
 
-#: src/lotus-config.h:205
+#: src/lotus-config.h:176
 msgid "Input Method"
 msgstr ""
 
@@ -456,7 +456,7 @@ msgstr ""
 msgid "JSON Backup (*.json);;All Files (*)"
 msgstr ""
 
-#: src/lotus-config.h:170
+#: src/lotus-config.h:151
 msgid "Key"
 msgstr ""
 
@@ -473,7 +473,7 @@ msgstr ""
 msgid "Keymap"
 msgstr ""
 
-#: src/lotus-config.h:87
+#: src/lotus-config.h:68
 msgid "Light"
 msgstr ""
 
@@ -481,7 +481,7 @@ msgstr ""
 msgid "Lotus"
 msgstr ""
 
-#: src/lotus-engine.cpp:1224
+#: src/lotus-engine.cpp:1140
 msgid "Lotus - Off"
 msgstr ""
 
@@ -498,8 +498,12 @@ msgid ""
 "modes and input methods."
 msgstr ""
 
-#: src/lotus-config.h:174 src/lotus-config.h:254 src/lotus-engine.cpp:294
-#: src/lotus-engine.cpp:448
+#: src/lotus-notify.cpp:86
+msgid "Lotus: the uinput server is not running"
+msgstr ""
+
+#: src/lotus-config.h:155 src/lotus-config.h:223 src/lotus-engine.cpp:193
+#: src/lotus-engine.cpp:348
 msgid "Macro"
 msgstr ""
 
@@ -527,23 +531,19 @@ msgstr ""
 msgid "Main Settings"
 msgstr ""
 
-#: settings-gui/ui/pages/dynamic_settings.py:85
+#: settings-gui/ui/pages/dynamic_settings.py:84
 msgid "Manage input mode shortcuts, display order, and fast cycling."
 msgstr ""
 
-#: src/lotus-config.h:45
-msgid "Minecraft"
-msgstr ""
-
-#: src/lotus-config.h:180 src/lotus-config.h:204
+#: src/lotus-config.h:161 src/lotus-config.h:175
 msgid "Mode"
 msgstr ""
 
-#: src/lotus-config.h:207
+#: src/lotus-config.h:178
 msgid "Mode Menu Hotkey"
 msgstr ""
 
-#: src/lotus-config.h:250
+#: src/lotus-config.h:219
 msgid "Mode Order"
 msgstr ""
 
@@ -551,7 +551,7 @@ msgstr ""
 msgid "Modern, fast, and stable Vietnamese input method for Linux."
 msgstr ""
 
-#: src/lotus-config.h:217
+#: src/lotus-config.h:188
 msgid "Modifier to Skip Macro for Next Word"
 msgstr ""
 
@@ -567,11 +567,11 @@ msgstr ""
 msgid "Move Up"
 msgstr ""
 
-#: settings-gui/ui/pages/dynamic_settings.py:285
+#: settings-gui/ui/pages/dynamic_settings.py:282
 msgid "No interface settings available yet."
 msgstr ""
 
-#: src/lotus-config.h:57 src/lotus-config.h:64
+#: src/lotus-config.h:38 src/lotus-config.h:45
 msgid "Non-Start"
 msgstr ""
 
@@ -581,7 +581,7 @@ msgstr ""
 msgid "None"
 msgstr ""
 
-#: src/lotus-config.h:44
+#: src/lotus-config.h:31
 msgid "OFF"
 msgstr ""
 
@@ -593,19 +593,19 @@ msgstr ""
 msgid "Original Input Method:"
 msgstr ""
 
-#: src/lotus-config.h:206
+#: src/lotus-config.h:177
 msgid "Output Charset"
 msgstr ""
 
-#: src/lotus-state.cpp:228
+#: src/lotus-state.cpp:211
 msgid "Page "
 msgstr ""
 
-#: src/lotus-config.h:183
+#: src/lotus-config.h:164
 msgid "Post Delay"
 msgstr ""
 
-#: src/lotus-config.h:44
+#: src/lotus-config.h:31
 msgid "Preedit"
 msgstr ""
 
@@ -620,11 +620,11 @@ msgstr ""
 #: settings-gui/ui/pages/dict_editor.py:144
 #: settings-gui/ui/pages/keymap_editor.py:301
 #: settings-gui/ui/pages/macro_editor.py:216
-#: settings-gui/ui/pages/mode_manager.py:179
+#: settings-gui/ui/pages/mode_manager.py:176
 msgid "Remove"
 msgstr ""
 
-#: settings-gui/ui/pages/mode_manager.py:530
+#: settings-gui/ui/pages/mode_manager.py:527
 msgid "Remove rules for this application?"
 msgstr ""
 
@@ -648,7 +648,7 @@ msgstr ""
 msgid "Restore all settings to defaults?"
 msgstr ""
 
-#: src/lotus-config.h:186
+#: src/lotus-config.h:167
 msgid "Rules"
 msgstr ""
 
@@ -657,7 +657,7 @@ msgid ""
 "Save or restore configuration via JSON files. Select components to include:"
 msgstr ""
 
-#: settings-gui/ui/pages/mode_manager.py:166
+#: settings-gui/ui/pages/mode_manager.py:163
 msgid "Search applications..."
 msgstr ""
 
@@ -683,7 +683,7 @@ msgstr ""
 msgid "Select Backup File"
 msgstr ""
 
-#: settings-gui/ui/pages/mode_manager.py:238
+#: settings-gui/ui/pages/mode_manager.py:235
 msgid "Select an application"
 msgstr ""
 
@@ -701,7 +701,7 @@ msgid ""
 "changes."
 msgstr ""
 
-#: src/lotus-engine.cpp:303
+#: src/lotus-engine.cpp:202
 msgid "Settings"
 msgstr ""
 
@@ -709,43 +709,39 @@ msgstr ""
 msgid "Settings saved."
 msgstr ""
 
-#: src/lotus-config.h:76
+#: src/lotus-config.h:57
 msgid "Shift"
 msgstr ""
 
-#: src/lotus-config.h:245
+#: src/lotus-config.h:214
 msgid "Shortcut for Default Typing"
 msgstr ""
 
-#: src/lotus-config.h:243
+#: src/lotus-config.h:212
 msgid "Shortcut for Emoji Picker"
 msgstr ""
 
-#: src/lotus-config.h:235
-msgid "Shortcut for Minecraft"
-msgstr ""
-
-#: src/lotus-config.h:244
+#: src/lotus-config.h:213
 msgid "Shortcut for OFF"
 msgstr ""
 
-#: src/lotus-config.h:241
+#: src/lotus-config.h:210
 msgid "Shortcut for Preedit"
 msgstr ""
 
-#: src/lotus-config.h:239
+#: src/lotus-config.h:208
 msgid "Shortcut for Surrounding Text"
 msgstr ""
 
-#: src/lotus-config.h:237
+#: src/lotus-config.h:206
 msgid "Shortcut for Uinput (Select)"
 msgstr ""
 
-#: src/lotus-config.h:231
+#: src/lotus-config.h:202
 msgid "Shortcut for Uinput (Smooth)"
 msgstr ""
 
-#: src/lotus-config.h:233
+#: src/lotus-config.h:204
 msgid "Shortcut for Uinput (Super Smooth)"
 msgstr ""
 
@@ -753,43 +749,39 @@ msgstr ""
 msgid "Shortcuts"
 msgstr ""
 
-#: src/lotus-config.h:244
+#: src/lotus-config.h:213
 msgid "Show Default Typing"
 msgstr ""
 
-#: src/lotus-config.h:242
+#: src/lotus-config.h:211
 msgid "Show Emoji Picker"
 msgstr ""
 
-#: src/lotus-config.h:234
-msgid "Show Minecraft"
-msgstr ""
-
-#: src/lotus-config.h:243
+#: src/lotus-config.h:212
 msgid "Show OFF"
 msgstr ""
 
-#: src/lotus-config.h:240
+#: src/lotus-config.h:209
 msgid "Show Preedit"
 msgstr ""
 
-#: src/lotus-config.h:238
+#: src/lotus-config.h:207
 msgid "Show Surrounding Text"
 msgstr ""
 
-#: src/lotus-config.h:236
+#: src/lotus-config.h:205
 msgid "Show Uinput (Select)"
 msgstr ""
 
-#: src/lotus-config.h:230
+#: src/lotus-config.h:201
 msgid "Show Uinput (Smooth)"
 msgstr ""
 
-#: src/lotus-config.h:232
+#: src/lotus-config.h:203
 msgid "Show Uinput (Super Smooth)"
 msgstr ""
 
-#: src/lotus-engine.cpp:293 src/lotus-engine.cpp:447
+#: src/lotus-engine.cpp:192 src/lotus-engine.cpp:347
 msgid "Spell Check"
 msgstr ""
 
@@ -798,7 +790,7 @@ msgstr ""
 msgid "Success"
 msgstr ""
 
-#: src/lotus-config.h:44
+#: src/lotus-config.h:31
 msgid "Surrounding Text"
 msgstr ""
 
@@ -812,7 +804,7 @@ msgid ""
 "later (GPL-3.0-or-later)</b>."
 msgstr ""
 
-#: src/lotus-config.h:251
+#: src/lotus-config.h:220
 msgid "Time Format ($TIME in macro)"
 msgstr ""
 
@@ -820,15 +812,15 @@ msgstr ""
 msgid "Time Format:"
 msgstr ""
 
-#: src/lotus-engine.cpp:1127
+#: src/lotus-engine.cpp:1030
 msgid "Type"
 msgstr ""
 
-#: src/lotus-config.h:211
+#: src/lotus-config.h:182
 msgid "Type [ -> ơ, ] -> ư, { -> Ơ, } -> Ư"
 msgstr ""
 
-#: src/lotus-config.h:210
+#: src/lotus-config.h:181
 msgid "Type w to Produce ư"
 msgstr ""
 
@@ -836,16 +828,22 @@ msgstr ""
 msgid "Typing"
 msgstr ""
 
-#: src/lotus-config.h:45
+#: src/lotus-config.h:32
 msgid "Uinput (Select)"
 msgstr ""
 
-#: src/lotus-config.h:44
+#: src/lotus-config.h:31
 msgid "Uinput (Smooth)"
 msgstr ""
 
-#: src/lotus-config.h:44
+#: src/lotus-config.h:31
 msgid "Uinput (Super Smooth)"
+msgstr ""
+
+#: src/lotus-notify.cpp:82
+msgid ""
+"Uinput modes need the Lotus uinput server. Enable the server service for "
+"your distribution and init system."
 msgstr ""
 
 #: settings-gui/ui/pages/keymap_editor.py:435
@@ -857,15 +855,15 @@ msgstr ""
 msgid "Update Keymap"
 msgstr ""
 
-#: src/lotus-config.h:225
+#: src/lotus-config.h:196
 msgid "Use Lotus Status Icons"
 msgstr ""
 
-#: src/lotus-config.h:222
+#: src/lotus-config.h:193
 msgid "Use oà, uý (Instead Of òa, úy)"
 msgstr ""
 
-#: src/lotus-config.h:170
+#: src/lotus-config.h:151
 msgid "Value"
 msgstr ""
 

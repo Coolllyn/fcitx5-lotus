@@ -75,17 +75,21 @@ int main() {
         return 1;
     }
     for (size_t i = 0; i < backspaces; ++i) {
-        if (!send(engine, entry, *context, FcitxKey_BackSpace, i + 1 == backspaces))
+        if (!send(engine, entry, *context, FcitxKey_BackSpace, false))
             return 1;
     }
+    if (!send(engine, entry, *context, FcitxKey_Pause, true))
+        return 1;
 
     size_t replayBackspaces = 0;
     if (!receiveBackspaceRequest(listener, replayBackspaces, "buffered key was not replayed after deletion", "buffered x replay starts another replacement request within 5000 ms"))
         return 1;
     for (size_t i = 0; i < replayBackspaces; ++i) {
-        if (!send(engine, entry, *context, FcitxKey_BackSpace, i + 1 == replayBackspaces))
+        if (!send(engine, entry, *context, FcitxKey_BackSpace, false))
             return 1;
     }
+    if (!send(engine, entry, *context, FcitxKey_Pause, true))
+        return 1;
 
     const std::vector<std::string> expected{"á", "ã"};
     if (context->commits() != expected) {

@@ -194,13 +194,11 @@ namespace lotus {
     }
 
     Composition Engine::newComposition(const Composition& composition, char32_t key, bool isUpperCase) const {
-        // Just process the key stroke on the last syllable.
         const WordSplit   split    = extractLastSyllable(composition);
         Composition       syllable = split.last;
         const Composition produced = generateTransformations(syllable, key, isUpperCase);
         syllable.insert(syllable.end(), produced.begin(), produced.end());
 
-        // Put these transformations back to the composition.
         Composition result = split.previous;
         result.insert(result.end(), syllable.begin(), syllable.end());
         return result;

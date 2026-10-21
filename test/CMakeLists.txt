@@ -157,6 +157,16 @@ add_lotus_headless_test(
     INCLUDE_DIRECTORIES ${PROJECT_SOURCE_DIR}/server
     LINK_LIBRARIES PkgConfig::LIBEVDEV PkgConfig::LIBINPUT
 )
+add_lotus_headless_test(
+    TARGET server_socket_init
+    SOURCES
+        server-socket-init.cpp
+        ${PROJECT_SOURCE_DIR}/server/lotus-server-socket.cpp
+        ${PROJECT_SOURCE_DIR}/server/lotus-logger.cpp
+        ${PROJECT_SOURCE_DIR}/server/lotus-abstract-socket.cpp
+    LABELS "unit;server"
+    INCLUDE_DIRECTORIES ${PROJECT_SOURCE_DIR}/server ${PROJECT_SOURCE_DIR}/common
+)
 add_lotus_headless_test(TARGET status_icon SOURCES status-icon.cpp LABELS "integration;icons")
 add_test(NAME status_icon_gnome COMMAND status_icon gnome)
 set_tests_properties(status_icon_gnome PROPERTIES LABELS "integration;icons" TIMEOUT 20)

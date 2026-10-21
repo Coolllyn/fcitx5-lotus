@@ -9,6 +9,7 @@
 
 #include "lotus-abstract-socket.h"
 #include "lotus-server.h"
+#include "lotus-server-socket.h"
 #include "lotus-logger.h"
 #include "common-executable-path.h"
 #include "common-fd-guard.h"
@@ -238,18 +239,20 @@ int main(int argc, char* argv[]) {
     FdGuard serverFd(socket(AF_UNIX, SOCK_SEQPACKET | SOCK_NONBLOCK, 0));
     FdGuard mouseServerFd(socket(AF_UNIX, SOCK_SEQPACKET | SOCK_NONBLOCK, 0));
 
-    if (bind(serverFd.get(), kbSocket.asSockaddr(), kbSocket.length) != 0) {
-        LotusLogger::instance().error("Failed to bind socket");
+    if (!bindServerSocket(serverFd.get(), kbSocket, "keyboard socket")) {
         return 1;
     }
 
-    if (bind(mouseServerFd.get(), mouseSocket.asSockaddr(), mouseSocket.length) != 0) {
-        LotusLogger::instance().error("Failed to bind socket");
+    if (!bindServerSocket(mouseServerFd.get(), mouseSocket, "mouse socket")) {
         return 1;
     }
 
-    listen(serverFd.get(), 5);
-    listen(mouseServerFd.get(), 5);
+    if (!listenServerSocket(serverFd.get(), "keyboard socket")) {
+        return 1;
+    }
+    if (!listenServerSocket(mouseServerFd.get(), "mouse socket")) {
+        return 1;
+    }
 
     LibinputContext li_ctx(&interface);
     if (!li_ctx.isValid()) {
@@ -287,6 +290,8 @@ int main(int argc, char* argv[]) {
     sa.sa_flags = 0;
     sigaction(SIGTERM, &sa, nullptr);
     sigaction(SIGINT, &sa, nullptr);
+
+    int exitCode = 0;
 
     while (g_running.load(std::memory_order_acquire)) {
 
@@ -333,7 +338,12 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        libinput_dispatch(li_ctx.getLi());
+        const int dispatchRc = libinput_dispatch(li_ctx.getLi());
+        if (dispatchRc != 0) {
+            LotusLogger::instance().error("Failed to dispatch libinput events: " + std::string(strerror(-dispatchRc)));
+            exitCode = 1;
+            break;
+        }
 
         if ((static_cast<unsigned>(fds[kKeyboardServerIndex].revents) & static_cast<unsigned>(POLLIN)) != 0) {
             FdGuard candidate(accept4(serverFd.get(), nullptr, nullptr, SOCK_NONBLOCK));
@@ -456,5 +466,5 @@ int main(int argc, char* argv[]) {
         uinput.sendShiftUp(KEY_LEFTSHIFT);
     }
     LotusLogger::instance().info("Terminating server...");
-    return 0;
+    return exitCode;
 }

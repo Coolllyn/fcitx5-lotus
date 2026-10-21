@@ -20,12 +20,18 @@ namespace {
 
 } // namespace
 
-bool bindServerSocket(int fd, const AbstractSocket& address, std::string_view /*label*/) {
-    (void)::bind(fd, address.asSockaddr(), address.length);
+bool bindServerSocket(int fd, const AbstractSocket& address, std::string_view label) {
+    if (::bind(fd, address.asSockaddr(), address.length) != 0) {
+        LotusLogger::instance().error("Failed to bind " + std::string(label) + ": " + std::string(strerror(errno)));
+        return false;
+    }
     return true;
 }
 
-bool listenServerSocket(int fd, std::string_view /*label*/) {
-    (void)::listen(fd, kListenBacklog);
+bool listenServerSocket(int fd, std::string_view label) {
+    if (::listen(fd, kListenBacklog) != 0) {
+        LotusLogger::instance().error("Failed to listen on " + std::string(label) + ": " + std::string(strerror(errno)));
+        return false;
+    }
     return true;
 }

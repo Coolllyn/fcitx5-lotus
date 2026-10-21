@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: fcitx5-lotus\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-21 08:00+0700\n"
-"PO-Revision-Date: 2026-10-21 08:01+0700\n"
+"POT-Creation-Date: 2026-10-21 08:19+0700\n"
+"PO-Revision-Date: 2026-10-21 08:22+0700\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
 "Language: vi\n"
@@ -63,7 +63,7 @@ msgstr "Hành động"
 #: settings-gui/ui/pages/keymap_editor.py:275
 #: settings-gui/ui/pages/keymap_editor.py:435
 #: settings-gui/ui/pages/macro_editor.py:188
-#: settings-gui/ui/pages/macro_editor.py:468 test/settings-gui/test_i18n.py:88
+#: settings-gui/ui/pages/macro_editor.py:468 test/settings-gui/test_i18n.py:87
 msgid "Add"
 msgstr "Thêm"
 
@@ -523,7 +523,7 @@ msgid ""
 "modes and input methods."
 msgstr "Lotus là bộ gõ tiếng Việt cho Fcitx5, hỗ trợ nhiều chế độ và kiểu gõ."
 
-#: src/lotus-notify.cpp:87
+#: src/lotus-notify.cpp:86
 msgid "Lotus: the uinput server is not running"
 msgstr "Lotus: máy chủ uinput đang không chạy"
 
@@ -875,14 +875,13 @@ msgstr "Uinput (Mượt)"
 msgid "Uinput (Super Smooth)"
 msgstr "Uinput (Siêu mượt)"
 
-#: src/lotus-notify.cpp:83
-#, c++-format
+#: src/lotus-notify.cpp:82
 msgid ""
-"Uinput modes need the Lotus uinput server. See {0} to learn how to enable "
-"the server service for your distribution and init system."
+"Uinput modes need the Lotus uinput server. Enable the server service for "
+"your distribution and init system."
 msgstr ""
-"Chế độ uinput cần máy chủ uinput Lotus. Xem {0} để biết cách bật dịch vụ máy "
-"chủ cho bản phân phối và init của máy bạn."
+"Chế độ uinput cần máy chủ uinput Lotus. Bật dịch vụ máy chủ cho bản phân "
+"phối và hệ thống init của bạn."
 
 #: settings-gui/ui/pages/keymap_editor.py:435
 #: settings-gui/ui/pages/macro_editor.py:468

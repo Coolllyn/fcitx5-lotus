@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-21 08:00+0700\n"
+"POT-Creation-Date: 2026-10-21 08:19+0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -62,7 +62,7 @@ msgstr ""
 #: settings-gui/ui/pages/keymap_editor.py:275
 #: settings-gui/ui/pages/keymap_editor.py:435
 #: settings-gui/ui/pages/macro_editor.py:188
-#: settings-gui/ui/pages/macro_editor.py:468 test/settings-gui/test_i18n.py:88
+#: settings-gui/ui/pages/macro_editor.py:468 test/settings-gui/test_i18n.py:87
 msgid "Add"
 msgstr ""
 
@@ -498,7 +498,7 @@ msgid ""
 "modes and input methods."
 msgstr ""
 
-#: src/lotus-notify.cpp:87
+#: src/lotus-notify.cpp:86
 msgid "Lotus: the uinput server is not running"
 msgstr ""
 
@@ -840,11 +840,10 @@ msgstr ""
 msgid "Uinput (Super Smooth)"
 msgstr ""
 
-#: src/lotus-notify.cpp:83
-#, c++-format
+#: src/lotus-notify.cpp:82
 msgid ""
-"Uinput modes need the Lotus uinput server. See {0} to learn how to enable "
-"the server service for your distribution and init system."
+"Uinput modes need the Lotus uinput server. Enable the server service for "
+"your distribution and init system."
 msgstr ""
 
 #: settings-gui/ui/pages/keymap_editor.py:435

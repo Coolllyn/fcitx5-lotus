@@ -366,10 +366,15 @@ int main(int argc, char* argv[]) {
             } else if (std::cmp_not_equal(n, sizeof(KbMsg)) && std::cmp_not_equal(n, sizeof(int32_t))) {
                 LotusLogger::instance().warn("Malformed keyboard message (" + std::to_string(n) + " bytes)");
             } else {
-                currentInterval = msg.interval > 0 ? std::min<uint32_t>(msg.interval, 1000) : 5;
-                const KbOp op   = resolveKeyboardOp(msg.op, physical_shift.shiftHeld());
+                currentInterval             = msg.interval > 0 ? std::min<uint32_t>(msg.interval, 1000) : 5;
+                const ShiftState shiftState = physical_shift.shiftHeld();
+                const KbOp       op         = resolveKeyboardOp(msg.op, shiftState);
                 if (op != msg.op) {
-                    LotusLogger::instance().info("Shift is held: replacing with Backspace instead of Shift+Left");
+                    if (shiftState == ShiftState::Held) {
+                        LotusLogger::instance().info("Shift is held: replacing with Backspace instead of Shift+Left");
+                    } else {
+                        LotusLogger::instance().info("Shift state unknown, using safe Backspace fallback instead of Shift+Left");
+                    }
                 }
                 if (msg.count > 0 && op == KbOp::Select) {
                     if (msg.preDelay > 0) {

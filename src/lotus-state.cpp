@@ -447,6 +447,16 @@ namespace fcitx {
     }
 
     void LotusState::performReplacement(DiffPart diffPart) {
+        // WA for libreoffice (issue #162)
+        // force use deleteSurroundingText func
+        if (isLibreoffice) {
+            const int delSize = static_cast<int>(diffPart.deletedPart.size());
+            if (delSize > 0) {
+                ic_.deleteSurroundingText(-delSize, delSize);
+            }
+            lotus::fcitx_text::commit(&ic_, diffPart.addedPart, lastCommitTime_);
+            return;
+        }
         const int  commitMs = clampDelay(appRuleSetting_.commitInterval > 0 ? appRuleSetting_.commitInterval : *engine_.config().defaultCommitInterval);
         const auto interval =
             static_cast<uint32_t>(clampDelay(appRuleSetting_.backspaceInterval > 0 ? appRuleSetting_.backspaceInterval : *engine_.config().defaultBackspaceInterval));

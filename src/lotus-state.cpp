@@ -1018,6 +1018,11 @@ namespace fcitx {
 
     void LotusState::applyAutoCapitalize(KeyEvent& keyEvent, KeySym& currentSym) {
         if (*engine_.config().autoCapitalizeAfterPunctuation && currentMode() != LotusMode::Off) {
+            // Shortcuts must not change sentence capitalization state.
+            // Match the modifier handling in checkForwardSpecialKey().
+            if (keyEvent.key().hasModifier()) {
+                return;
+            }
             // Ignore auto-capitalize side-effects if we're processing automated replacement backspaces
             bool isAutomatedBackspace = (g_isDeleting.load(std::memory_order_acquire) && isBackspace(currentSym)) || currentSym == FcitxKey_Pause;
 

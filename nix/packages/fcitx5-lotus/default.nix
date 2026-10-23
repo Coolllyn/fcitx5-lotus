@@ -70,9 +70,12 @@ stdenv.mkDerivation (finalAttrs: {
 
   dontWrapQtApps = true;
 
+ doCheck = true;
+
   cmakeFlags = [
     "-DLOTUS_ALT_EXECUTABLE_PREFIX=/nix/store/"
     "-DLOTUS_SETFACL_EXECUTABLE=${acl}/bin/setfacl"
+    (lib.cmakeBool "BUILD_TESTING" finalAttrs.finalPackage.doCheck)
   ];
 
   postFixup = ''

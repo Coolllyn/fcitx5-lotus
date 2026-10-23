@@ -135,6 +135,7 @@ add_lotus_headless_test(TARGET anchor_key_protocol SOURCES anchor-key-protocol.c
 add_lotus_headless_test(TARGET uinput_server_probe SOURCES uinput-server-probe.cpp LABELS "unit;server")
 add_lotus_headless_test(TARGET preedit_backspace SOURCES preedit-backspace.cpp LABELS "integration;preedit")
 add_lotus_headless_test(TARGET select_mode_replacement SOURCES select-mode-replacement.cpp LABELS "integration;select")
+add_lotus_headless_test(TARGET select_stray_echo SOURCES select-stray-echo.cpp LABELS "integration;select")
 add_lotus_headless_test(TARGET replacement_delays SOURCES replacement-delays.cpp LABELS "integration;smooth")
 add_lotus_headless_test(TARGET merged_replacement_commit SOURCES merged-replacement-commit.cpp LABELS "integration;smooth")
 add_lotus_headless_test(TARGET dict_reload SOURCES dict-reload.cpp LABELS "integration;dictionary")
@@ -182,7 +183,7 @@ add_lotus_headless_test(TARGET emoji_search_history SOURCES emoji-search-history
 add_lotus_headless_test(TARGET emoji_history_unit SOURCES emoji-history-unit.cpp LABELS "unit;emoji")
 
 string(MD5 LOTUS_CTEST_SOCKET_NAMESPACE "${PROJECT_BINARY_DIR}")
-set_tests_properties(smooth_buffered_key_replay focus_bounce_word_survival focus_out_mid_replacement anchor_key_protocol uinput_server_probe select_mode_replacement replacement_delays app_rule_delay_wire dbus_deferred_commit merged_replacement_commit runtime_safety
+set_tests_properties(smooth_buffered_key_replay focus_bounce_word_survival focus_out_mid_replacement anchor_key_protocol uinput_server_probe select_mode_replacement select_stray_echo replacement_delays app_rule_delay_wire dbus_deferred_commit merged_replacement_commit runtime_safety
     PROPERTIES RESOURCE_LOCK lotus_kb_socket
     ENVIRONMENT "LOTUS_SOCKET_NAMESPACE=ctest-${LOTUS_CTEST_SOCKET_NAMESPACE}")
 

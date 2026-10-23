@@ -98,6 +98,12 @@ namespace fcitx {
         void finishOverdueReplacement();
 
         /**
+         * @brief Commits the finished replacement, resets its counters and replays buffered keys.
+         * @param resetEngine True when the engine state is unknown (deadline path) and must be dropped.
+         */
+        void commitFinishedReplacement(bool resetEngine);
+
+        /**
          * @brief Commits the current buffer.
          */
         void commitBuffer();
@@ -144,7 +150,8 @@ namespace fcitx {
         bool                                  trackingModifierTap_   = false; ///< Selected modifier held, waiting for consecutive keyup
         bool                                  macroSkip_             = false; ///< Macro disabled for the current word
         bool                                  isLibreoffice          = false;
-        int64_t                               replacementDeadlineMs_ = 0; ///< ms by which every injected backspace must be echoed (0 = no replacement in flight)
+        int64_t                               replacementDeadlineMs_ = 0;                  ///< ms by which every injected backspace must be echoed (0 = no replacement in flight)
+        KeySym                                expectedAckSym_        = FcitxKey_BackSpace; ///< Echo key kind of the in-flight replacement
         std::chrono::steady_clock::time_point lastCommitTime_;
 
         /**

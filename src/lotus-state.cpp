@@ -940,6 +940,7 @@ namespace fcitx {
     }
 
     void LotusState::keyEvent(KeyEvent& keyEvent) {
+        trackShiftModifier(keyEvent);
         if (handleKeyEventGuards(keyEvent))
             return;
         ensureUinputConnection();
@@ -1086,13 +1087,13 @@ namespace fcitx {
                 }
                 return true;
             } else {
-                KeySym    symToBuffer   = currentSym;
-                KeyStates stateToBuffer = keyEvent.rawKey().states();
-                if (currentMode() == LotusMode::Select && currentBackspaceCount_ < expectedBackspaces_ && stateToBuffer.test(KeyState::Shift)) {
-                    symToBuffer   = unshiftKeySym(symToBuffer);
-                    stateToBuffer = stateToBuffer.unset(KeyState::Shift);
-                }
-                std::string keyUtf8Check = Key::keySymToUTF8(symToBuffer);
+                // The modifier is not decided here: at press time the echo counter
+                // is a racy proxy for the uinput server's Shift hold in Select
+                // mode. The raw event is buffered and the modifier is chosen when
+                // the key is popped for replay, see replayBufferedKeys().
+                KeySym      symToBuffer   = currentSym;
+                KeyStates   stateToBuffer = keyEvent.rawKey().states();
+                std::string keyUtf8Check  = Key::keySymToUTF8(symToBuffer);
                 if (!keyUtf8Check.empty()) {
                     LOTUS_WARN("Typing so fast, add key to queue");
                     bufferedKeys_.push({.sym = symToBuffer, .state = stateToBuffer});
@@ -1362,9 +1363,21 @@ namespace fcitx {
     void LotusState::replayBufferedKeys() {
         LOTUS_INFO("Starting replay buffered keys");
         while (!bufferedKeys_.empty()) {
-            const KeyEntry entry        = bufferedKeys_.pop();
-            auto           sym          = static_cast<KeySym>(entry.sym);
-            uint32_t       state        = entry.state;
+            const KeyEntry entry = bufferedKeys_.pop();
+            auto           sym   = static_cast<KeySym>(entry.sym);
+            KeyStates      state(entry.state);
+            // The modifier is chosen at pop time, not at press time. Replay
+            // runs after the replacement burst finished, so the uinput server
+            // has already released the synthetic Shift it held for the
+            // Shift+Left selection. A stored Shift bit is therefore stripped
+            // unless Shift is still physically held right now (tracked live
+            // from key events), which means the user is holding it for a
+            // genuine capital letter. Backspace-driven modes never touch
+            // Shift, so their state is replayed untouched.
+            if (currentMode() == LotusMode::Select && state.test(KeyState::Shift) && !isShiftHeld()) {
+                sym   = unshiftKeySym(sym);
+                state = state.unset(KeyState::Shift);
+            }
             const uint32_t keyCodePoint = Key::keySymToUnicode(sym);
             if (keyCodePoint == 0U) {
                 continue;
@@ -1466,6 +1479,19 @@ namespace fcitx {
 
     void LotusState::cancelModifierTap() {
         trackingModifierTap_ = false;
+    }
+
+    void LotusState::trackShiftModifier(const KeyEvent& keyEvent) {
+        const KeySym sym = keyEvent.rawKey().sym();
+        if (sym == FcitxKey_Shift_L) {
+            shiftLeftHeld_.store(!keyEvent.isRelease(), std::memory_order_release);
+        } else if (sym == FcitxKey_Shift_R) {
+            shiftRightHeld_.store(!keyEvent.isRelease(), std::memory_order_release);
+        }
+    }
+
+    bool LotusState::isShiftHeld() const {
+        return shiftLeftHeld_.load(std::memory_order_acquire) || shiftRightHeld_.load(std::memory_order_acquire);
     }
 
     void LotusState::reEnableMacroAfterWordEnd() {

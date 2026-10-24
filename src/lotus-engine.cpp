@@ -739,6 +739,9 @@ namespace fcitx {
         const bool surrvalid       = ic->surroundingText().isValid();
         const bool isDbus          = getFrontendName(ic) == "dbus";
         state->lastDeactivateTime_ = nowMs();
+        if (event.type() == EventType::InputContextFocusOut) {
+            state->forgetShiftState();
+        }
         if (currentMode() == LotusMode::Preedit && event.type() != EventType::InputContextFocusOut) {
             state->commitBuffer();
         } else {

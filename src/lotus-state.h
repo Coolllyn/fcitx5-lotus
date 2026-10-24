@@ -21,7 +21,6 @@
 #include "common-protocol.h"
 #include "lotus-utils.h"
 
-#include <atomic>
 #include <chrono>
 #include <cstddef>
 #include <fcitx-utils/event.h>
@@ -143,8 +142,7 @@ namespace fcitx {
         int64_t                               deletionInterruptedAt_ = 0;     ///< when deactivate() cut an in-flight replacement (0 = none)
         bool                                  deferredFocusOut_      = false; ///< uinput focus-out reset waiting for activate()
         bool                                  trackingModifierTap_   = false; ///< Selected modifier held, waiting for consecutive keyup
-        std::atomic<bool>                     shiftLeftHeld_         = false; ///< Live Shift_L press state tracked from key events
-        std::atomic<bool>                     shiftRightHeld_        = false; ///< Live Shift_R press state tracked from key events
+        bool                                  shiftHeld_             = false; ///< Live Shift press state tracked from key events
         bool                                  macroSkip_             = false; ///< Macro disabled for the current word
         bool                                  isLibreoffice          = false;
         int64_t                               replacementDeadlineMs_ = 0; ///< ms by which every injected backspace must be echoed (0 = no replacement in flight)
@@ -439,6 +437,11 @@ namespace fcitx {
          * @return True while either Shift key is pressed without its release.
          */
         [[nodiscard]] bool isShiftHeld() const;
+
+        /**
+         * @brief Forgets the tracked Shift state, e.g. after a focus-out may have swallowed a release.
+         */
+        void forgetShiftState();
 
         /**
          * @brief Re-enables macro when the current word ends (engine preedit empty).

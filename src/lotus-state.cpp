@@ -1384,7 +1384,7 @@ namespace fcitx {
             }
             const std::u32string keyText(1, static_cast<char32_t>(keyCodePoint));
 
-            bool                 processed = lotusEngine_->processKey(engineKeyValue(sym), lotus::keyStatesFromBits(state));
+            bool                 processed = lotusEngine_->processKey(engineKeyValue(sym), lotus::keyStatesFromBits(state.toInteger()));
 
             const std::u32string commitStr = pullCommitString();
             if (!commitStr.empty()) {
@@ -1483,15 +1483,17 @@ namespace fcitx {
 
     void LotusState::trackShiftModifier(const KeyEvent& keyEvent) {
         const KeySym sym = keyEvent.rawKey().sym();
-        if (sym == FcitxKey_Shift_L) {
-            shiftLeftHeld_.store(!keyEvent.isRelease(), std::memory_order_release);
-        } else if (sym == FcitxKey_Shift_R) {
-            shiftRightHeld_.store(!keyEvent.isRelease(), std::memory_order_release);
+        if (sym == FcitxKey_Shift_L || sym == FcitxKey_Shift_R) {
+            shiftHeld_ = !keyEvent.isRelease();
         }
     }
 
     bool LotusState::isShiftHeld() const {
-        return shiftLeftHeld_.load(std::memory_order_acquire) || shiftRightHeld_.load(std::memory_order_acquire);
+        return shiftHeld_;
+    }
+
+    void LotusState::forgetShiftState() {
+        shiftHeld_ = false;
     }
 
     void LotusState::reEnableMacroAfterWordEnd() {

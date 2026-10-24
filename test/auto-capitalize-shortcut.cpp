@@ -16,16 +16,21 @@
 namespace {
 
     struct Fixture {
-        TestInstance                      testInstance;
+        TestInstance&                     testInstance;
         fcitx::LotusEngine                engine;
         std::unique_ptr<TestInputContext> context;
         fcitx::InputMethodEntry           entry;
-        Fixture() : engine(&testInstance.instance), entry("lotus", "Lotus", "vi", "lotus") {
+
+        explicit Fixture(TestInstance& instance) : testInstance(instance), engine(&instance.instance), entry("lotus", "Lotus", "vi", "lotus") {
             fcitx::RawConfig config;
             config.setValueByPath("Mode", "Uinput (Smooth)");
             config.setValueByPath("InputMethod", "Telex");
             config.setValueByPath("AutoCapitalizeAfterPunctuation", "True");
             engine.setConfig(config);
+        }
+
+        /// Fresh input context: every case starts with an empty sentence state, and one instance serves them all.
+        void newSession() {
             context = std::make_unique<TestInputContext>(&testInstance.instance);
             context->focusIn();
             fcitx::InputContextEvent focus(context.get(), fcitx::EventType::InputContextFocusIn);
@@ -49,10 +54,12 @@ namespace {
 
 int main() {
     configureTestPaths("fcitx5-lotus-auto-capitalize-shortcut");
+    TestInstance testInstance;
 
     // (a) Shortcut punctuation never ends a sentence.
     {
-        Fixture f;
+        Fixture f(testInstance);
+        f.newSession();
         if (!f.engine.config().autoCapitalizeAfterPunctuation.value()) {
             reportFailure("enable AutoCapitalizeAfterPunctuation", "option is on", "option is off", "the test cannot exercise sentence capitalization");
             return 1;
@@ -69,7 +76,8 @@ int main() {
 
     // (b) Control: real punctuation still ends a sentence (no regression).
     {
-        Fixture f;
+        Fixture f(testInstance);
+        f.newSession();
         sendKey(f, FcitxKey_period);
         sendKey(f, FcitxKey_space);
         const fcitx::KeySym next = sendKey(f, FcitxKey_w);
@@ -82,7 +90,8 @@ int main() {
 
     // (c) Pending punctuation survives a shortcut before Space arms it.
     {
-        Fixture f;
+        Fixture f(testInstance);
+        f.newSession();
         sendKey(f, FcitxKey_period);
         // Fcitx normalizes Ctrl+c to Ctrl+C at the event layer; what matters
         // here is that the shortcut leaves the pending punctuation alone.
@@ -97,7 +106,8 @@ int main() {
 
     // (d) Alt variant of (a): Alt+. never ends a sentence either.
     {
-        Fixture f;
+        Fixture f(testInstance);
+        f.newSession();
         sendKey(f, FcitxKey_period, fcitx::KeyState::Alt);
         sendKey(f, FcitxKey_space);
         const fcitx::KeySym next = sendKey(f, FcitxKey_a);
@@ -111,7 +121,8 @@ int main() {
     // (e) Shift+? still ends a sentence: normalize strips Shift for unicode syms,
     // so the guard sees it as typed punctuation, not a shortcut.
     {
-        Fixture f;
+        Fixture f(testInstance);
+        f.newSession();
         sendKey(f, FcitxKey_question, fcitx::KeyState::Shift);
         sendKey(f, FcitxKey_space);
         const fcitx::KeySym next = sendKey(f, FcitxKey_w);
@@ -127,7 +138,8 @@ int main() {
     // shortcuts are unobservable at the key-event layer (a shortcut may have
     // deleted the punctuation), so preserve is the rule.
     {
-        Fixture f;
+        Fixture f(testInstance);
+        f.newSession();
         sendKey(f, FcitxKey_period);
         sendKey(f, FcitxKey_a, fcitx::KeyState::Ctrl);
         sendKey(f, FcitxKey_space);

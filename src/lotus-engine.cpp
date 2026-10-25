@@ -418,6 +418,7 @@ namespace fcitx {
         state->deletionInterruptedAt_ = 0;
 
         if (!resumeReplacement) {
+            LotusState::cancelPendingUinput();
             g_isDeleting.store(false, std::memory_order_release);
         }
 
@@ -732,6 +733,10 @@ namespace fcitx {
         if (uinputMode && g_isDeleting.load(std::memory_order_acquire) && state->expectedBackspaces_ > 0) {
             state->lastDeactivateTime_    = nowMs();
             state->deletionInterruptedAt_ = state->lastDeactivateTime_;
+            if (currentMode() == LotusMode::Select) {
+                // Unfocused injected keys are never echoed back: cancel the burst right away.
+                state->abortPendingUinputReplacement();
+            }
             LOTUS_INFO("Replacement interrupted by focus out");
             return;
         }

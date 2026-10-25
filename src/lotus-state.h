@@ -146,7 +146,14 @@ namespace fcitx {
         bool                                  macroSkip_             = false; ///< Macro disabled for the current word
         bool                                  isLibreoffice          = false;
         int64_t                               replacementDeadlineMs_ = 0; ///< ms by which every injected backspace must be echoed (0 = no replacement in flight)
+        int64_t                               replacementEchoGrace_  = 0; ///< deadline grace re-armed on each echo
         std::chrono::steady_clock::time_point lastCommitTime_;
+
+        // Replacement aborted at focus-out, committed once focus returns.
+        bool           uinputAbortPending_ = false; ///< aborted replacement awaiting its commit
+        std::u32string stashedCommit_;              ///< replacement text that must not be lost
+        std::u32string stashedNewWord_;             ///< post-replacement word (oldPreBuffer_ at abort time)
+        int64_t        uinputAbortTimeMs_ = 0;      ///< when the abort happened
 
         /**
          * @brief Performs a reset without the uinput focus-out deferral.
@@ -187,6 +194,26 @@ namespace fcitx {
          * @param postDelay Delay in milliseconds after completing the keyboard operation.
          */
         static void sendSelectUinput(size_t count, uint32_t preDelay, uint32_t interval, uint32_t postDelay);
+
+        /**
+         * @brief Sends Cancel to drop the keys still pending from the in-flight replacement.
+         */
+        static void cancelPendingUinput();
+
+        /**
+         * @brief Cancels the in-flight burst and stashes the replacement text for the refocus commit.
+         */
+        void abortPendingUinputReplacement();
+
+        /**
+         * @brief Commits the replacement text stashed at focus-out; stale stashes are dropped.
+         */
+        void reconcileAbortedUinputReplacement();
+
+        /**
+         * @brief Drops the stash of an aborted replacement and replays buffered keys.
+         */
+        void dropAbortedUinputStash();
 
         /**
          * @brief Handles the pre-dispatch guards of a key event (engine presence, shift in

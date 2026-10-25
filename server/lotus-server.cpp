@@ -386,7 +386,36 @@ int main(int argc, char* argv[]) {
                         LotusLogger::instance().info("Shift state unknown, using safe Backspace fallback instead of Shift+Left");
                     }
                 }
-                if (msg.count > 0 && op == KbOp::Select) {
+                if (op == KbOp::Cancel) {
+                    // Finish the burst instead of leaving a partial selection behind: the
+                    // Select handler taps its first Shift+Left before any later message
+                    // (same socket, FIFO order), so a selection already exists here.
+                    if (pendingSelectAnchor) {
+                        if (pendingSelects > 0) {
+                            if (!shiftHeld) {
+                                uinput.sendShiftDown(KEY_LEFTSHIFT);
+                                shiftHeld = true;
+                            }
+                            while (pendingSelects > 0) {
+                                std::this_thread::sleep_for(std::chrono::milliseconds(currentInterval));
+                                uinput.sendTap(KEY_LEFT);
+                                --pendingSelects;
+                            }
+                        }
+                        if (shiftHeld) {
+                            uinput.sendShiftUp(KEY_LEFTSHIFT);
+                            shiftHeld = false;
+                        }
+                        uinput.sendTap(KEY_DELETE);
+                    } else if (shiftHeld) {
+                        uinput.sendShiftUp(KEY_LEFTSHIFT);
+                        shiftHeld = false;
+                    }
+                    pendingBackspaces   = 0;
+                    pendingSelects      = 0;
+                    pendingAnchor       = false;
+                    pendingSelectAnchor = false;
+                } else if (msg.count > 0 && op == KbOp::Select) {
                     if (msg.preDelay > 0) {
                         std::this_thread::sleep_for(std::chrono::milliseconds(msg.preDelay));
                     }
@@ -397,7 +426,8 @@ int main(int argc, char* argv[]) {
                     }
                     std::this_thread::sleep_for(std::chrono::milliseconds(currentInterval));
                     uinput.sendTap(KEY_LEFT);
-                    pendingSelects      = msg.count - 1;
+                    // A previous burst may still be draining.
+                    pendingSelects += msg.count - 1;
                     pendingSelectAnchor = true;
                     pendingAnchor       = false;
 

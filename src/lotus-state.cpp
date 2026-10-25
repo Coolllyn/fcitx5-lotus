@@ -121,6 +121,82 @@ namespace fcitx {
         sendKbMsg(KbOp::Select, count, preDelay, interval, postDelay);
     }
 
+    void LotusState::cancelPendingUinput() {
+        if (!g_isDeleting.load(std::memory_order_acquire)) {
+            return;
+        }
+        sendKbMsg(KbOp::Cancel, 0, 0, 0, 0);
+        LOTUS_INFO("Cancel the burst still pending on the uinput server");
+    }
+
+    void LotusState::abortPendingUinputReplacement() {
+        if (!g_isDeleting.load(std::memory_order_acquire)) {
+            return;
+        }
+        cancelPendingUinput();
+        // The server finishes the selection on Cancel, so the old text is always
+        // fully removed: stash the replacement text for the refocus commit.
+        stashedCommit_      = pendingCommitString_;
+        stashedNewWord_     = oldPreBuffer_;
+        uinputAbortTimeMs_  = nowMs();
+        uinputAbortPending_ = !stashedCommit_.empty() || !bufferedKeys_.empty();
+        pendingCommitString_.clear();
+        expectedBackspaces_    = 0;
+        currentBackspaceCount_ = 0;
+        replacementDeadlineMs_ = 0;
+        deletionInterruptedAt_ = 0;
+        g_isDeleting.store(false, std::memory_order_release);
+
+        oldPreBuffer_.clear();
+        hasHistory_   = false;
+        deferCommits_ = getFrontendName(&ic_) == "dbus";
+    }
+
+    void LotusState::dropAbortedUinputStash() {
+        stashedCommit_.clear();
+        stashedNewWord_.clear();
+        uinputAbortTimeMs_ = 0;
+        (*lotusEngine_).reset();
+        oldPreBuffer_.clear();
+        hasHistory_   = false;
+        deferCommits_ = getFrontendName(&ic_) == "dbus";
+        if (!bufferedKeys_.empty()) {
+            replayBufferedKeys();
+        }
+        flushCommitBatch();
+    }
+
+    void LotusState::reconcileAbortedUinputReplacement() {
+        if (!uinputAbortPending_) {
+            return;
+        }
+        uinputAbortPending_ = false;
+
+        // Stale abort: the context stayed away too long, likely a real application switch.
+        if (uinputAbortTimeMs_ != 0 && nowMs() - uinputAbortTimeMs_ > 2000) {
+            LOTUS_INFO("Drop the replacement aborted at focus out: it went stale");
+            dropAbortedUinputStash();
+            return;
+        }
+
+        if (stashedCommit_.empty()) {
+            // Nothing to put back; the buffered keys replay as fresh input.
+            dropAbortedUinputStash();
+            return;
+        }
+
+        // The server-side Cancel finished the selection: the replacement text belongs at the cursor.
+        appendCommit(stashedCommit_);
+        oldPreBuffer_ = stashedNewWord_;
+        hasHistory_   = !stashedNewWord_.empty();
+        deferCommits_ = getFrontendName(&ic_) == "dbus";
+        if (!bufferedKeys_.empty()) {
+            replayBufferedKeys();
+        }
+        flushCommitBatch();
+        LOTUS_INFO("Commit the replacement text aborted at focus out");
+    }
+
     bool LotusState::isAutofillCertain(const SurroundingText& s) {
         if (!s.isValid() || oldPreBuffer_.empty()) {
             return false;
@@ -439,9 +515,12 @@ namespace fcitx {
             return false;
         }
         currentBackspaceCount_ += 1;
-        if (currentBackspaceCount_ <= expectedBackspaces_) {
+        if (currentBackspaceCount_ <= expectedBackspaces_ && currentSym != FcitxKey_Pause) {
+            // Re-arm the deadline so a slow burst is never abandoned.
+            replacementDeadlineMs_ = nowMs() + replacementEchoGrace_;
             return false; // Allow intermediate backspaces/lefts to reach the app to clear autofill/old text / extend the selection.
         }
+        // The anchor closes the burst even if echoes are lost.
         finishReplacement(event);
         return true;
     }
@@ -482,6 +561,7 @@ namespace fcitx {
 
         const int64_t injectMs = static_cast<int64_t>(expectedBackspaces_) * static_cast<int64_t>(interval);
         replacementDeadlineMs_ = nowMs() + static_cast<int64_t>(preDelay) + injectMs + static_cast<int64_t>(postDelay) + kReplacementAckSlackMs;
+        replacementEchoGrace_  = static_cast<int64_t>(interval) + static_cast<int64_t>(postDelay) + kReplacementAckSlackMs;
         // Select mode: the uinput server selects with Shift+Left instead. The
         // trigger-key compensation above still applies because the last echoed
         // Left is swallowed; autofill compensation does not, see above.
@@ -610,69 +690,83 @@ namespace fcitx {
         }
         const std::u32string keyText(1, static_cast<char32_t>(keyCodePoint));
 
-        bool                 processed = lotusEngine_->processKey(engineKeyValue(currentSym), lotus::keyStatesFromBits(static_cast<uint32_t>(keyEvent.rawKey().states())));
+        // One restart pass: a key that invalidates an already committed syllable makes the
+        // fallback restore the raw key strokes, which must not rewrite the committed word.
+        for (int pass = 0;; ++pass) {
+            bool                 processed = lotusEngine_->processKey(engineKeyValue(currentSym), lotus::keyStatesFromBits(static_cast<uint32_t>(keyEvent.rawKey().states())));
 
-        const std::u32string commitStr = pullCommitString();
-        if (!commitStr.empty()) {
-            DiffPart diffPart = compareAndSplitU32(oldPreBuffer_, commitStr);
+            const std::u32string commitStr = pullCommitString();
+            if (!commitStr.empty()) {
+                DiffPart diffPart = compareAndSplitU32(oldPreBuffer_, commitStr);
 
-            if (!diffPart.deletedPart.empty()) {
-                performReplacement(diffPart);
-                keyEvent.filterAndAccept();
-            } else {
-                bool wasAutoCapitalized = (currentSym != keyEvent.rawKey().sym());
-                if (!diffPart.addedPart.empty() && (keyText != diffPart.addedPart || wasAutoCapitalized)) {
-                    // Prevent auto-capitalized character replacement from stripping out Vietnamese chars
-                    if (diffPart.addedPart.size() > 1 && diffPart.addedPart.back() == U' ') {
-                        // Stripping the trigger key (space) from addedPart
-                        diffPart.addedPart.remove_suffix(1);
-                    }
-                    lotus::fcitx_text::commit(&ic_, diffPart.addedPart, lastCommitTime_);
+                if (!diffPart.deletedPart.empty()) {
+                    performReplacement(diffPart);
                     keyEvent.filterAndAccept();
                 } else {
-                    keyEvent.forward();
+                    bool wasAutoCapitalized = (currentSym != keyEvent.rawKey().sym());
+                    if (!diffPart.addedPart.empty() && (keyText != diffPart.addedPart || wasAutoCapitalized)) {
+                        // Prevent auto-capitalized character replacement from stripping out Vietnamese chars
+                        if (diffPart.addedPart.size() > 1 && diffPart.addedPart.back() == U' ') {
+                            // Stripping the trigger key (space) from addedPart
+                            diffPart.addedPart.remove_suffix(1);
+                        }
+                        lotus::fcitx_text::commit(&ic_, diffPart.addedPart, lastCommitTime_);
+                        keyEvent.filterAndAccept();
+                    } else {
+                        keyEvent.forward();
+                    }
                 }
-            }
 
-            hasHistory_ = false;
-            (*lotusEngine_).reset();
-            oldPreBuffer_.clear();
-
-            return;
-        }
-
-        if (!processed) {
-            const std::u32string preeditCurrent = pullPreeditString();
-            if (preeditCurrent.empty()) {
                 hasHistory_ = false;
                 (*lotusEngine_).reset();
                 oldPreBuffer_.clear();
-                keyEvent.forward();
+
+                return;
             }
-            return;
-        }
 
-        hasHistory_ = true;
-        g_realTextLen.fetch_add(1, std::memory_order_acq_rel);
-
-        const std::u32string preeditStr = pullPreeditString();
-
-        DiffPart             diffPart = compareAndSplitU32(oldPreBuffer_, preeditStr);
-        if (diffPart.deletedPart.empty()) {
-            bool isCommit           = false;
-            bool wasAutoCapitalized = (currentSym != keyEvent.rawKey().sym());
-            if (!diffPart.addedPart.empty()) {
-                oldPreBuffer_ = preeditStr;
-                if (wasAutoCapitalized || diffPart.addedPart != keyText) {
-                    lotus::fcitx_text::commit(&ic_, diffPart.addedPart, lastCommitTime_);
-                    keyEvent.filterAndAccept();
-                    isCommit = true;
+            if (!processed) {
+                const std::u32string preeditCurrent = pullPreeditString();
+                if (preeditCurrent.empty()) {
+                    hasHistory_ = false;
+                    (*lotusEngine_).reset();
+                    oldPreBuffer_.clear();
+                    keyEvent.forward();
                 }
+                return;
             }
-            if (!isCommit) {
-                keyEvent.forward();
+
+            hasHistory_ = true;
+            g_realTextLen.fetch_add(1, std::memory_order_acq_rel);
+
+            const std::u32string preeditStr = pullPreeditString();
+
+            DiffPart             diffPart = compareAndSplitU32(oldPreBuffer_, preeditStr);
+            if (diffPart.deletedPart.empty()) {
+                bool isCommit           = false;
+                bool wasAutoCapitalized = (currentSym != keyEvent.rawKey().sym());
+                if (!diffPart.addedPart.empty()) {
+                    oldPreBuffer_ = preeditStr;
+                    if (wasAutoCapitalized || diffPart.addedPart != keyText) {
+                        lotus::fcitx_text::commit(&ic_, diffPart.addedPart, lastCommitTime_);
+                        keyEvent.filterAndAccept();
+                        isCommit = true;
+                    }
+                }
+                if (!isCommit) {
+                    keyEvent.forward();
+                }
+                return;
             }
-        } else {
+
+            // The committed word was transformed and the continuation invalidates it: keep the
+            // committed word and restart the word from this key.
+            if (pass == 0 && lotusEngine_->isNonVnRestore()) {
+                hasHistory_ = false;
+                (*lotusEngine_).reset();
+                oldPreBuffer_.clear();
+                continue;
+            }
+
             if (g_uinputClientFd.load(std::memory_order_acquire) < 0) {
                 LOTUS_ERROR("Cannot connect to uinput server, commit rawkey");
                 std::string rawKey = keyEvent.key().toString();
@@ -689,6 +783,7 @@ namespace fcitx {
             keyEvent.filterAndAccept();
             performReplacement(diffPart);
             oldPreBuffer_ = preeditStr;
+            return;
         }
     }
 
@@ -951,6 +1046,7 @@ namespace fcitx {
             g_mouseClicked.store(false, std::memory_order_release);
             clearAllBuffers();
         }
+        reconcileAbortedUinputReplacement();
         KeySym currentSym = keyEvent.rawKey().sym();
         applyAutoCapitalize(keyEvent, currentSym);
 
@@ -997,6 +1093,7 @@ namespace fcitx {
             return;
         }
 
+        cancelPendingUinput();
         LOTUS_WARN("Replacement ack timed out, finishing without the remaining backspace echoes");
         appendCommit(pendingCommitString_);
         pendingCommitString_.clear();
@@ -1290,7 +1387,11 @@ namespace fcitx {
         }
         resetMacroSkip();
         oldPreBuffer_.clear();
-        hasHistory_ = false;
+        hasHistory_         = false;
+        uinputAbortPending_ = false;
+        stashedCommit_.clear();
+        stashedNewWord_.clear();
+        uinputAbortTimeMs_ = 0;
         if (!g_isDeleting.load(std::memory_order_acquire)) {
             expectedBackspaces_    = 0;
             currentBackspaceCount_ = 0;
@@ -1384,51 +1485,65 @@ namespace fcitx {
             }
             const std::u32string keyText(1, static_cast<char32_t>(keyCodePoint));
 
-            bool                 processed = lotusEngine_->processKey(engineKeyValue(sym), lotus::keyStatesFromBits(state.toInteger()));
+            // Same single restart pass as handleUinputMode: a replayed key that invalidates the
+            // committed syllable must not rewrite the committed word with raw key strokes.
+            bool replacementStarted = false;
+            for (int pass = 0;; ++pass) {
+                bool                 processed = lotusEngine_->processKey(engineKeyValue(sym), lotus::keyStatesFromBits(state.toInteger()));
 
-            const std::u32string commitStr = pullCommitString();
-            if (!commitStr.empty()) {
-                DiffPart diffPart = compareAndSplitU32(oldPreBuffer_, commitStr);
+                const std::u32string commitStr = pullCommitString();
+                if (!commitStr.empty()) {
+                    DiffPart diffPart = compareAndSplitU32(oldPreBuffer_, commitStr);
 
-                if (!diffPart.deletedPart.empty()) {
-                    flushCommitBatch();
-                    // Remaining keys stay queued for the next replay cycle.
-                    performReplacement(diffPart);
+                    if (!diffPart.deletedPart.empty()) {
+                        flushCommitBatch();
+                        // Remaining keys stay queued for the next replay cycle.
+                        performReplacement(diffPart);
+                        hasHistory_ = false;
+                        (*lotusEngine_).reset();
+                        oldPreBuffer_.clear();
+                        replacementStarted = true;
+                        break;
+                    }
+                    if (!diffPart.addedPart.empty()) {
+                        appendCommit(diffPart.addedPart);
+                    }
+
                     hasHistory_ = false;
                     (*lotusEngine_).reset();
                     oldPreBuffer_.clear();
-                    return;
-                }
-                if (!diffPart.addedPart.empty()) {
-                    appendCommit(diffPart.addedPart);
+                    break;
                 }
 
-                hasHistory_ = false;
-                (*lotusEngine_).reset();
-                oldPreBuffer_.clear();
-                continue;
-            }
-
-            if (!processed) {
-                appendCommit(keyText);
-                continue;
-            }
-
-            hasHistory_ = true;
-            g_realTextLen.fetch_add(1, std::memory_order_acq_rel);
-
-            const std::u32string preeditStr = pullPreeditString();
-
-            DiffPart             diffPart = compareAndSplitU32(oldPreBuffer_, preeditStr);
-            if (diffPart.deletedPart.empty()) {
-                if (!diffPart.addedPart.empty()) {
-                    appendCommit(diffPart.addedPart);
-                    oldPreBuffer_ = preeditStr;
+                if (!processed) {
+                    appendCommit(keyText);
+                    break;
                 }
-            } else {
+
+                hasHistory_ = true;
+                g_realTextLen.fetch_add(1, std::memory_order_acq_rel);
+
+                const std::u32string preeditStr = pullPreeditString();
+
+                DiffPart             diffPart = compareAndSplitU32(oldPreBuffer_, preeditStr);
+                if (diffPart.deletedPart.empty()) {
+                    if (!diffPart.addedPart.empty()) {
+                        appendCommit(diffPart.addedPart);
+                        oldPreBuffer_ = preeditStr;
+                    }
+                    break;
+                }
+
+                if (pass == 0 && lotusEngine_->isNonVnRestore()) {
+                    hasHistory_ = false;
+                    (*lotusEngine_).reset();
+                    oldPreBuffer_.clear();
+                    continue;
+                }
+
                 if (g_uinputClientFd.load(std::memory_order_acquire) < 0) {
                     appendCommit(keyText);
-                    continue;
+                    break;
                 }
 
                 if (g_isDeleting.load(std::memory_order_acquire)) {
@@ -1438,7 +1553,11 @@ namespace fcitx {
                 flushCommitBatch();
                 // Remaining keys stay queued for the next replay cycle.
                 performReplacement(diffPart);
-                oldPreBuffer_ = preeditStr;
+                oldPreBuffer_      = preeditStr;
+                replacementStarted = true;
+                break;
+            }
+            if (replacementStarted) {
                 return;
             }
         }

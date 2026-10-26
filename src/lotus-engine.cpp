@@ -408,7 +408,8 @@ namespace fcitx {
 
         updateCharsetAction(event.inputContext());
 
-        auto* state = ic->propertyFor(&factory_);
+        auto* state          = ic->propertyFor(&factory_);
+        state->isLibreoffice = (appName == "soffice");
         state->finishOverdueReplacement();
 
         const bool uinputMode         = isUinputMode(targetMode);
@@ -417,6 +418,7 @@ namespace fcitx {
         state->deletionInterruptedAt_ = 0;
 
         if (!resumeReplacement) {
+            LotusState::cancelPendingUinput();
             g_isDeleting.store(false, std::memory_order_release);
         }
 
@@ -731,6 +733,10 @@ namespace fcitx {
         if (uinputMode && g_isDeleting.load(std::memory_order_acquire) && state->expectedBackspaces_ > 0) {
             state->lastDeactivateTime_    = nowMs();
             state->deletionInterruptedAt_ = state->lastDeactivateTime_;
+            if (currentMode() == LotusMode::Select) {
+                // Unfocused injected keys are never echoed back: cancel the burst right away.
+                state->abortPendingUinputReplacement();
+            }
             LOTUS_INFO("Replacement interrupted by focus out");
             return;
         }
@@ -738,6 +744,9 @@ namespace fcitx {
         const bool surrvalid       = ic->surroundingText().isValid();
         const bool isDbus          = getFrontendName(ic) == "dbus";
         state->lastDeactivateTime_ = nowMs();
+        if (event.type() == EventType::InputContextFocusOut) {
+            state->forgetShiftState();
+        }
         if (currentMode() == LotusMode::Preedit && event.type() != EventType::InputContextFocusOut) {
             state->commitBuffer();
         } else {

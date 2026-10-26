@@ -18,6 +18,8 @@
 namespace {
     constexpr int64_t kNotifyCooldownMs = 60000;
 
+    constexpr int     kNotifyTimeoutMs = 20000;
+
     int64_t           lastNotifyMs = 0;
 
     struct GErrorDeleter {
@@ -88,6 +90,8 @@ void notifyMissingUinputServer() {
         LOTUS_WARN("Cannot create the uinput server notification");
         return;
     }
+    notify_notification_set_timeout(notification.get(), kNotifyTimeoutMs);
+    notify_notification_set_urgency(notification.get(), NOTIFY_URGENCY_NORMAL);
     GError*         error = nullptr;
     const bool      shown = notify_notification_show(notification.get(), &error) != FALSE;
     const GErrorPtr failure{error};

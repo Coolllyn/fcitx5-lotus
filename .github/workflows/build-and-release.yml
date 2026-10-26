@@ -184,12 +184,7 @@ jobs:
 
           cat > ~/.rpmmacros << EOF
           %_gpg_name ${KEYID}
-          %__gpg_sign_cmd %{__gpg} gpg \
-            --no-verbose --no-armor --batch \
-            --pinentry-mode loopback \
-            -u "%{_gpg_name}" \
-            -sbo %{__signature_filename} \
-            %{__plaintext_filename}
+          %_gpg_sign_cmd_extra_args --pinentry-mode loopback
           EOF
 
           for rpm in output/*.rpm; do
@@ -305,12 +300,7 @@ jobs:
 
           cat > ~/.rpmmacros << EOF
           %_gpg_name ${KEYID}
-          %__gpg_sign_cmd %{__gpg} gpg \
-            --no-verbose --no-armor --batch \
-            --pinentry-mode loopback \
-            -u "%{_gpg_name}" \
-            -sbo %{__signature_filename} \
-            %{__plaintext_filename}
+          %_gpg_sign_cmd_extra_args --pinentry-mode loopback
           EOF
 
           for rpm in output/*.rpm; do

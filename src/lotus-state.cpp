@@ -705,11 +705,6 @@ namespace fcitx {
                 } else {
                     bool wasAutoCapitalized = (currentSym != keyEvent.rawKey().sym());
                     if (!diffPart.addedPart.empty() && (keyText != diffPart.addedPart || wasAutoCapitalized)) {
-                        // Prevent auto-capitalized character replacement from stripping out Vietnamese chars
-                        if (diffPart.addedPart.size() > 1 && diffPart.addedPart.back() == U' ') {
-                            // Stripping the trigger key (space) from addedPart
-                            diffPart.addedPart.remove_suffix(1);
-                        }
                         lotus::fcitx_text::commit(&ic_, diffPart.addedPart, lastCommitTime_);
                         keyEvent.filterAndAccept();
                     } else {

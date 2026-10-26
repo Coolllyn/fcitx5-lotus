@@ -75,7 +75,7 @@
  */
 class TestInputContext final : public fcitx::InputContext {
   public:
-    explicit TestInputContext(fcitx::Instance* instance) : InputContext(instance->inputContextManager(), "test") {
+    explicit TestInputContext(fcitx::Instance* instance, const std::string& programName = "test") : InputContext(instance->inputContextManager(), programName) {
         // Fcitx5 lifecycle contract: notifies the InputContextManager that
         // this context is initialized and ready to receive events.
         created();

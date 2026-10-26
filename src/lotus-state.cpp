@@ -144,6 +144,7 @@ namespace fcitx {
         expectedBackspaces_    = 0;
         currentBackspaceCount_ = 0;
         replacementDeadlineMs_ = 0;
+        realSelect_            = false;
         deletionInterruptedAt_ = 0;
         g_isDeleting.store(false, std::memory_order_release);
 
@@ -198,10 +199,9 @@ namespace fcitx {
     }
 
     bool LotusState::isAutofillCertain(const SurroundingText& s) {
-        if (!s.isValid() || oldPreBuffer_.empty()) {
+        if (!s.isValid() || oldPreBuffer_.empty() || isChromium_) {
             return false;
         }
-
         auto               textRange = fcitx::utf8::MakeUTF8CharRange(s.text());
         std::u32string     u32Text(textRange.begin(), textRange.end());
 
@@ -494,6 +494,7 @@ namespace fcitx {
         expectedBackspaces_    = 0;
         currentBackspaceCount_ = 0;
         replacementDeadlineMs_ = 0;
+        realSelect_            = false;
         event.filterAndAccept();
         g_isDeleting.store(false, std::memory_order_release);
         if (deferCommits_) {
@@ -511,7 +512,7 @@ namespace fcitx {
         // In Select mode the uinput server emits Shift+Left, so the echoed Left
         // presses are the selection signal. The final one is swallowed in
         // finishReplacement so the app only sees the count it should select.
-        if (!isBackspace(currentSym) && (currentMode() != LotusMode::Select || currentSym != FcitxKey_Left) && !(currentSym == FcitxKey_Pause)) {
+        if (!isBackspace(currentSym) && (!realSelect_ || currentSym != FcitxKey_Left) && !(currentSym == FcitxKey_Pause)) {
             return false;
         }
         currentBackspaceCount_ += 1;
@@ -528,7 +529,7 @@ namespace fcitx {
     void LotusState::performReplacement(DiffPart diffPart) {
         // WA for libreoffice (issue #162)
         // force use deleteSurroundingText func
-        if (isLibreoffice) {
+        if (isLibreoffice_) {
             const int delSize = static_cast<int>(diffPart.deletedPart.size());
             if (delSize > 0) {
                 ic_.deleteSurroundingText(-delSize, delSize);
@@ -556,6 +557,9 @@ namespace fcitx {
         if (currentMode() != LotusMode::SuperSmooth && isAutofillCertain_) {
             ++expectedBackspaces_;
         }
+        const bool addressBar = isChromium_ && ic_.capabilityFlags().test(CapabilityFlag::Url);
+        realSelect_           = (currentMode() == LotusMode::Select && !isAutofillCertain_) || (isUinputMode(currentMode()) && addressBar);
+        lastSelect_           = realSelect_;
         g_isDeleting.store(true, std::memory_order_release);
         const auto    postDelay = static_cast<uint32_t>(clampDelay(appRuleSetting_.postDelay > 0 ? appRuleSetting_.postDelay : *engine_.config().defaultPostDelay));
 
@@ -565,7 +569,7 @@ namespace fcitx {
         // Select mode: the uinput server selects with Shift+Left instead. The
         // trigger-key compensation above still applies because the last echoed
         // Left is swallowed; autofill compensation does not, see above.
-        if (currentMode() == LotusMode::Select && !isAutofillCertain_) {
+        if (realSelect_) {
             sendSelectUinput(expectedBackspaces_, preDelay, interval, postDelay);
             LOTUS_INFO("Send select of " + std::to_string(expectedBackspaces_) + " characters");
             return;
@@ -1071,6 +1075,7 @@ namespace fcitx {
             currentBackspaceCount_ = 0;
             expectedBackspaces_    = 0;
             replacementDeadlineMs_ = 0;
+            realSelect_            = false;
             if (!bufferedKeys_.empty()) {
                 deferCommits_ = getFrontendName(&ic_) == "dbus";
                 replayBufferedKeys();
@@ -1095,6 +1100,7 @@ namespace fcitx {
         expectedBackspaces_    = 0;
         currentBackspaceCount_ = 0;
         deletionInterruptedAt_ = 0;
+        realSelect_            = false;
         g_isDeleting.store(false, std::memory_order_release);
 
         (*lotusEngine_).reset();
@@ -1167,7 +1173,7 @@ namespace fcitx {
             } else if (currentSym == FcitxKey_Pause) {
                 handleUInputKeyPress(keyEvent, currentSym);
                 return true;
-            } else if (currentMode() == LotusMode::Select && (currentSym == FcitxKey_Left || currentSym == FcitxKey_Delete)) {
+            } else if (realSelect_ && (currentSym == FcitxKey_Left || currentSym == FcitxKey_Delete)) {
                 if (currentSym == FcitxKey_Left) {
                     // Echoed left arrow extends the selection in the app: consume it as
                     // a selection signal, never buffer it for replay.
@@ -1457,6 +1463,7 @@ namespace fcitx {
     }
 
     void LotusState::replayBufferedKeys() {
+        const bool stripSelectShift = lastSelect_;
         LOTUS_INFO("Starting replay buffered keys");
         while (!bufferedKeys_.empty()) {
             const KeyEntry entry = bufferedKeys_.pop();
@@ -1470,7 +1477,7 @@ namespace fcitx {
             // from key events), which means the user is holding it for a
             // genuine capital letter. Backspace-driven modes never touch
             // Shift, so their state is replayed untouched.
-            if (currentMode() == LotusMode::Select && state.test(KeyState::Shift) && !isShiftHeld()) {
+            if (stripSelectShift && state.test(KeyState::Shift) && !isShiftHeld()) {
                 sym   = unshiftKeySym(sym);
                 state = state.unset(KeyState::Shift);
             }

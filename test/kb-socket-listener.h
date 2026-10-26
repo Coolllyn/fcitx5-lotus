@@ -140,6 +140,38 @@ class KbSocketListener {
         return fd_.isValid();
     }
 
+    /**
+     * @brief Reads a request that is already queued, without waiting.
+     *
+     * The addon writes a request synchronously inside the key event, so a test that must prove "no
+     * request happened" can check right after the key instead of waiting for a timeout.
+     * @param msg Request to fill.
+     * @return True when a request was already pending.
+     */
+    bool tryReceive(KbMsg& msg) {
+        if (!fd_.isValid()) {
+            return false;
+        }
+        if (!client_.isValid()) {
+            pollfd     pending{.fd = fd_.get(), .events = POLLIN, .revents = 0};
+            const auto accepted = poll(&pending, 1, 0);
+            if (accepted <= 0 || (static_cast<unsigned>(pending.revents) & static_cast<unsigned>(POLLIN)) == 0) {
+                return false;
+            }
+            client_ = FdGuard(accept(fd_.get(), nullptr, nullptr));
+            if (!client_.isValid()) {
+                return false;
+            }
+        }
+        pollfd     ready{.fd = client_.get(), .events = POLLIN | POLLHUP | POLLRDHUP, .revents = 0};
+        const auto polled = poll(&ready, 1, 0);
+        if (polled <= 0 || (static_cast<unsigned>(ready.revents) & static_cast<unsigned>(POLLIN)) == 0) {
+            return false;
+        }
+        const auto received = recv(client_.get(), &msg, sizeof(msg), 0);
+        return std::cmp_equal(received, sizeof(msg));
+    }
+
   private:
     static constexpr int kDefaultTimeoutMs = 5000;
 

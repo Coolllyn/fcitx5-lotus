@@ -124,6 +124,8 @@ namespace fcitx {
         bool                                  hasHistory_            = false;
         size_t                                expectedBackspaces_    = 0;
         size_t                                currentBackspaceCount_ = 0;
+        bool                                  realSelect_            = false; ///< when real shift +left is send
+        bool                                  lastSelect_            = false; ///< kind of the most recent burst, for replay
         std::u32string                        pendingCommitString_;
         std::u32string                        commitBatch_;                   ///< Text of the replacement batch, sent as one commitString
         std::unique_ptr<EventSourceTime>      deferredCommitTimer_;           ///< Pending dbus commit timer
@@ -144,7 +146,8 @@ namespace fcitx {
         bool                                  trackingModifierTap_   = false; ///< Selected modifier held, waiting for consecutive keyup
         bool                                  shiftHeld_             = false; ///< Live Shift press state tracked from key events
         bool                                  macroSkip_             = false; ///< Macro disabled for the current word
-        bool                                  isLibreoffice          = false;
+        bool                                  isLibreoffice_         = false;
+        bool                                  isChromium_            = false;
         int64_t                               replacementDeadlineMs_ = 0; ///< ms by which every injected backspace must be echoed (0 = no replacement in flight)
         int64_t                               replacementEchoGrace_  = 0; ///< deadline grace re-armed on each echo
         std::chrono::steady_clock::time_point lastCommitTime_;

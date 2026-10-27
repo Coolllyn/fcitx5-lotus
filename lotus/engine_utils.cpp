@@ -101,7 +101,7 @@ namespace lotus {
         }
         const std::u32string lastConsonants = flatten(lastConsonant, toMask(Mode::EnglishMode) | toMask(Mode::LowerCase));
         // These last consonants only go with the acute and dot tones.
-        constexpr std::array<std::u32string_view, 5> kDotWithConsonants = {U"c", U"k", U"p", U"t", U"ch"};
+        constexpr auto kDotWithConsonants = std::to_array<std::u32string_view>({U"c", U"k", U"p", U"t", U"ch"});
         return std::ranges::none_of(kDotWithConsonants, [&lastConsonants](std::u32string_view sequence) { return lastConsonants == sequence; });
     }
 
@@ -362,7 +362,7 @@ namespace lotus {
     }
 
     bool matchesUOhTail(std::u32string_view text) {
-        constexpr std::array<std::u32string_view, 2> kHeads = {U"uơ", U"ưo"};
+        constexpr auto kHeads = std::to_array<std::u32string_view>({U"uơ", U"ưo"});
         return std::ranges::any_of(kHeads, [text](std::u32string_view head) {
             for (std::size_t position = text.find(head); position != std::u32string_view::npos; position = text.find(head, position + 1U)) {
                 const std::size_t tail = position + head.size();

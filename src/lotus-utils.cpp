@@ -129,11 +129,11 @@ bool ensureUinputServerConnected() {
 bool isUinputMode(fcitx::LotusMode mode) {
     // Constant set, so unlike the configurable shortcuts elsewhere a static
     // table stays correct.
-    static const std::array<fcitx::LotusMode, 4> modes = {
+    static const auto modes = std::to_array<fcitx::LotusMode>({
         fcitx::LotusMode::Smooth,
         fcitx::LotusMode::SuperSmooth,
         fcitx::LotusMode::Select,
-    };
+    });
     return std::ranges::find(modes, mode) != modes.end();
 }
 

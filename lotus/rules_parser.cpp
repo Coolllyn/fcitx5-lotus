@@ -22,17 +22,17 @@
 namespace lotus {
 
     // Tone order used when expanding a mark rule, 1:1 with Go's ParseToneLessRule.
-    constexpr std::array<Tone, 6> kToneOrder = {Tone::None, Tone::Dot, Tone::Acute, Tone::Grave, Tone::Hook, Tone::Tilde};
+    constexpr auto kToneOrder = std::to_array<Tone>({Tone::None, Tone::Dot, Tone::Acute, Tone::Grave, Tone::Hook, Tone::Tilde});
 
     // Definition lines naming a tone, 1:1 with Go's tones map.
-    constexpr std::array<std::pair<std::string_view, Tone>, 6> kToneNames = {
-        std::pair<std::string_view, Tone>{"XoaDauThanh", Tone::None},
+    constexpr auto          kToneNames = std::to_array<std::pair<std::string_view, Tone>>({
+        {"XoaDauThanh", Tone::None},
         {"DauSac", Tone::Acute},
         {"DauHuyen", Tone::Grave},
         {"DauNga", Tone::Tilde},
         {"DauNang", Tone::Dot},
         {"DauHoi", Tone::Hook},
-    };
+    });
 
     std::optional<DslMatch> matchDsl(std::u32string_view line) {
         for (std::size_t start = 0; start < line.size(); ++start) {

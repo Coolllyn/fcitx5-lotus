@@ -35,18 +35,16 @@ namespace fcitx {
     /**
      * @brief Mode Order names, in the fallback order used when a name is not listed.
      */
-    inline constexpr std::array<ModeNameEntry, 9> kModeNames{
-        {
-            {.name = "Smooth", .mode = LotusMode::Smooth},
-            {.name = "Select", .mode = LotusMode::Select},
-            {.name = "SurroundingText", .mode = LotusMode::SurroundingText},
-            {.name = "Preedit", .mode = LotusMode::Preedit},
-            {.name = "Emoji", .mode = LotusMode::Emoji},
-            {.name = "Off", .mode = LotusMode::Off},
-            {.name = "SuperSmooth", .mode = LotusMode::SuperSmooth},
-            {.name = "Default", .mode = std::nullopt},
-        },
-    };
+    inline constexpr auto kModeNames = std::to_array<ModeNameEntry>({
+        {.name = "Smooth", .mode = LotusMode::Smooth},
+        {.name = "Select", .mode = LotusMode::Select},
+        {.name = "SurroundingText", .mode = LotusMode::SurroundingText},
+        {.name = "Preedit", .mode = LotusMode::Preedit},
+        {.name = "Emoji", .mode = LotusMode::Emoji},
+        {.name = "Off", .mode = LotusMode::Off},
+        {.name = "SuperSmooth", .mode = LotusMode::SuperSmooth},
+        {.name = "Default", .mode = std::nullopt},
+    });
 
     /**
      * @brief One mode resolved from Mode Order, in menu order.

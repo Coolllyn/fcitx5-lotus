@@ -49,14 +49,24 @@
 #include <sstream>
 
 namespace fcitx {
-    constexpr const char*                      CharsetActionPrefix = "lotus-charset-";
-    constexpr const char*                      CustomKeymapFile    = "conf/lotus-custom-keymap.conf";
-    constexpr const char*                      MacroTableFile      = "conf/lotus-macro-table.conf";
-    constexpr std::array<std::string_view, 12> chromiumList        = {
-        "chrome", "chromium", "brave", "edge", "vivaldi", "opera", "cromite", "helium", "thorium", "slimjet", "yandex", "coccoc",
-    };
+    constexpr const char* CharsetActionPrefix = "lotus-charset-";
+    constexpr const char* CustomKeymapFile    = "conf/lotus-custom-keymap.conf";
+    constexpr const char* MacroTableFile      = "conf/lotus-macro-table.conf";
+    constexpr auto        chromiumList        = std::to_array<std::string_view>({
+        "chrome",
+        "chromium",
+        "brave",
+        "edge",
+        "vivaldi",
+        "opera",
+        "cromite",
+        "helium",
+        "thorium",
+        "slimjet",
+        "yandex",
+    });
 
-    EmojiLoader& LotusEngine::emojiLoader() {
+    EmojiLoader&          LotusEngine::emojiLoader() {
         if (!emojiLoader_) {
             emojiLoader_ = std::make_unique<EmojiLoader>(&instance_.addonManager());
         }

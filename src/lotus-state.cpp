@@ -645,6 +645,9 @@ namespace fcitx {
     }
 
     void LotusState::commitOrReplace(DiffPart diffPart, const std::string& logMsg) {
+        // Only used by optional double-space and double-hyphen replacements.
+        // Both currently delete exactly one code point; normal typing uses
+        // separate mode-specific handlers.
         if (currentMode() == LotusMode::SurroundingText) {
             ic_.deleteSurroundingText(-1, 1);
             lotus::fcitx_text::commit(&ic_, diffPart.addedPart, lastCommitTime_);

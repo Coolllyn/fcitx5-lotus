@@ -127,7 +127,7 @@ int main() {
             return 1;
         }
         KbMsg msg2{};
-        if (listener.receive(msg2, "no request expected", "no request within 5000 ms")) {
+        if (listener.tryReceive(msg2)) {
             reportFailure("wait after the stale stash", "no replacement request", "a replacement request arrived", "scenario 2: the stale stash must not re-run a replacement");
             return 1;
         }

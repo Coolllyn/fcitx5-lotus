@@ -49,11 +49,14 @@
 #include <sstream>
 
 namespace fcitx {
-    constexpr const char* CharsetActionPrefix = "lotus-charset-";
-    constexpr const char* CustomKeymapFile    = "conf/lotus-custom-keymap.conf";
-    constexpr const char* MacroTableFile      = "conf/lotus-macro-table.conf";
+    constexpr const char*                      CharsetActionPrefix = "lotus-charset-";
+    constexpr const char*                      CustomKeymapFile    = "conf/lotus-custom-keymap.conf";
+    constexpr const char*                      MacroTableFile      = "conf/lotus-macro-table.conf";
+    constexpr std::array<std::string_view, 12> chromiumList        = {
+        "chrome", "chromium", "brave", "edge", "vivaldi", "opera", "cromite", "helium", "thorium", "slimjet", "yandex", "coccoc",
+    };
 
-    EmojiLoader&          LotusEngine::emojiLoader() {
+    EmojiLoader& LotusEngine::emojiLoader() {
         if (!emojiLoader_) {
             emojiLoader_ = std::make_unique<EmojiLoader>(&instance_.addonManager());
         }
@@ -408,8 +411,9 @@ namespace fcitx {
 
         updateCharsetAction(event.inputContext());
 
-        auto* state          = ic->propertyFor(&factory_);
-        state->isLibreoffice = (appName == "soffice");
+        auto* state           = ic->propertyFor(&factory_);
+        state->isLibreoffice_ = (appName == "soffice");
+        state->isChromium_    = std::ranges::any_of(chromiumList, [&appName](std::string_view app) { return appName.find(app) != std::string::npos; });
         state->finishOverdueReplacement();
 
         const bool uinputMode         = isUinputMode(targetMode);
@@ -733,7 +737,7 @@ namespace fcitx {
         if (uinputMode && g_isDeleting.load(std::memory_order_acquire) && state->expectedBackspaces_ > 0) {
             state->lastDeactivateTime_    = nowMs();
             state->deletionInterruptedAt_ = state->lastDeactivateTime_;
-            if (currentMode() == LotusMode::Select) {
+            if (state->realSelect_) {
                 // Unfocused injected keys are never echoed back: cancel the burst right away.
                 state->abortPendingUinputReplacement();
             }
@@ -1225,9 +1229,12 @@ namespace fcitx {
                 g_mouseClicked.store(true, std::memory_order_release);
                 instance_.inputContextManager().foreachFocused([this](InputContext* ic) {
                     if (ic) {
-                        auto* state = ic->propertyFor(&factory_);
-                        if (state) {
-                            state->clearAllBuffers();
+                        if (auto* state = ic->propertyFor(&factory_)) {
+                            if (currentMode() == LotusMode::Preedit && !ic->capabilityFlags().test(CapabilityFlag::ClientSideInputPanel)) {
+                                state->commitBuffer();
+                            } else {
+                                state->clearAllBuffers();
+                            }
                         }
                     }
                     return true;

@@ -78,7 +78,7 @@ namespace fcitx {
 
         /**
          * @brief Resets the input state.
-         * @param isFocusOut If true, indicates the reset is due to a focus-out event, which may trigger committing the preedit text.
+         * @param isFocusOut If true, the reset comes from a focus-out event. Focus-out never commits text: fcitx5 core or the client (CapabilityFlag::ClientUnfocusCommit) owns that commit.
          */
         void reset(bool isFocusOut = false);
 
@@ -124,6 +124,8 @@ namespace fcitx {
         bool                                  hasHistory_            = false;
         size_t                                expectedBackspaces_    = 0;
         size_t                                currentBackspaceCount_ = 0;
+        bool                                  realSelect_            = false; ///< when real shift +left is send
+        bool                                  lastSelect_            = false; ///< kind of the most recent burst, for replay
         std::u32string                        pendingCommitString_;
         std::u32string                        commitBatch_;                   ///< Text of the replacement batch, sent as one commitString
         std::unique_ptr<EventSourceTime>      deferredCommitTimer_;           ///< Pending dbus commit timer
@@ -144,7 +146,8 @@ namespace fcitx {
         bool                                  trackingModifierTap_   = false; ///< Selected modifier held, waiting for consecutive keyup
         bool                                  shiftHeld_             = false; ///< Live Shift press state tracked from key events
         bool                                  macroSkip_             = false; ///< Macro disabled for the current word
-        bool                                  isLibreoffice          = false;
+        bool                                  isLibreoffice_         = false;
+        bool                                  isChromium_            = false;
         int64_t                               replacementDeadlineMs_ = 0; ///< ms by which every injected backspace must be echoed (0 = no replacement in flight)
         int64_t                               replacementEchoGrace_  = 0; ///< deadline grace re-armed on each echo
         std::chrono::steady_clock::time_point lastCommitTime_;
@@ -157,7 +160,7 @@ namespace fcitx {
 
         /**
          * @brief Performs a reset without the uinput focus-out deferral.
-         * @param isFocusOut True when the reset comes from a focus-out event.
+         * @param isFocusOut True when the reset comes from a focus-out event. Only cleans up composition state; it never commits text.
          */
         void resetNow(bool isFocusOut);
 

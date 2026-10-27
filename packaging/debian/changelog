@@ -1,8 +1,6 @@
-fcitx5-lotus (6.0.1-1) unstable; urgency=medium
+fcitx5-lotus (6.0.2-1) unstable; urgency=medium
 
-  * Add LibreOffice workaround
-  * Ignore capitalize after shortcut
-  * Keep the missing-server warning for 20s
-  * Fix bug don't have space when typing prefix-matching macro
+  * Use Select mode in address bar of Chromium-based browser in wayland
+  * Fix bug commit composition on mouse click and handle preedit reset properly
 
- -- Nguyen Hoang Ky <nhktmdzhg@gmail.com>  Mon, 26 Oct 2026 16:10:00 +0700
+ -- Nguyen Hoang Ky <nhktmdzhg@gmail.com>  Tue, 27 Oct 2026 19:03:00 +0700

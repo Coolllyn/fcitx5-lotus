@@ -136,6 +136,7 @@ add_lotus_headless_test(TARGET uinput_server_probe SOURCES uinput-server-probe.c
 add_lotus_headless_test(TARGET preedit_backspace SOURCES preedit-backspace.cpp LABELS "integration;preedit")
 add_lotus_headless_test(TARGET select_mode_replacement SOURCES select-mode-replacement.cpp LABELS "integration;select")
 add_lotus_headless_test(TARGET select_modifier_replay SOURCES select-modifier-replay.cpp LABELS "integration;select")
+add_lotus_headless_test(TARGET chromium_address_bar SOURCES chromium-address-bar.cpp LABELS "integration;select")
 add_lotus_headless_test(TARGET select_anchor_completion SOURCES select-anchor-completion.cpp LABELS "integration;select")
 add_lotus_headless_test(TARGET select_cancel SOURCES select-cancel.cpp LABELS "integration;select")
 add_lotus_headless_test(TARGET select_cancel_reconcile SOURCES select-cancel-reconcile.cpp LABELS "integration;select")
@@ -187,7 +188,7 @@ add_lotus_headless_test(TARGET emoji_search_history SOURCES emoji-search-history
 add_lotus_headless_test(TARGET emoji_history_unit SOURCES emoji-history-unit.cpp LABELS "unit;emoji")
 
 string(MD5 LOTUS_CTEST_SOCKET_NAMESPACE "${PROJECT_BINARY_DIR}")
-set_tests_properties(smooth_buffered_key_replay focus_bounce_word_survival focus_out_mid_replacement anchor_key_protocol uinput_server_probe select_mode_replacement select_modifier_replay select_anchor_completion select_cancel select_cancel_reconcile select_word_break replacement_delays app_rule_delay_wire dbus_deferred_commit merged_replacement_commit runtime_safety
+set_tests_properties(smooth_buffered_key_replay focus_bounce_word_survival focus_out_mid_replacement anchor_key_protocol uinput_server_probe select_mode_replacement select_modifier_replay chromium_address_bar select_anchor_completion select_cancel select_cancel_reconcile select_word_break replacement_delays app_rule_delay_wire dbus_deferred_commit merged_replacement_commit runtime_safety
     PROPERTIES RESOURCE_LOCK lotus_kb_socket
     ENVIRONMENT "LOTUS_SOCKET_NAMESPACE=ctest-${LOTUS_CTEST_SOCKET_NAMESPACE}")
 

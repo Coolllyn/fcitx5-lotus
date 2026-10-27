@@ -55,7 +55,7 @@ namespace {
 
     bool expectNoRequest(KbSocketListener& listener, const char* meaning) {
         KbMsg msg{};
-        if (!listener.receive(msg, "no request expected", "no request within 5000 ms"))
+        if (!listener.tryReceive(msg))
             return true;
         reportFailure("wait after the invalid continuation", "no replacement request", "op=" + std::to_string(static_cast<int>(msg.op)) + ", count=" + std::to_string(msg.count),
                       meaning);

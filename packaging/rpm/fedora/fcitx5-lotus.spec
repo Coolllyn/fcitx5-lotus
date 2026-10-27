@@ -1,5 +1,5 @@
 Name:           fcitx5-lotus
-Version:        6.0.1
+Version:        6.0.2
 Release:        1
 Summary:        Vietnamese input method for fcitx5
 License:        GPL-3.0-or-later
@@ -114,8 +114,6 @@ fi
 %systemd_postun_with_restart fcitx5-lotus-server@.service
 
 %changelog
-* Mon Oct 26 2026 Nguyen Hoang Ky <nhktmdzhg@gmail.com> - 6.0.1-1
-- Add LibreOffice workaround
-- Ignore capitalize after shortcut
-- Keep the missing-server warning for 20s
-- Fix bug don't have space when typing prefix-matching macro
+* Tue Oct 27 2026 Nguyen Hoang Ky <nhktmdzhg@gmail.com> - 6.0.2-1
+- Use Select mode in address bar of Chromium-based browser in wayland
+- Fix bug commit composition on mouse click and handle preedit reset properly

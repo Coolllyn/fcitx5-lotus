@@ -1185,6 +1185,12 @@ namespace fcitx {
                 }
                 return true;
             } else {
+                // Buffer incoming keys during the short uinput replacement
+                // burst to prevent them from interfering with backspaces
+                // and the pending commit. Some non-text keys may be consumed
+                // during this window. Forwarding them immediately could change
+                // the cursor before replacement completes. This is a known
+                // limitation of the fast-typing buffer.
                 // The modifier is not decided here: at press time the echo counter
                 // is a racy proxy for the uinput server's Shift hold in Select
                 // mode. The raw event is buffered and the modifier is chosen when
@@ -1474,6 +1480,9 @@ namespace fcitx {
             // from key events), which means the user is holding it for a
             // genuine capital letter. Backspace-driven modes never touch
             // Shift, so their state is replayed untouched.
+            // Known limitation: Shift is sampled at replay time, not press
+            // time. A capital typed with Shift during the burst is replayed
+            // as lowercase if Shift was released before the replay runs.
             if (stripSelectShift && state.test(KeyState::Shift) && !isShiftHeld()) {
                 sym   = unshiftKeySym(sym);
                 state = state.unset(KeyState::Shift);
@@ -1599,6 +1608,9 @@ namespace fcitx {
         trackingModifierTap_ = false;
     }
 
+    // Known limitation: a single boolean tracks both Shift_L and
+    // Shift_R. Releasing either key clears shiftHeld_ even if the
+    // other Shift key is still physically held.
     void LotusState::trackShiftModifier(const KeyEvent& keyEvent) {
         const KeySym sym = keyEvent.rawKey().sym();
         if (sym == FcitxKey_Shift_L || sym == FcitxKey_Shift_R) {

@@ -1229,9 +1229,12 @@ namespace fcitx {
                 g_mouseClicked.store(true, std::memory_order_release);
                 instance_.inputContextManager().foreachFocused([this](InputContext* ic) {
                     if (ic) {
-                        auto* state = ic->propertyFor(&factory_);
-                        if (state) {
-                            state->clearAllBuffers();
+                        if (auto* state = ic->propertyFor(&factory_)) {
+                            if (currentMode() == LotusMode::Preedit && !ic->capabilityFlags().test(CapabilityFlag::ClientSideInputPanel)) {
+                                state->commitBuffer();
+                            } else {
+                                state->clearAllBuffers();
+                            }
                         }
                     }
                     return true;

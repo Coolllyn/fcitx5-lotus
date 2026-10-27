@@ -450,10 +450,7 @@ namespace fcitx {
             Text preeditText;
             preeditText.append(lotus::utf8::encode(emojiBuffer_), TextFormatFlag::Underline);
             preeditText.setCursor(static_cast<int>(preeditText.textLength()));
-            if (ic_.capabilityFlags().test(CapabilityFlag::Preedit))
-                ic_.inputPanel().setClientPreedit(preeditText);
-            else
-                ic_.inputPanel().setPreedit(preeditText);
+            ic_.inputPanel().setPreedit(preeditText);
         } else {
             ic_.inputPanel().setClientPreedit(Text());
             ic_.inputPanel().setPreedit(Text());
@@ -1298,13 +1295,6 @@ namespace fcitx {
                 shouldCapitalize_  = false;
                 isPrevPunctuation_ = false;
             }
-            if (currentMode() == LotusMode::Preedit && isFocusOut) {
-                (*lotusEngine_).commitPreedit();
-                const std::u32string commitText = pullCommitString();
-                if (!commitText.empty()) {
-                    lotus::fcitx_text::commit(&ic_, commitText, lastCommitTime_);
-                }
-            }
             (*lotusEngine_).reset();
             oldPreBuffer_.clear();
             hasHistory_ = false;
@@ -1355,6 +1345,10 @@ namespace fcitx {
         switch (currentMode()) {
             case LotusMode::Preedit: {
                 ic_.inputPanel().reset();
+                ic_.inputPanel().setClientPreedit(Text());
+                ic_.inputPanel().setPreedit(Text());
+                ic_.updatePreedit();
+                ic_.updateUserInterface(UserInterfaceComponent::InputPanel);
                 if (lotusEngine_) {
                     (*lotusEngine_).commitPreedit();
                     const std::u32string commitText = pullCommitString();

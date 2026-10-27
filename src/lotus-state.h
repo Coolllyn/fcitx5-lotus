@@ -78,7 +78,7 @@ namespace fcitx {
 
         /**
          * @brief Resets the input state.
-         * @param isFocusOut If true, indicates the reset is due to a focus-out event, which may trigger committing the preedit text.
+         * @param isFocusOut If true, the reset comes from a focus-out event. Focus-out never commits text: fcitx5 core or the client (CapabilityFlag::ClientUnfocusCommit) owns that commit.
          */
         void reset(bool isFocusOut = false);
 
@@ -160,7 +160,7 @@ namespace fcitx {
 
         /**
          * @brief Performs a reset without the uinput focus-out deferral.
-         * @param isFocusOut True when the reset comes from a focus-out event.
+         * @param isFocusOut True when the reset comes from a focus-out event. Only cleans up composition state; it never commits text.
          */
         void resetNow(bool isFocusOut);
 

@@ -97,14 +97,14 @@ int run_data() {
     check("french layout é", kInputMethodDefinitions.at(static_cast<std::size_t>(InputMethodId::VniFrench)).at("é") == "DauSac");
 
     // Case map.
-    check("case pair count", kLowerUpperPairs.size() == 108);
+    check("case pair count", kLowerUpperPairs.size() == 82);
     check("case pair ơ", pick(kLowerUpperPairs, U'ơ') == U'Ơ');
     check("case pair đ", pick(kLowerUpperPairs, U'đ') == U'Đ');
     check("letters sorted", std::is_sorted(kLetters.begin(), kLetters.end()));
-    check("letters size", kLetters.size() == 217);
+    check("letters size", kLetters.size() == 165);
     check("letters has đ", std::binary_search(kLetters.begin(), kLetters.end(), U'đ'));
     check("letters has é", std::binary_search(kLetters.begin(), kLetters.end(), U'é'));
-    check("letters has Z", std::binary_search(kLetters.begin(), kLetters.end(), U'Z'));
+    check("letters has no ascii Z", !std::binary_search(kLetters.begin(), kLetters.end(), U'Z'));
     check("letters has no digit", !std::binary_search(kLetters.begin(), kLetters.end(), U'0'));
     check("letters has no bang", !std::binary_search(kLetters.begin(), kLetters.end(), U'!'));
 

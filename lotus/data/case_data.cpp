@@ -7,10 +7,12 @@
 
 #include "data/case_data.h"
 
-namespace lotus::data {
+#include <algorithm>
+#include <string_view>
 
-    const std::vector<std::pair<char32_t, char32_t>>& lowerUpperPairs() {
-        static const std::vector<std::pair<char32_t, char32_t>> kPairs = {
+namespace lotus::data {
+    namespace {
+        constexpr auto                kLowerUpperData = std::to_array<std::pair<char32_t, char32_t>>({
             {U'a', U'A'}, {U'b', U'B'}, {U'c', U'C'}, {U'd', U'D'}, {U'e', U'E'}, {U'f', U'F'}, {U'g', U'G'}, {U'h', U'H'}, {U'i', U'I'}, {U'j', U'J'}, {U'k', U'K'}, {U'l', U'L'},
             {U'm', U'M'}, {U'n', U'N'}, {U'o', U'O'}, {U'p', U'P'}, {U'q', U'Q'}, {U'r', U'R'}, {U's', U'S'}, {U't', U'T'}, {U'u', U'U'}, {U'v', U'V'}, {U'w', U'W'}, {U'x', U'X'},
             {U'y', U'Y'}, {U'z', U'Z'}, {U'à', U'À'}, {U'á', U'Á'}, {U'â', U'Â'}, {U'ã', U'Ã'}, {U'ä', U'Ä'}, {U'å', U'Å'}, {U'æ', U'Æ'}, {U'ç', U'Ç'}, {U'è', U'È'}, {U'é', U'É'},
@@ -20,12 +22,8 @@ namespace lotus::data {
             {U'ẳ', U'Ẳ'}, {U'ẵ', U'Ẵ'}, {U'ặ', U'Ặ'}, {U'ẹ', U'Ẹ'}, {U'ẻ', U'Ẻ'}, {U'ẽ', U'Ẽ'}, {U'ế', U'Ế'}, {U'ề', U'Ề'}, {U'ể', U'Ể'}, {U'ễ', U'Ễ'}, {U'ệ', U'Ệ'}, {U'ỉ', U'Ỉ'},
             {U'ị', U'Ị'}, {U'ọ', U'Ọ'}, {U'ỏ', U'Ỏ'}, {U'ố', U'Ố'}, {U'ồ', U'Ồ'}, {U'ổ', U'Ổ'}, {U'ỗ', U'Ỗ'}, {U'ộ', U'Ộ'}, {U'ớ', U'Ớ'}, {U'ờ', U'Ờ'}, {U'ở', U'Ở'}, {U'ỡ', U'Ỡ'},
             {U'ợ', U'Ợ'}, {U'ụ', U'Ụ'}, {U'ủ', U'Ủ'}, {U'ứ', U'Ứ'}, {U'ừ', U'Ừ'}, {U'ử', U'Ử'}, {U'ữ', U'Ữ'}, {U'ự', U'Ự'}, {U'ỳ', U'Ỳ'}, {U'ỵ', U'Ỵ'}, {U'ỷ', U'Ỷ'}, {U'ỹ', U'Ỹ'},
-        };
-        return kPairs;
-    }
-
-    const std::vector<std::pair<char32_t, char32_t>>& upperLowerPairs() {
-        static const std::vector<std::pair<char32_t, char32_t>> kPairs = {
+        });
+        constexpr auto                kUpperLowerData = std::to_array<std::pair<char32_t, char32_t>>({
             {U'A', U'a'}, {U'B', U'b'}, {U'C', U'c'}, {U'D', U'd'}, {U'E', U'e'}, {U'F', U'f'}, {U'G', U'g'}, {U'H', U'h'}, {U'I', U'i'}, {U'J', U'j'}, {U'K', U'k'}, {U'L', U'l'},
             {U'M', U'm'}, {U'N', U'n'}, {U'O', U'o'}, {U'P', U'p'}, {U'Q', U'q'}, {U'R', U'r'}, {U'S', U's'}, {U'T', U't'}, {U'U', U'u'}, {U'V', U'v'}, {U'W', U'w'}, {U'X', U'x'},
             {U'Y', U'y'}, {U'Z', U'z'}, {U'À', U'à'}, {U'Á', U'á'}, {U'Â', U'â'}, {U'Ã', U'ã'}, {U'Ä', U'ä'}, {U'Å', U'å'}, {U'Æ', U'æ'}, {U'Ç', U'ç'}, {U'È', U'è'}, {U'É', U'é'},
@@ -35,13 +33,19 @@ namespace lotus::data {
             {U'Ẳ', U'ẳ'}, {U'Ẵ', U'ẵ'}, {U'Ặ', U'ặ'}, {U'Ẹ', U'ẹ'}, {U'Ẻ', U'ẻ'}, {U'Ẽ', U'ẽ'}, {U'Ế', U'ế'}, {U'Ề', U'ề'}, {U'Ể', U'ể'}, {U'Ễ', U'ễ'}, {U'Ệ', U'ệ'}, {U'Ỉ', U'ỉ'},
             {U'Ị', U'ị'}, {U'Ọ', U'ọ'}, {U'Ỏ', U'ỏ'}, {U'Ố', U'ố'}, {U'Ồ', U'ồ'}, {U'Ổ', U'ổ'}, {U'Ỗ', U'ỗ'}, {U'Ộ', U'ộ'}, {U'Ớ', U'ớ'}, {U'Ờ', U'ờ'}, {U'Ở', U'ở'}, {U'Ỡ', U'ỡ'},
             {U'Ợ', U'ợ'}, {U'Ụ', U'ụ'}, {U'Ủ', U'ủ'}, {U'Ứ', U'ứ'}, {U'Ừ', U'ừ'}, {U'Ử', U'ử'}, {U'Ữ', U'ữ'}, {U'Ự', U'ự'}, {U'Ỳ', U'ỳ'}, {U'Ỵ', U'ỵ'}, {U'Ỷ', U'ỷ'}, {U'Ỹ', U'ỹ'},
-        };
-        return kPairs;
-    }
+        });
 
-    std::u32string_view letters() {
-        return U"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿĂăĐđĨĩŨũŸƠơƯưẠạẢảẤấẦầẨẩẪẫẬậẮắẰằẲẳẴẵẶặẸẹẺẻẼẽẾếỀềỂ"
-               U"ểỄễỆệỈỉỊịỌọỎỏỐốỒồỔổỖỗỘộỚớỜờỞởỠỡỢợỤụỦủỨứỪừỬửỮữỰựỲỳỴỵỶỷỸỹ";
-    }
+        constexpr std::u32string_view kLettersView =
+            U"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿĂăĐđĨĩŨũŸƠơƯưẠạẢảẤấẦầẨẩẪẫẬậẮắẰằẲẳẴẵẶặẸẹẺẻẼẽẾếỀềỂ"
+            "ểỄễỆệỈỉỊịỌọỎỏỐốỒồỔổỖỗỘộỚớỜờỞởỠỡỢợỤụỦủỨứỪừỬửỮữỰựỲỳỴỵỶỷỸỹ";
+    } // namespace
+
+    constinit const std::span<const std::pair<char32_t, char32_t>> kLowerUpperPairs{kLowerUpperData};
+    constinit const std::span<const std::pair<char32_t, char32_t>> kUpperLowerPairs{kUpperLowerData};
+    constinit const std::span<const char32_t>                      kLetters{kLettersView};
+
+    static_assert(std::ranges::is_sorted(kLowerUpperData, {}, &std::pair<char32_t, char32_t>::first));
+    static_assert(std::ranges::is_sorted(kUpperLowerData, {}, &std::pair<char32_t, char32_t>::first));
+    static_assert(std::ranges::is_sorted(kLettersView));
 
 } // namespace lotus::data

@@ -61,7 +61,7 @@ int run_data() {
     check("vowel index 6", kVowels[6] == U'ă');
     check("vowel tail", kVowels.substr(66, 6) == U"yỳýỷỹỵ");
     check("punctuation count", kPunctuationMarks.size() == 33);
-    check("punctuation backslash", std::find(kPunctuationMarks.begin(), kPunctuationMarks.end(), U'\\') != kPunctuationMarks.end());
+    check("punctuation backslash", std::ranges::find(kPunctuationMarks, U'\\') != kPunctuationMarks.end());
     check("mark family count", kMarkFamilies.size() == 12);
     check("mark family 'ơ'", pick(kMarkFamilies, U'ơ') == U"oô_ơ_");
     check("mark family 'd'", pick(kMarkFamilies, U'd') == U"d___đ");
@@ -100,13 +100,13 @@ int run_data() {
     check("case pair count", kLowerUpperPairs.size() == 82);
     check("case pair ơ", pick(kLowerUpperPairs, U'ơ') == U'Ơ');
     check("case pair đ", pick(kLowerUpperPairs, U'đ') == U'Đ');
-    check("letters sorted", std::is_sorted(kLetters.begin(), kLetters.end()));
+    check("letters sorted", std::ranges::is_sorted(kLetters));
     check("letters size", kLetters.size() == 165);
-    check("letters has đ", std::binary_search(kLetters.begin(), kLetters.end(), U'đ'));
-    check("letters has é", std::binary_search(kLetters.begin(), kLetters.end(), U'é'));
-    check("letters has no ascii Z", !std::binary_search(kLetters.begin(), kLetters.end(), U'Z'));
-    check("letters has no digit", !std::binary_search(kLetters.begin(), kLetters.end(), U'0'));
-    check("letters has no bang", !std::binary_search(kLetters.begin(), kLetters.end(), U'!'));
+    check("letters has đ", std::ranges::binary_search(kLetters, U'đ'));
+    check("letters has é", std::ranges::binary_search(kLetters, U'é'));
+    check("letters has no ascii Z", !std::ranges::binary_search(kLetters, U'Z'));
+    check("letters has no digit", !std::ranges::binary_search(kLetters, U'0'));
+    check("letters has no bang", !std::ranges::binary_search(kLetters, U'!'));
 
     if (failures != 0) {
         std::printf("%d failure(s)\n", failures);

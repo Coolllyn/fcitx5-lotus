@@ -7,7 +7,6 @@
  *
  */
 #include "lotus-state.h"
-#include "common-fd-guard.h"
 #include "lotus-engine.h"
 #include "lotus-candidates.h"
 #include "lotus-fcitx-text.h"
@@ -90,27 +89,13 @@ namespace fcitx {
         lotusEngine_->setOptions(option);
     }
 
-    int LotusState::setupUinput() {
-        return ensureUinputServerConnected() ? g_uinputClientFd.load(std::memory_order_acquire) : -1;
+    bool LotusState::setupUinput() {
+        return engine_.kbSender().ensureConnected();
     }
 
     void LotusState::sendKbMsg(KbOp op, size_t count, uint32_t preDelay, uint32_t interval, uint32_t postDelay) {
-        if (g_uinputClientFd.load(std::memory_order_acquire) < 0 && !ensureUinputServerConnected()) {
-            LOTUS_ERROR("Cannot send key request since cannot connect to uinput server");
-            return;
-        }
-
         const KbMsg msg{.op = op, .count = count, .preDelay = preDelay, .interval = interval, .postDelay = postDelay};
-        ssize_t     n = send(g_uinputClientFd.load(std::memory_order_acquire), &msg, sizeof(msg), MSG_NOSIGNAL);
-
-        if (n < 0) {
-            LOTUS_WARN("Failed to send key request: " + std::string(strerror(errno)));
-            FdGuard oldFd(g_uinputClientFd.exchange(-1, std::memory_order_acq_rel));
-            if (ensureUinputServerConnected()) {
-                LOTUS_INFO("Reconnected to uinput server successfully");
-                send(g_uinputClientFd.load(std::memory_order_acquire), &msg, sizeof(msg), MSG_NOSIGNAL);
-            }
-        }
+        engine_.kbSender().send(msg);
     }
 
     void LotusState::sendBackspaceUinput(size_t count, uint32_t preDelay, uint32_t interval, uint32_t postDelay) {
@@ -669,7 +654,7 @@ namespace fcitx {
         if (forwardSpecialKey(keyEvent, currentSym))
             return;
 
-        if (g_uinputClientFd.load(std::memory_order_acquire) < 0) {
+        if (!engine_.kbSender().connected()) {
             setupUinput();
         }
 
@@ -766,7 +751,7 @@ namespace fcitx {
                 continue;
             }
 
-            if (g_uinputClientFd.load(std::memory_order_acquire) < 0) {
+            if (!engine_.kbSender().connected()) {
                 LOTUS_ERROR("Cannot connect to uinput server, commit rawkey");
                 std::string rawKey = keyEvent.key().toString();
                 if (!rawKey.empty()) {
@@ -930,8 +915,8 @@ namespace fcitx {
         if (forwardSpecialKey(keyEvent, currentSym))
             return;
 
-        if (g_uinputClientFd.load(std::memory_order_acquire) < 0) {
-            ensureUinputServerConnected();
+        if (!engine_.kbSender().connected()) {
+            engine_.kbSender().ensureConnected();
         }
 
         if (isBackspace(currentSym)) {
@@ -968,7 +953,7 @@ namespace fcitx {
             if (isMacroExpansion) {
                 LOTUS_INFO("Macro expansion: '" + lotus::utf8::encode(oldPreBuffer_) + "' -> '" + lotus::utf8::encode(commitStr) + "'");
                 // Try uinput replacement first, fallback to deleteSurroundingText, then plain commit
-                if (g_uinputClientFd.load(std::memory_order_acquire) >= 0 && !oldPreBuffer_.empty()) {
+                if (engine_.kbSender().connected() && !oldPreBuffer_.empty()) {
                     performReplacement({.deletedPart = oldPreBuffer_, .addedPart = commitStr});
                 } else if (ic_.capabilityFlags().test(CapabilityFlag::SurroundingText)) {
                     const auto& surrounding = ic_.surroundingText();
@@ -1063,9 +1048,9 @@ namespace fcitx {
     }
 
     void LotusState::ensureUinputConnection() {
-        if (g_uinputClientFd.load(std::memory_order_acquire) < 0) {
+        if (!engine_.kbSender().connected()) {
             LOTUS_WARN("Cannot connect to uinput server, reconnecting....");
-            ensureUinputServerConnected();
+            engine_.kbSender().ensureConnected();
         }
     }
 
@@ -1549,7 +1534,7 @@ namespace fcitx {
                     continue;
                 }
 
-                if (g_uinputClientFd.load(std::memory_order_acquire) < 0) {
+                if (!engine_.kbSender().connected()) {
                     appendCommit(keyText);
                     break;
                 }

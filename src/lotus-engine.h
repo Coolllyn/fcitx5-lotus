@@ -28,6 +28,7 @@
 #include <fcitx-utils/event.h>
 #include <fcitx-utils/keysym.h>
 #include "common-export.h"
+#include "lotus-kb-sender.h"
 
 // Owned through shared/unique pointers, so the full types stay in the .cpp files.
 namespace lotus {
@@ -61,6 +62,14 @@ namespace fcitx {
          */
         Instance* instance() const {
             return &instance_;
+        }
+
+        /**
+         * @brief Gets the keyboard request sender that owns the uinput keyboard socket.
+         * @return Sender used by every burst.
+         */
+        KbSender& kbSender() {
+            return kbSender_;
         }
 
         /**
@@ -214,6 +223,7 @@ namespace fcitx {
         std::shared_ptr<const lotus::MacroTable>             macroTable_;
         lotusAppRules                                        appRulesTables_;
 
+        KbSender                                             kbSender_;
         FactoryFor<LotusState>                               factory_;
 
         std::unique_ptr<SimpleAction>                        charsetAction_;
@@ -386,7 +396,7 @@ namespace fcitx {
          * @brief Warns through the desktop when a uinput mode is selected but the server is down.
          * @param mode Mode that was just selected.
          */
-        static void checkServerForMode(LotusMode mode);
+        void checkServerForMode(LotusMode mode);
 
         /**
          * @brief Get name of current program

@@ -6,7 +6,6 @@
  *
  */
 #include "lotus-utils.h"
-#include "common-fd-guard.h"
 #include "common-socket-name.h"
 #include "lotus-log.h"
 
@@ -30,7 +29,6 @@ std::atomic<fcitx::LotusMode> g_realMode{fcitx::LotusMode::Smooth};
 std::atomic<bool>             g_mouseClicked{false};
 std::atomic<bool>             g_isDeleting{false};
 std::atomic<bool>             g_stopFlagMonitor{false};
-std::atomic<int>              g_uinputClientFd{-1};
 std::atomic<unsigned int>     g_realTextLen{0};
 std::atomic<int>              g_mouseSocketFd{-1};
 
@@ -80,10 +78,6 @@ int makeAbstractUnixSocket(std::string_view name, struct sockaddr_un& addr, sock
     return fd;
 }
 
-void closeUinputClient() {
-    FdGuard oldFd(g_uinputClientFd.exchange(-1, std::memory_order_acq_rel));
-}
-
 std::string lotusConfigDir() {
 #if LOTUS_USE_MODERN_FCITX_API
     return (fcitx::StandardPaths::global().userDirectory(fcitx::StandardPathsType::Config) / "fcitx5" / "conf").string();
@@ -103,27 +97,6 @@ bool isBackspace(uint32_t sym) {
 uint32_t engineKeyValue(uint32_t sym) {
     const uint32_t codePoint = fcitx::Key::keySymToUnicode(static_cast<fcitx::KeySym>(sym));
     return codePoint >= 0x20U ? codePoint : sym;
-}
-
-bool ensureUinputServerConnected() {
-    if (g_uinputClientFd.load(std::memory_order_acquire) >= 0) {
-        return true;
-    }
-    const std::string  currentPath = buildSocketPath("kbSocket");
-    struct sockaddr_un addr{};
-    socklen_t          len = 0;
-    FdGuard            currentFd(makeAbstractUnixSocket(currentPath, addr, len));
-    if (!currentFd.isValid()) {
-        LOTUS_ERROR("Failed to create socket: " + std::string(strerror(errno)));
-        return false;
-    }
-    if (connect(currentFd.get(), reinterpret_cast<struct sockaddr*>(&addr), len) == 0) {
-        g_uinputClientFd.store(currentFd.release(), std::memory_order_release);
-        return true;
-    }
-    LOTUS_ERROR("Failed to connect to socket: " + std::string(strerror(errno)));
-    closeUinputClient();
-    return false;
 }
 
 bool isUinputMode(fcitx::LotusMode mode) {

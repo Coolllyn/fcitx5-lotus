@@ -167,7 +167,8 @@ namespace fcitx {
         return dictionary_;
     }
 
-    LotusEngine::LotusEngine(Instance* instance) : instance_(*instance), factory_([this](InputContext& ic) { return new LotusState(this, &ic); }) { //NOLINT
+    LotusEngine::LotusEngine(Instance* instance) :
+        instance_(*instance), kbSender_(buildSocketPath("kbSocket")), factory_([this](InputContext& ic) { return new LotusState(this, &ic); }) { //NOLINT
         std::string desktop = getEnv("XDG_CURRENT_DESKTOP");
         isGnome_            = (!desktop.empty()) && desktop.find("GNOME") != std::string::npos;
         // emptyCustomKeymap_.customKeymap is implicitly initialized to empty by fcitx::Option default value macro.
@@ -265,7 +266,6 @@ namespace fcitx {
         if (fd.isValid()) {
             shutdown(fd.get(), SHUT_RDWR);
         }
-        closeUinputClient();
         LOTUS_INFO("Engine destroyed.");
     }
 
@@ -432,7 +432,7 @@ namespace fcitx {
         state->deletionInterruptedAt_ = 0;
 
         if (!resumeReplacement) {
-            LotusState::cancelPendingUinput();
+            state->cancelPendingUinput();
             g_isDeleting.store(false, std::memory_order_release);
         }
 
@@ -1109,7 +1109,7 @@ namespace fcitx {
     }
 
     void LotusEngine::checkServerForMode(LotusMode mode) {
-        if (isUinputMode(mode) && !ensureUinputServerConnected()) {
+        if (isUinputMode(mode) && !kbSender_.ensureConnected()) {
             notifyMissingUinputServer();
         }
     }

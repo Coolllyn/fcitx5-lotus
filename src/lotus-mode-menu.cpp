@@ -81,7 +81,7 @@ namespace fcitx {
     }
 
     bool isAppModeMenuReservedKey(KeySym sym, const lotusConfig& config) {
-        std::array<KeySym, 10> modeShortcuts{};
+        std::array<KeySym, kModeNames.size()> modeShortcuts{};
         std::ranges::transform(kModeNames, modeShortcuts.begin(), [&config](const ModeNameEntry& nameEntry) {
             if (nameEntry.mode.has_value()) {
                 return modeShortcut(config, *nameEntry.mode);
@@ -92,9 +92,15 @@ namespace fcitx {
             return true;
         }
 
-        static const std::array<KeySym, 7> reservedMenuKeys = {
-            FcitxKey_Escape, FcitxKey_Tab, FcitxKey_ISO_Left_Tab, FcitxKey_Return, FcitxKey_space, FcitxKey_Up, FcitxKey_Down,
-        };
+        static const auto reservedMenuKeys = std::to_array<KeySym>({
+            FcitxKey_Escape,
+            FcitxKey_Tab,
+            FcitxKey_ISO_Left_Tab,
+            FcitxKey_Return,
+            FcitxKey_space,
+            FcitxKey_Up,
+            FcitxKey_Down,
+        });
         return std::ranges::find(reservedMenuKeys, sym) != reservedMenuKeys.end();
     }
 

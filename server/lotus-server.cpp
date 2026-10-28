@@ -260,31 +260,29 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    constexpr std::size_t        kKeyboardServerIndex = 0U; ///< Slot of the keyboard socket server fd
-    constexpr std::size_t        kMouseServerIndex    = 2U; ///< Slot of the mouse socket server fd
-    constexpr std::size_t        kKbClientIndex       = 3U; ///< Slot of the connected keyboard socket client
+    constexpr std::size_t kKeyboardServerIndex = 0U; ///< Slot of the keyboard socket server fd
+    constexpr std::size_t kMouseServerIndex    = 2U; ///< Slot of the mouse socket server fd
+    constexpr std::size_t kKbClientIndex       = 3U; ///< Slot of the connected keyboard socket client
 
-    std::array<struct pollfd, 4> fds{
-        {
-            {.fd = serverFd.get(), .events = POLLIN, .revents = 0},
-            {.fd = li_ctx.getFd(), .events = POLLIN, .revents = 0},
-            {.fd = mouseServerFd.get(), .events = POLLIN, .revents = 0},
-            {.fd = -1, .events = POLLIN, .revents = 0},
-        },
-    };
+    auto                  fds = std::to_array<struct pollfd>({
+        {.fd = serverFd.get(), .events = POLLIN, .revents = 0},
+        {.fd = li_ctx.getFd(), .events = POLLIN, .revents = 0},
+        {.fd = mouseServerFd.get(), .events = POLLIN, .revents = 0},
+        {.fd = -1, .events = POLLIN, .revents = 0},
+    });
 
-    FdGuard          addonFd;
-    FdGuard          kbClientFd;
-    size_t           pendingBackspaces   = 0;
-    size_t           pendingSelects      = 0;     ///< remaining Shift+Left events to pace out
-    bool             pendingAnchor       = false; ///< anchor key still to be injected after the backspace burst
-    bool             pendingSelectAnchor = false; ///< Shift release + Delete + anchor still to run after the left burst
-    bool             shiftHeld           = false; ///< the server pressed KEY_LEFTSHIFT for an in-flight selection
+    FdGuard               addonFd;
+    FdGuard               kbClientFd;
+    size_t                pendingBackspaces   = 0;
+    size_t                pendingSelects      = 0;     ///< remaining Shift+Left events to pace out
+    bool                  pendingAnchor       = false; ///< anchor key still to be injected after the backspace burst
+    bool                  pendingSelectAnchor = false; ///< Shift release + Delete + anchor still to run after the left burst
+    bool                  shiftHeld           = false; ///< the server pressed KEY_LEFTSHIFT for an in-flight selection
 
-    uint32_t         currentPostDelay = 0; ///< stores postDelay from KbMsg
-    uint32_t         currentInterval  = 5; ///< ms between injected keys within one request
+    uint32_t              currentPostDelay = 0; ///< stores postDelay from KbMsg
+    uint32_t              currentInterval  = 5; ///< ms between injected keys within one request
 
-    struct sigaction sa{};
+    struct sigaction      sa{};
     sa.sa_handler = signalHandler;
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = 0;

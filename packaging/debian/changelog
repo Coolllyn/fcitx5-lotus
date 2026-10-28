@@ -1,6 +1,6 @@
-fcitx5-lotus (6.0.2-1) unstable; urgency=medium
+fcitx5-lotus (6.0.3-1) unstable; urgency=medium
 
-  * Use Select mode in address bar of Chromium-based browser in wayland
-  * Fix bug commit composition on mouse click and handle preedit reset properly
+  * Fix bug where menu mode is displayed repeatedly
+  * Fix bug cannot type in Chromium incognito
 
- -- Nguyen Hoang Ky <nhktmdzhg@gmail.com>  Tue, 27 Oct 2026 19:03:00 +0700
+ -- Nguyen Hoang Ky <nhktmdzhg@gmail.com>  Wed, 28 Oct 2026 16:20:00 +0700

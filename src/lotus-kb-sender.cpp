@@ -35,7 +35,10 @@ bool KbSender::ensureConnected() {
 
 bool KbSender::send(const KbMsg& msg) {
     std::scoped_lock lock(mutex_);
-    if (!fd_.isValid() && !connectLocked()) {
+    if (!fd_.isValid()) {
+        connectLocked();
+    }
+    if (!fd_.isValid()) {
         LOTUS_ERROR("Cannot send key request since cannot connect to uinput server");
         return false;
     }

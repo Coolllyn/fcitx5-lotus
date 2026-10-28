@@ -611,7 +611,7 @@ namespace fcitx {
 
         auto* state = ic->propertyFor(&factory_);
 
-        if (ic->capabilityFlags().testAny(CapabilityFlag::PasswordOrSensitive)) {
+        if (ic->capabilityFlags().testAny(CapabilityFlag::Password)) {
             if (state != nullptr) {
                 state->reset();
             }

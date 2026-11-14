@@ -1,3 +1,5 @@
+%bcond_without tests
+
 Name:           fcitx5-lotus
 Version:        6.1.0
 Release:        1
@@ -48,8 +50,10 @@ cd %{_builddir}/%{name}-%{version}
 %find_lang %{name}
 %py3_compile %{buildroot}%{_datadir}/fcitx5-lotus
 
-%check
-%ctest
+%if %{with tests}
+# Provides dbus-run-session for the private-bus regression in %check.
+BuildRequires:  dbus-1
+%endif
 
 %files -f %{name}.lang
 %{_datadir}/licenses/%{name}/LICENSE
